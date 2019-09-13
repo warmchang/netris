@@ -2,21 +2,43 @@ package mino
 
 import (
 	"sort"
+	"strconv"
 	"strings"
 )
 
 type Mino []Point
 
-func (m Mino) String() string {
-	var s strings.Builder
-	for i, p := range m {
-		if i > 0 {
-			s.WriteString(", ")
-		}
-		s.WriteString(p.String())
+func (m Mino) Equal(other Mino) bool {
+	if len(m) != len(other) {
+		return false
 	}
 
-	return s.String()
+	for i := 0; i < len(m); i++ {
+		if !m.HasPoint(other[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (m Mino) String() string {
+	sort.Sort(m)
+
+	var b strings.Builder
+	for i, p := range m.translateToOrigin() {
+		if i > 0 {
+			b.WriteRune(',')
+		}
+
+		b.WriteRune('(')
+		b.WriteString(strconv.Itoa(p.X))
+		b.WriteRune(',')
+		b.WriteString(strconv.Itoa(p.Y))
+		b.WriteRune(')')
+	}
+
+	return b.String()
 }
 
 func (m Mino) Len() int      { return len(m) }
@@ -25,27 +47,31 @@ func (m Mino) Less(i, j int) bool {
 	return m[i].Y < m[j].Y || (m[i].Y == m[j].Y && m[i].X < m[j].X)
 }
 
-func (m Mino) Width() int {
-	w := 0
+func (m Mino) Size() (int, int) {
+	var x, y int
 	for _, p := range m {
-		if p.X > w {
-			w = p.X
+		if p.X > x {
+			x = p.X
+		}
+		if p.Y > y {
+			y = p.Y
 		}
 	}
 
-	return w
+	return x + 1, y + 1
 }
 
 func (m Mino) Render() string {
 	sort.Sort(m)
 
 	var b strings.Builder
-	b.WriteString(" ")
+	b.WriteRune(' ')
 
 	c := Point{0, 0}
 	for _, p := range m {
 		if p.Y > c.Y {
-			b.WriteString("\n ")
+			b.WriteRune('\n')
+			b.WriteRune(' ')
 			c.X = 0
 		}
 		if p.X > c.X {
@@ -88,48 +114,113 @@ func (m Mino) minCoords() (int, int) {
 
 func (m Mino) translateToOrigin() Mino {
 	minx, miny := m.minCoords()
-	newMino := make(Mino, len(m))
 	for i, p := range m {
-		newMino[i] = Point{p.X - minx, p.Y - miny}
+		m[i].X = p.X - minx
+		m[i].Y = p.Y - miny
 	}
-	sort.Sort(newMino)
-	return newMino
+	return m
 }
+
+func (m Mino) rotate(deg int) Mino {
+	var rotateFunc func(Point) Point
+	switch deg {
+	case 90:
+		rotateFunc = Point.Rotate90
+	case 180:
+		rotateFunc = Point.Rotate180
+	case 270:
+		rotateFunc = Point.Rotate270
+	default:
+		return m
+	}
+
+	for i := 0; i < len(m); i++ {
+		m[i] = rotateFunc(m[i])
+	}
+
+	return m
+}
+
 func (m Mino) variations() []Mino {
-	rr := make([]Mino, 8)
-	for i := 0; i < 8; i++ {
-		rr[i] = make(Mino, len(m))
+	v := make([]Mino, 3)
+	for i := 0; i < 3; i++ {
+		v[i] = make(Mino, len(m))
 	}
-	copy(rr[0], m)
+
 	for j := 0; j < len(m); j++ {
-		rr[1][j] = m[j].rotate90()
-		rr[2][j] = m[j].rotate180()
-		rr[3][j] = m[j].rotate270()
-		rr[4][j] = m[j].reflect()
-		rr[5][j] = m[j].rotate90().reflect()
-		rr[6][j] = m[j].rotate180().reflect()
-		rr[7][j] = m[j].rotate270().reflect()
+		v[0][j] = m[j].Rotate90()
+		v[1][j] = m[j].Rotate180()
+		v[2][j] = m[j].Rotate270()
 	}
-	return rr
+
+	return v
 }
 
 func (m Mino) canonical() Mino {
-	rr := m.variations()
-	minr := rr[0].translateToOrigin()
-	mins := minr.String()
-	for i := 1; i < 8; i++ {
-		r := rr[i].translateToOrigin()
-		s := r.String()
-		if s < mins {
-			minr = r
-			mins = s
+	var (
+		ms = m.String()
+		c  = -1
+		v  = m.variations()
+		vs string
+	)
+
+	for i := 0; i < 3; i++ {
+		vs = v[i].String()
+		if vs < ms {
+			c = i
+			ms = vs
 		}
 	}
-	return minr
+
+	if c == -1 {
+		return m.flatten()
+	}
+
+	return v[c].flatten()
+}
+
+func (m Mino) flatten() Mino {
+	w, h := m.Size()
+
+	var top, right, bottom, left int
+	for i := 0; i < len(m); i++ {
+		if m[i].Y == 0 {
+			top++
+		} else if m[i].Y == (h - 1) {
+			bottom++
+		}
+
+		if m[i].X == 0 {
+			left++
+		} else if m[i].X == (w - 1) {
+			right++
+		}
+	}
+
+	flattest := bottom
+	var rotate int
+	if left > flattest {
+		flattest = left
+		rotate = 90
+	}
+	if top > flattest {
+		flattest = top
+		rotate = 180
+	}
+	if right > flattest {
+		flattest = right
+		rotate = 270
+	}
+	if rotate > 0 {
+		m = m.rotate(rotate)
+	}
+
+	return m
 }
 
 func (m Mino) newPoints() Mino {
-	newMino := Mino{}
+	var newMino Mino
+
 	for _, p := range m {
 		n := p.Neighborhood()
 		for _, np := range n {
@@ -138,17 +229,20 @@ func (m Mino) newPoints() Mino {
 			}
 		}
 	}
+
 	return newMino
 }
 
 func (m Mino) newMinos() []Mino {
-	pts := m.newPoints()
-	res := make([]Mino, len(pts))
-	for i, pt := range pts {
-		poly := make(Mino, len(m))
-		copy(poly, m)
-		poly = append(poly, pt)
-		res[i] = poly.canonical()
+	mino := make(Mino, len(m))
+	copy(mino, m)
+
+	points := m.newPoints()
+	minos := make([]Mino, len(points))
+
+	for i, p := range points {
+		minos[i] = append(mino, p).canonical()
 	}
-	return res
+
+	return minos
 }

@@ -2,3 +2,5 @@
 dist/
 *.sh
 vendor/
+cmd/netris-server/netris-server
+cmd/netris/netris

@@ -2,6 +2,7 @@ package matrix
 
 import (
 	"fmt"
+
 	"git.sr.ht/~tslocum/netris/pkg/mino"
 )
 
@@ -20,10 +21,10 @@ func NewMatrix(w int, h int, b int) *Matrix {
 }
 
 func (m *Matrix) Print() {
-for x := 0; x < m.W; x++ {
-	for y := 0; y < m.W; y++ {
-		fmt.Print(m.M[m.I(x, y)])
+	for x := 0; x < m.W; x++ {
+		for y := 0; y < m.W; y++ {
+			fmt.Print(m.M[m.I(x, y)])
+		}
+		fmt.Println()
 	}
-	fmt.Println()
-}
 }

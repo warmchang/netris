@@ -22,7 +22,7 @@ type ConnectingPlayer struct {
 	Name string
 }
 
-func NewPlayer(c ConnectingPlayer) *Player {
+func NewPlayer(c *ConnectingPlayer) *Player {
 	in := make(chan GameCommand, CommandQueueSize)
 	out := make(chan GameCommand, CommandQueueSize)
 
@@ -34,13 +34,13 @@ func NewPlayer(c ConnectingPlayer) *Player {
 }
 
 type ClientInterface interface {
-	Attach(in <-chan GameCommand, out chan<- GameCommand)
+	Attach(in chan<- GameCommand, out <-chan GameCommand)
 	Detach(reason string)
 }
 
 type ServerInterface interface {
 	// Load config
-	Host(newPlayers <-chan ConnectingPlayer)
+	Host(newPlayers chan<- *ConnectingPlayer)
 	Shutdown(reason string)
 }
 
@@ -59,7 +59,7 @@ func NewServer(si []ServerInterface) *Server {
 
 	s := &Server{I: si, In: in, Out: out}
 
-	newPlayers := make(chan ConnectingPlayer, CommandQueueSize)
+	newPlayers := make(chan *ConnectingPlayer, CommandQueueSize)
 
 	go s.accept(newPlayers)
 
@@ -70,7 +70,7 @@ func NewServer(si []ServerInterface) *Server {
 	return s
 }
 
-func (s *Server) accept(newPlayers <-chan ConnectingPlayer) {
+func (s *Server) accept(newPlayers <-chan *ConnectingPlayer) {
 	for {
 		np := <-newPlayers
 

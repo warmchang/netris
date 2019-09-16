@@ -1,8 +1,6 @@
 package ssh
 
 import (
-	"fmt"
-	"io"
 	"log"
 	"os"
 	"path"
@@ -14,11 +12,13 @@ import (
 type SSHServer struct {
 }
 
-func (s *SSHServer) Host(newPlayers <-chan player.ConnectingPlayer) {
+func (s *SSHServer) Host(newPlayers chan<- *player.ConnectingPlayer) {
 	ssh.Handle(func(s ssh.Session) {
-		io.WriteString(s, fmt.Sprintf("Hello %s\n", s.User()))
+		c := NewSSHClient(s)
 
-		select {}
+		newPlayers <- &player.ConnectingPlayer{Client: c, Name: s.User()}
+
+		<-c.Terminated
 	})
 
 	publicKeyOption := ssh.PublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {

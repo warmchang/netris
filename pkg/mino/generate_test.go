@@ -1,6 +1,8 @@
 package mino
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestGenerate(t *testing.T) {
 	var (
@@ -13,8 +15,20 @@ func TestGenerate(t *testing.T) {
 			t.Errorf("failed to generate minos for rank %d: %s", d.Rank, err)
 		}
 
-		if len(minos) != d.Minos {
-			t.Errorf("failed to generate minos for rank %d: expected to generate %d minos, got %d", d.Rank, d.Minos, len(minos))
+		if len(minos) != len(d.Minos) {
+			t.Errorf("failed to generate minos for rank %d: expected to generate %d minos, got %d", d.Rank, len(d.Minos), len(minos))
+		}
+
+		for i, ex := range d.Minos {
+			found := 0
+			for _, m := range minos {
+				if m.String() == ex {
+					found++
+				}
+			}
+			if found != 1 {
+				t.Errorf("failed to generate minos for rank %d mino %d: expected to generate 1 mino %s - got %d", d.Rank, i, ex, found)
+			}
 		}
 	}
 }
@@ -38,8 +52,8 @@ func BenchmarkGenerate(b *testing.B) {
 				b.Errorf("failed to generate minos: %s", err)
 			}
 
-			if len(minos) != d.Minos {
-				b.Errorf("failed to generate minos for rank %d: expected to generate %d minos, got %d", d.Rank, d.Minos, len(minos))
+			if len(minos) != len(d.Minos) {
+				b.Errorf("failed to generate minos for rank %d: expected to generate %d minos, got %d", d.Rank, len(d.Minos), len(minos))
 			}
 		}
 	}

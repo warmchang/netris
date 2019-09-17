@@ -2,8 +2,13 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
+	"strings"
+
+	"git.sr.ht/~tslocum/netris/pkg/matrix"
+	"git.sr.ht/~tslocum/netris/pkg/mino"
 
 	"github.com/jroimartin/gocui"
 	"github.com/mattn/go-isatty"
@@ -16,6 +21,49 @@ var (
 
 func init() {
 	log.SetFlags(0)
+}
+
+func renderMatrix(m *matrix.Matrix) string {
+	var b strings.Builder
+
+	for y := m.H - 1; y >= 0; y-- {
+		for x := 0; x < m.W; x++ {
+			b.WriteString(renderBlock(m.M[matrix.I(x, y, m.W)]))
+		}
+
+		if y == 0 {
+			break
+		}
+
+		b.WriteRune('\n')
+	}
+
+	return b.String()
+}
+
+func renderBlock(b mino.Block) string {
+	r := b.Rune()
+
+	color := 39
+
+	switch b {
+	case mino.BlockSolidBlue:
+		color = 25
+	case mino.BlockSolidCyan:
+		color = 45
+	case mino.BlockSolidRed:
+		color = 160
+	case mino.BlockSolidYellow:
+		color = 226
+	case mino.BlockSolidMagenta:
+		color = 91
+	case mino.BlockSolidGreen:
+		color = 46
+	case mino.BlockSolidOrange:
+		color = 202
+	}
+
+	return fmt.Sprintf("\033[38;5;%dm%c\033[0m", color, r)
 }
 
 func main() {

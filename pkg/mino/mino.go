@@ -18,11 +18,11 @@ const (
 
 	TetrominoI = "(0,0),(1,0),(2,0),(3,0)"
 	TetrominoO = "(0,0),(1,0),(0,1),(1,1)"
-	TetrominoT = "(1,0),(0,1),(1,1),(2,1)"
-	TetrominoS = "(1,0),(2,0),(0,1),(1,1)"
-	TetrominoZ = "(0,0),(1,0),(1,1),(2,1)"
-	TetrominoJ = "(0,0),(0,1),(1,1),(2,1)"
-	TetrominoL = "(2,0),(0,1),(1,1),(2,1)"
+	TetrominoT = "(0,0),(1,0),(2,0),(1,1)"
+	TetrominoS = "(0,0),(1,0),(1,1),(2,1)"
+	TetrominoZ = "(1,0),(2,0),(0,1),(1,1)"
+	TetrominoJ = "(0,0),(1,0),(2,0),(0,1)"
+	TetrominoL = "(0,0),(1,0),(2,0),(2,1)"
 
 	PentominoF = "(1,0),(1,1),(2,1),(0,2),(1,2)"
 	PentominoE = "(1,0),(0,1),(1,1),(1,2),(2,2)"
@@ -103,22 +103,27 @@ func (m Mino) Render() string {
 	var b strings.Builder
 	b.WriteRune(' ')
 
-	c := Point{0, 0}
-	for _, p := range m {
-		if p.Y > c.Y {
-			b.WriteRune('\n')
-			b.WriteRune(' ')
-			c.X = 0
-		}
-		if p.X > c.X {
-			for i := c.X; i < p.X; i++ {
-				b.WriteRune(' ')
-			}
-		}
+	w, h := m.Size()
 
-		c = p
-		c.X++
-		b.WriteRune('X')
+	c := Point{0, h - 1}
+	for y := h - 1; y >= 0; y-- {
+		for x := 0; x < w; x++ {
+			if y < c.Y {
+				b.WriteRune('\n')
+				b.WriteRune(' ')
+
+				c.X = 0
+			}
+			if x > c.X {
+				for i := c.X; i < x; i++ {
+					b.WriteRune(' ')
+				}
+			}
+
+			c.X = x + 1
+			c.Y = y
+			b.WriteRune('X')
+		}
 	}
 
 	return b.String()
@@ -157,7 +162,7 @@ func (m Mino) translateToOrigin() Mino {
 	return m
 }
 
-func (m Mino) rotate(deg int) Mino {
+func (m Mino) Rotate(deg int) Mino {
 	var rotateFunc func(Point) Point
 	switch deg {
 	case 90:
@@ -177,7 +182,7 @@ func (m Mino) rotate(deg int) Mino {
 	return m
 }
 
-func (m Mino) variations() []Mino {
+func (m Mino) Variations() []Mino {
 	v := make([]Mino, 3)
 	for i := 0; i < 3; i++ {
 		v[i] = make(Mino, len(m))
@@ -192,11 +197,11 @@ func (m Mino) variations() []Mino {
 	return v
 }
 
-func (m Mino) canonical() Mino {
+func (m Mino) Canonical() Mino {
 	var (
 		ms = m.String()
 		c  = -1
-		v  = m.variations()
+		v  = m.Variations()
 		vs string
 	)
 
@@ -209,21 +214,21 @@ func (m Mino) canonical() Mino {
 	}
 
 	if c == -1 {
-		return m.flatten()
+		return m.Flatten()
 	}
 
-	return v[c].flatten()
+	return v[c].Flatten()
 }
 
-func (m Mino) flatten() Mino {
+func (m Mino) Flatten() Mino {
 	w, h := m.Size()
 
 	var top, right, bottom, left int
 	for i := 0; i < len(m); i++ {
 		if m[i].Y == 0 {
-			top++
-		} else if m[i].Y == (h - 1) {
 			bottom++
+		} else if m[i].Y == (h - 1) {
+			top++
 		}
 
 		if m[i].X == 0 {
@@ -237,7 +242,7 @@ func (m Mino) flatten() Mino {
 	var rotate int
 	if left > flattest {
 		flattest = left
-		rotate = 90
+		rotate = 270
 	}
 	if top > flattest {
 		flattest = top
@@ -245,10 +250,10 @@ func (m Mino) flatten() Mino {
 	}
 	if right > flattest {
 		flattest = right
-		rotate = 270
+		rotate = 90
 	}
 	if rotate > 0 {
-		m = m.rotate(rotate)
+		m = m.Rotate(rotate)
 	}
 
 	return m
@@ -277,7 +282,7 @@ func (m Mino) newMinos() []Mino {
 	minos := make([]Mino, len(points))
 
 	for i, p := range points {
-		minos[i] = append(mino, p).canonical()
+		minos[i] = append(mino, p).Canonical()
 	}
 
 	return minos

@@ -23,11 +23,19 @@ func NewMatrix(w int, h int, b int) *Matrix {
 
 func (m *Matrix) Add(mn mino.Mino, b mino.Block, loc mino.Point) error {
 	var (
+		x, y  int
 		index int
 		newM  = m.NewM()
 	)
 	for _, p := range mn {
-		index = I(p.X, p.Y, m.W)
+		x = p.X + loc.X
+		y = p.Y + loc.Y
+
+		if x >= m.W || y >= m.H+m.B {
+			return fmt.Errorf("failed to add to matrix at %s: point %s out of bounds", loc, p)
+		}
+
+		index = I(x, y, m.W)
 		if m.M[index] != mino.BlockNone {
 			return fmt.Errorf("failed to add to matrix at %s: point %s already contains %s", loc, p, m.M[index])
 		}
@@ -45,12 +53,10 @@ func (m *Matrix) Empty(loc mino.Point) bool {
 	return m.M[index] == mino.BlockNone
 }
 
-func (m *Matrix) Clear() error {
+func (m *Matrix) Clear() {
 	for i := range m.M {
 		m.M[i] = mino.BlockNone
 	}
-
-	return nil
 }
 
 func (m *Matrix) NewM() map[int]mino.Block {
@@ -65,12 +71,12 @@ func (m *Matrix) NewM() map[int]mino.Block {
 func (m *Matrix) Render() string {
 	var b strings.Builder
 
-	for y := m.B; y < (m.H + m.B); y++ {
+	for y := m.H - 1; y >= 0; y-- {
 		for x := 0; x < m.W; x++ {
-			b.WriteRune(mino.BlockToRune(m.M[I(x, y, m.W)]))
+			b.WriteRune(m.M[I(x, y, m.W)].Rune())
 		}
 
-		if y == m.H-1 {
+		if y == 0 {
 			break
 		}
 

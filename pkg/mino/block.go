@@ -3,16 +3,16 @@ package mino
 type Block int
 
 func (b Block) String() string {
-	return string(BlockToRune(b))
+	return string(b.Rune())
 }
 
-func BlockToRune(block Block) rune {
-	switch block {
+func (b Block) Rune() rune {
+	switch b {
 	case BlockNone:
 		return ' '
 	case BlockGhost:
 		return '▒'
-	case BlockSolid:
+	case BlockSolidBlue, BlockSolidCyan, BlockSolidRed, BlockSolidYellow, BlockSolidMagenta, BlockSolidGreen, BlockSolidOrange:
 		return '█'
 	default:
 		return '?'
@@ -23,5 +23,11 @@ const (
 	BlockNone Block = iota
 	BlockGhost
 	BlockGarbage
-	BlockSolid
+	BlockSolidBlue
+	BlockSolidCyan
+	BlockSolidRed
+	BlockSolidYellow
+	BlockSolidMagenta
+	BlockSolidGreen
+	BlockSolidOrange
 )

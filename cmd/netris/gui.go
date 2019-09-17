@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"sync"
 
 	"git.sr.ht/~tslocum/netris/pkg/matrix"
@@ -21,11 +22,15 @@ var (
 	bufferActive bool
 
 	initialDraw sync.Once
+
+	playerMatrix   *matrix.Matrix
+	playerBag      *mino.Bag
+	newPieceMatrix *matrix.Matrix
 )
 
 func initGUI() error {
 	var err error
-	gui, err = gocui.NewGui(gocui.OutputNormal)
+	gui, err = gocui.NewGui(gocui.Output256)
 	if err != nil {
 		return err
 	}
@@ -57,7 +62,7 @@ func layout(_ *gocui.Gui) error {
 		v.Frame = true
 		v.Wrap = false
 	}
-	if v, err := gui.SetView("info", 14, 3, 20, 8); err != nil {
+	if v, err := gui.SetView("info", 14, 3, 42, 10); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -127,14 +132,65 @@ func printHeader() {
 }
 
 func setNextPiece(m mino.Mino) {
-	// TODO: Reuse matrix
+	pieceColor := mino.BlockSolidYellow
+	switch m.String() {
+	case mino.TetrominoI:
+		pieceColor = mino.BlockSolidCyan
+	case mino.TetrominoJ:
+		pieceColor = mino.BlockSolidBlue
+	case mino.TetrominoL:
+		pieceColor = mino.BlockSolidOrange
+	case mino.TetrominoO:
+		pieceColor = mino.BlockSolidYellow
+	case mino.TetrominoS:
+		pieceColor = mino.BlockSolidGreen
+	case mino.TetrominoT:
+		pieceColor = mino.BlockSolidMagenta
+	case mino.TetrominoZ:
+		pieceColor = mino.BlockSolidRed
+	}
 
-	n := matrix.NewMatrix(4, 4, 0)
+	rank := len(m)
+	if newPieceMatrix == nil || newPieceMatrix.W < rank || newPieceMatrix.H < rank {
+		newPieceMatrix = matrix.NewMatrix(rank, rank, 0)
+	}
 
-	n.Add(m, mino.BlockSolid, mino.Point{0, 0})
+	newPieceMatrix.Clear()
+	err := newPieceMatrix.Add(m, pieceColor, mino.Point{0, 0})
+	if err != nil {
+		panic(err)
+	}
 
 	info.Clear()
-	fmt.Fprint(info, n.Render())
+	fmt.Fprint(info, renderMatrix(newPieceMatrix))
+
+	//fmt.Fprint(info, "\n"+m.String())
+
+	if playerMatrix == nil {
+		playerMatrix = matrix.NewMatrix(10, 20, 20)
+	}
+
+RANDOMPIECE:
+	for i := 0; i < playerMatrix.H; i++ {
+		for j := 0; j < 300; j++ {
+			err = playerMatrix.Add(m, pieceColor, mino.Point{rand.Intn(8), i})
+			if err == nil {
+				break RANDOMPIECE
+			}
+		}
+	}
+
+	renderPlayerMatrix()
+}
+
+func renderPlayerMatrix() {
+	mtx.Clear()
+
+	if playerMatrix == nil {
+		return
+	}
+
+	fmt.Fprint(mtx, renderMatrix(playerMatrix))
 }
 
 func closeGUI() {

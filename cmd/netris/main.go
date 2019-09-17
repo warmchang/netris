@@ -2,13 +2,9 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 
-	"git.sr.ht/~tslocum/netris/pkg/mino"
-
-	"git.sr.ht/~tslocum/netris/pkg/matrix"
 	"github.com/jroimartin/gocui"
 	"github.com/mattn/go-isatty"
 )
@@ -45,16 +41,7 @@ func main() {
 
 	<-ready
 
-	n := matrix.NewMatrix(4, 4, 0)
-
-	n.M[n.I(0, 0)] = mino.BlockSolid
-	n.M[n.I(1, 0)] = mino.BlockSolid
-	n.M[n.I(2, 0)] = mino.BlockSolid
-	n.M[n.I(3, 0)] = mino.BlockSolid
-
-	fmt.Fprint(info, n.Render())
-
-	m := matrix.NewMatrix(10, 20, 20)
+	/*m := matrix.NewMatrix(10, 20, 20)
 	m.M[m.I(5, 20)] = mino.BlockSolid
 	m.M[m.I(4, 21)] = mino.BlockSolid
 	m.M[m.I(5, 21)] = mino.BlockSolid
@@ -71,7 +58,7 @@ func main() {
 	m.M[m.I(9, 39)] = mino.BlockSolid
 
 	mtx.Clear()
-	fmt.Fprint(mtx, m.Render())
+	fmt.Fprint(mtx, m.Render())*/
 
 	<-done
 

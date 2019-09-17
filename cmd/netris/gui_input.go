@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 
+	"git.sr.ht/~tslocum/netris/pkg/mino"
 	"github.com/jroimartin/gocui"
 )
 
@@ -17,7 +19,13 @@ func moveRight(_ *gocui.Gui, _ *gocui.View) error {
 }
 
 func moveUp(_ *gocui.Gui, _ *gocui.View) error {
-	fmt.Fprintln(info, "up")
+	minos, err := mino.Generate(4)
+	if err != nil {
+		panic(err)
+	}
+
+	setNextPiece(minos[rand.Intn(len(minos)-1)])
+
 	return nil
 }
 

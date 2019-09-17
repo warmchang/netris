@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"sync"
 
+	"git.sr.ht/~tslocum/netris/pkg/matrix"
+
+	"git.sr.ht/~tslocum/netris/pkg/mino"
 	"github.com/jroimartin/gocui"
 )
 
@@ -121,6 +124,17 @@ func printHeader() {
 	}
 
 	fmt.Fprintln(buffer, "Welcome to netris")
+}
+
+func setNextPiece(m mino.Mino) {
+	// TODO: Reuse matrix
+
+	n := matrix.NewMatrix(4, 4, 0)
+
+	n.Add(m, mino.BlockSolid, mino.Point{0, 0})
+
+	info.Clear()
+	fmt.Fprint(info, n.Render())
 }
 
 func closeGUI() {

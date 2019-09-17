@@ -2,7 +2,9 @@ package ssh
 
 import (
 	"bufio"
+	"io"
 	"log"
+	"strconv"
 
 	"git.sr.ht/~tslocum/netris/pkg/player"
 	"github.com/gliderlabs/ssh"
@@ -28,6 +30,13 @@ func (c *SSHClient) handleIncoming() {
 	r := bufio.NewScanner(c.S)
 	for r.Scan() {
 		c.In <- player.GameCommand{C: player.CommandChat, P: "sent " + r.Text()}
+	}
+	c.Detach("Disconnected")
+}
+
+func (c *SSHClient) handleWrite() {
+	for w := range c.Out {
+		io.WriteString(c.S, strconv.Itoa(int(w.C)))
 	}
 	c.Detach("Disconnected")
 }

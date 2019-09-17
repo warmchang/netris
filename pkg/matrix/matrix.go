@@ -1,13 +1,13 @@
 package matrix
 
 import (
-	"fmt"
+	"strings"
 
 	"git.sr.ht/~tslocum/netris/pkg/mino"
 )
 
 func (m *Matrix) I(x int, y int) int {
-	return (x * m.W) + y
+	return (y * m.W) + x
 }
 
 type Matrix struct {
@@ -20,11 +20,33 @@ func NewMatrix(w int, h int, b int) *Matrix {
 	return &Matrix{W: w, H: h, B: b, M: make(map[int]mino.Block)}
 }
 
-func (m *Matrix) Print() {
-	for x := 0; x < m.W; x++ {
-		for y := 0; y < m.W; y++ {
-			fmt.Print(m.M[m.I(x, y)])
-		}
-		fmt.Println()
+func blockToRune(block mino.Block) rune {
+	switch block {
+	case mino.BlockNone:
+		return ' '
+	case mino.BlockGhost:
+		return '▒'
+	case mino.BlockSolid:
+		return '█'
+	default:
+		return '?'
 	}
+}
+
+func (m *Matrix) Render() string {
+	var b strings.Builder
+
+	for y := m.B; y < (m.H + m.B); y++ {
+		for x := 0; x < m.W; x++ {
+			b.WriteRune(blockToRune(m.M[m.I(x, y)]))
+		}
+
+		if y == m.H-1 {
+			break
+		}
+
+		b.WriteRune('\n')
+	}
+
+	return b.String()
 }

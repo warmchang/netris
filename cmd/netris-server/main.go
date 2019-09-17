@@ -8,14 +8,18 @@ import (
 	"git.sr.ht/~tslocum/netris/pkg/player/ssh"
 )
 
+var netrisPath string
+
 func init() {
 	log.SetFlags(0)
+
+	flag.StringVar(&netrisPath, "netris", "", "path to netris")
 }
 
 func main() {
 	flag.Parse()
 
-	s := &ssh.SSHServer{}
+	s := &ssh.SSHServer{NetrisPath: netrisPath}
 
 	ps := player.NewServer([]player.ServerInterface{s})
 

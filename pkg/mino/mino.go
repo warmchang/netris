@@ -1,6 +1,7 @@
 package mino
 
 import (
+	"log"
 	"sort"
 	"strconv"
 	"strings"
@@ -14,7 +15,7 @@ const (
 	Domino = "(0,0),(1,0)"
 
 	TrominoI = "(0,0),(1,0),(2,0)"
-	TrominoL = "(0,0),(0,1),(1,1)"
+	TrominoL = "(0,0),(1,0),(0,1)"
 
 	TetrominoI = "(0,0),(1,0),(2,0),(3,0)"
 	TetrominoO = "(0,0),(1,0),(0,1),(1,1)"
@@ -101,29 +102,27 @@ func (m Mino) Render() string {
 	sort.Sort(m)
 
 	var b strings.Builder
-	b.WriteRune(' ')
 
 	w, h := m.Size()
 
 	c := Point{0, h - 1}
 	for y := h - 1; y >= 0; y-- {
+		c.X = 0
+		c.Y = y
 		for x := 0; x < w; x++ {
-			if y < c.Y {
-				b.WriteRune('\n')
-				b.WriteRune(' ')
-
-				c.X = 0
-			}
-			if x > c.X {
-				for i := c.X; i < x; i++ {
+			if m.HasPoint(Point{x, y}) {
+				log.Println(Point{x, y})
+				for i := x - c.X; i > 0; i-- {
 					b.WriteRune(' ')
 				}
-			}
 
-			c.X = x + 1
-			c.Y = y
-			b.WriteRune('X')
+				b.WriteRune('X')
+
+				c.X = x + 1
+			}
 		}
+
+		b.WriteRune('\n')
 	}
 
 	return b.String()

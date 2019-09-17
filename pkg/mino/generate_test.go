@@ -1,6 +1,7 @@
 package mino
 
 import (
+	"log"
 	"testing"
 )
 
@@ -22,6 +23,9 @@ func TestGenerate(t *testing.T) {
 		for i, ex := range d.Minos {
 			found := 0
 			for _, m := range minos {
+				log.Println(d.Rank)
+				log.Println(m.String())
+				log.Println("\n" + m.Render())
 				if m.String() == ex {
 					found++
 				}

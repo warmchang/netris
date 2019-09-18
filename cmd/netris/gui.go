@@ -2,10 +2,7 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"sync"
-
-	"git.sr.ht/~tslocum/netris/pkg/matrix"
 
 	"git.sr.ht/~tslocum/netris/pkg/mino"
 	"github.com/jroimartin/gocui"
@@ -18,17 +15,11 @@ var (
 	info   *gocui.View
 	mtx    *gocui.View
 	buffer *gocui.View
+	dbg    *gocui.View
 
 	bufferActive bool
 
 	initialDraw sync.Once
-
-	playerMatrix   *matrix.Matrix
-	playerBag      *mino.Bag
-	newPieceMatrix *matrix.Matrix
-
-	piece          mino.Mino
-	pieceX, pieceY int
 )
 
 func initGUI() error {
@@ -93,6 +84,18 @@ func layout(_ *gocui.Gui) error {
 		}
 	}
 
+	if v, err := gui.SetView("debug", 1, 24, maxX, maxY); err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+
+		dbg = v
+
+		v.Frame = false
+		v.Wrap = true
+		v.Autoscroll = true
+	}
+
 	initialDraw.Do(func() {
 		bufferActive = true // Force draw
 		setBufferStatus(false)
@@ -126,6 +129,14 @@ func setBufferStatus(active bool) {
 	printHeader()
 }
 
+func printDebug(msg string) {
+	fmt.Fprintln(dbg, msg)
+}
+
+func printDebugf(format string, a ...interface{}) {
+	fmt.Fprintf(dbg, format+"\n", a...)
+}
+
 func printHeader() {
 	if bufferActive {
 		return
@@ -134,73 +145,57 @@ func printHeader() {
 	fmt.Fprintln(buffer, "Welcome to netris")
 }
 
-func setNextPiece(m mino.Mino) {
+func renderPreviewMatrix() {
+	m := gm.NextPieces[0]
+
 	solidBlock := m.SolidBlock()
 
-	rank := len(m)
-	if newPieceMatrix == nil || newPieceMatrix.W < rank || newPieceMatrix.H < rank {
-		newPieceMatrix = matrix.NewMatrix(rank, rank, 0)
-
-		pieceX = 4
-		pieceY = 8
-	}
-
-	newPieceMatrix.ClearMatrix()
-	err := newPieceMatrix.Add(m, solidBlock, mino.Point{0, 0}, false)
+	gm.Previews[0].ClearMatrix()
+	err := gm.Previews[0].Add(m, solidBlock, mino.Point{0, 0}, false)
 	if err != nil {
 		panic(err)
 	}
 
 	info.Clear()
-	fmt.Fprint(info, renderMatrix(newPieceMatrix))
-
-	//fmt.Fprint(info, "\n"+m.String())
-
-	if playerMatrix == nil {
-		playerMatrix = matrix.NewMatrix(10, 20, 20)
-	}
-
-	piece = m
-
-RANDOMPIECE:
-	for i := 0; i < playerMatrix.H; i++ {
-		for j := 0; j < 300; j++ {
-			err = playerMatrix.Add(m, solidBlock, mino.Point{rand.Intn(8), i}, false)
-			if err == nil {
-				break RANDOMPIECE
-			}
-		}
-	}
-
-	playerMatrix.ClearFilled()
-
-	renderPlayerMatrix()
+	fmt.Fprint(info, renderMatrix(gm.Previews[0]))
 }
 
 func renderPlayerMatrix() {
+	gm.Lock()
+	defer gm.Unlock()
+
 	mtx.Clear()
 
-	ghostBlock := piece.GhostBlock()
-	solidBlock := piece.SolidBlock()
+	ghostBlock := gm.Pieces[0].GhostBlock()
+	solidBlock := gm.Pieces[0].SolidBlock()
 
-	playerMatrix.ClearOverlay()
-	if piece != nil {
-		err := playerMatrix.Add(piece, solidBlock, mino.Point{pieceX, 17}, true)
+	gm.Matrixes[0].ClearOverlay()
+	if gm.Pieces[0] != nil {
+		// Draw ghost piece
+		for y := 0; y < gm.Matrixes[0].H && y < gm.Pieces[0].Y; y++ {
+			if gm.Matrixes[0].CanAdd(gm.Pieces[0], mino.Point{gm.Pieces[0].X, y}) {
+				err := gm.Matrixes[0].Add(gm.Pieces[0], ghostBlock, mino.Point{gm.Pieces[0].X, y}, true)
+				if err != nil {
+					panic(err)
+				}
+
+				break
+			}
+		}
+
+		// Draw piece
+		err := gm.Matrixes[0].Add(gm.Pieces[0], solidBlock, mino.Point{gm.Pieces[0].X, gm.Pieces[0].Y}, true)
 		if err != nil {
 			panic(err)
 		}
 
-		err = playerMatrix.Add(piece, ghostBlock, mino.Point{pieceX, 0}, true)
-		if err != nil {
-			panic(err)
-		}
 	}
 
-	if playerMatrix == nil {
+	if gm.Matrixes[0] == nil {
 		return
 	}
 
-	fmt.Fprint(mtx, renderMatrix(playerMatrix))
+	fmt.Fprint(mtx, renderMatrix(gm.Matrixes[0]))
 }
 
 func closeGUI() {

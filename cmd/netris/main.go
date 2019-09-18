@@ -6,6 +6,9 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
+
+	"git.sr.ht/~tslocum/netris/pkg/game"
 
 	"git.sr.ht/~tslocum/netris/pkg/matrix"
 	"git.sr.ht/~tslocum/netris/pkg/mino"
@@ -17,6 +20,8 @@ import (
 var (
 	ready = make(chan bool)
 	done  = make(chan bool)
+
+	gm *game.Game
 )
 
 func init() {
@@ -68,13 +73,42 @@ func renderBlock(b mino.Block) string {
 
 func main() {
 	flag.Parse()
+	/*
+		playerMatrix = matrix.NewMatrix(10, 20, 20)
+
+		minos, err := mino.Generate(4)
+		if err != nil {
+			panic(err)
+		}
+
+		m := minos[3]
+
+		m = m.Rotate(90)
+
+		m = m.Rotate(90)
+
+		m = m.Rotate(90)
+
+		log.Println(m)
+		log.Println()
+
+		err = playerMatrix.Add(m, mino.BlockSolidCyan, mino.Point{rand.Intn(8), 4}, false)
+		if err != nil {
+			panic(err)
+		}
+
+		log.Println(m.Render())
+
+		os.Exit(0)
+	*/
+	var err error
 
 	tty := isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())
 	if !tty {
 		log.Fatal("failed to start netris: non-interactive terminals are not supported")
 	}
 
-	err := initGUI()
+	err = initGUI()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -89,24 +123,27 @@ func main() {
 
 	<-ready
 
-	/*m := matrix.NewMatrix(10, 20, 20)
-	m.M[m.I(5, 20)] = mino.BlockSolid
-	m.M[m.I(4, 21)] = mino.BlockSolid
-	m.M[m.I(5, 21)] = mino.BlockSolid
-	m.M[m.I(6, 21)] = mino.BlockSolid
+	gm, err = game.NewGame(4, 123454)
+	if err != nil {
+		panic(err)
+	}
 
-	m.M[m.I(5, 38)] = mino.BlockGhost
-	m.M[m.I(4, 39)] = mino.BlockGhost
-	m.M[m.I(5, 39)] = mino.BlockGhost
-	m.M[m.I(6, 39)] = mino.BlockGhost
+	gm.Start()
 
-	m.M[m.I(8, 38)] = mino.BlockSolid
-	m.M[m.I(9, 38)] = mino.BlockSolid
-	m.M[m.I(8, 39)] = mino.BlockSolid
-	m.M[m.I(9, 39)] = mino.BlockSolid
+	go func() {
+		for {
+			time.Sleep(25 * time.Millisecond)
 
-	mtx.Clear()
-	fmt.Fprint(mtx, m.Render())*/
+			gui.Update(func(i *gocui.Gui) error {
+				renderPreviewMatrix()
+				renderPlayerMatrix()
+
+				return nil
+			})
+		}
+	}()
+
+	// Game logic
 
 	<-done
 

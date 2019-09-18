@@ -14,17 +14,19 @@ func TestMatrix(t *testing.T) {
 
 	m := NewMatrix(10, 20, 20)
 
-	err = m.Add(minos[0], mino.BlockSolidBlue, mino.Point{3, 3}, false)
+	piece := mino.NewPiece(minos[0], mino.Point{0, 0})
+
+	err = m.Add(piece, mino.BlockSolidBlue, mino.Point{3, 3}, false)
 	if err != nil {
 		t.Errorf("failed to add initial mino to matrix: %s", err)
 	}
 
-	err = m.Add(minos[0], mino.BlockSolidBlue, mino.Point{3, 3}, false)
+	err = m.Add(piece, mino.BlockSolidBlue, mino.Point{3, 3}, false)
 	if err == nil {
 		t.Error("failed to detect collision when adding second mino to matrix")
 	}
 
-	err = m.Add(minos[0], mino.BlockSolidBlue, mino.Point{9, 9}, false)
+	err = m.Add(piece, mino.BlockSolidBlue, mino.Point{9, 9}, false)
 	if err == nil {
 		t.Error("failed to detect out of bounds when adding third mino to matrix")
 	}

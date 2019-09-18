@@ -227,23 +227,36 @@ func (m Mino) translateToOrigin() Mino {
 }
 
 func (m Mino) Rotate(deg int) Mino {
-	var rotateFunc func(Point) Point
-	switch deg {
-	case 90:
-		rotateFunc = Point.Rotate90
-	case 180:
-		rotateFunc = Point.Rotate180
-	case 270:
-		rotateFunc = Point.Rotate270
-	default:
+	if deg == 0 {
 		return m
 	}
 
-	for i := 0; i < len(m); i++ {
-		m[i] = rotateFunc(m[i])
+	px := 1
+	py := 1
+
+	w, h := m.Size()
+	maxSize := w
+	if h > maxSize {
+		maxSize = h
 	}
 
-	return m
+	rotations := 1
+	if deg == 270 { // TODO: Implement reverse formula
+		rotations = 3
+	} else if deg == 180 {
+		rotations = 2
+	}
+
+	newMino := make(Mino, len(m))
+	copy(newMino, m)
+
+	for i := 0; i < len(m); i++ {
+		for j := 0; j < rotations; j++ {
+			newMino[i] = Point{newMino[i].Y + px - py, px + py - newMino[i].X + py - maxSize}
+		}
+	}
+
+	return newMino
 }
 
 func (m Mino) Variations() []Mino {
@@ -317,7 +330,7 @@ func (m Mino) Flatten() Mino {
 		rotate = 90
 	}
 	if rotate > 0 {
-		m = m.Rotate(rotate)
+		return m.Rotate(rotate)
 	}
 
 	return m

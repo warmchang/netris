@@ -18,12 +18,12 @@ func TestBag(t *testing.T) {
 		if len(minos) != len(d.Minos) {
 			t.Errorf("failed to generate minos for rank %d: unexpected number of minos generated", d.Rank)
 		}
-		minos, err := Generate(d.Rank)
-		if err != nil {
-			t.Errorf("failed to create minos for rank %d bag: %s", d.Rank, err)
-		}
 
-		b := NewBag(minos)
+		b, err := NewBag(minos)
+		if err != nil {
+			t.Errorf("failed to create bag for rank %d: %s", d.Rank, err)
+
+		}
 		taken := make(map[string]int)
 		for i := 1; i < 4; i++ {
 			for i := 0; i < len(d.Minos); i++ {

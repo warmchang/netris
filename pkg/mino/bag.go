@@ -11,11 +11,11 @@ type Bag struct {
 	sync.Mutex
 }
 
-func NewBag(minos []Mino) *Bag {
+func NewBag(minos []Mino) (*Bag, error) {
 	b := &Bag{Original: minos}
 	b.Shuffle()
 
-	return b
+	return b, nil
 }
 
 func (b *Bag) Take() Mino {
@@ -30,6 +30,13 @@ func (b *Bag) Take() Mino {
 	}
 
 	return mino
+}
+
+func (b *Bag) Next() Mino {
+	b.Lock()
+	defer b.Unlock()
+
+	return b.Minos[0]
 }
 
 func (b *Bag) Shuffle() {

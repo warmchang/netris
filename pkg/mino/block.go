@@ -10,8 +10,8 @@ func (b Block) Rune() rune {
 	switch b {
 	case BlockNone:
 		return ' '
-	case BlockGhost:
-		return '▒'
+	case BlockGhostBlue, BlockGhostCyan, BlockGhostRed, BlockGhostYellow, BlockGhostMagenta, BlockGhostGreen, BlockGhostOrange:
+		return '▓'
 	case BlockSolidBlue, BlockSolidCyan, BlockSolidRed, BlockSolidYellow, BlockSolidMagenta, BlockSolidGreen, BlockSolidOrange:
 		return '█'
 	default:
@@ -21,8 +21,14 @@ func (b Block) Rune() rune {
 
 const (
 	BlockNone Block = iota
-	BlockGhost
 	BlockGarbage
+	BlockGhostBlue
+	BlockGhostCyan
+	BlockGhostRed
+	BlockGhostYellow
+	BlockGhostMagenta
+	BlockGhostGreen
+	BlockGhostOrange
 	BlockSolidBlue
 	BlockSolidCyan
 	BlockSolidRed

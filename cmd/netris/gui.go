@@ -26,6 +26,9 @@ var (
 	playerMatrix   *matrix.Matrix
 	playerBag      *mino.Bag
 	newPieceMatrix *matrix.Matrix
+
+	piece          mino.Mino
+	pieceX, pieceY int
 )
 
 func initGUI() error {
@@ -132,31 +135,18 @@ func printHeader() {
 }
 
 func setNextPiece(m mino.Mino) {
-	pieceColor := mino.BlockSolidYellow
-	switch m.String() {
-	case mino.TetrominoI:
-		pieceColor = mino.BlockSolidCyan
-	case mino.TetrominoJ:
-		pieceColor = mino.BlockSolidBlue
-	case mino.TetrominoL:
-		pieceColor = mino.BlockSolidOrange
-	case mino.TetrominoO:
-		pieceColor = mino.BlockSolidYellow
-	case mino.TetrominoS:
-		pieceColor = mino.BlockSolidGreen
-	case mino.TetrominoT:
-		pieceColor = mino.BlockSolidMagenta
-	case mino.TetrominoZ:
-		pieceColor = mino.BlockSolidRed
-	}
+	solidBlock := m.SolidBlock()
 
 	rank := len(m)
 	if newPieceMatrix == nil || newPieceMatrix.W < rank || newPieceMatrix.H < rank {
 		newPieceMatrix = matrix.NewMatrix(rank, rank, 0)
+
+		pieceX = 4
+		pieceY = 8
 	}
 
-	newPieceMatrix.Clear()
-	err := newPieceMatrix.Add(m, pieceColor, mino.Point{0, 0})
+	newPieceMatrix.ClearMatrix()
+	err := newPieceMatrix.Add(m, solidBlock, mino.Point{0, 0}, false)
 	if err != nil {
 		panic(err)
 	}
@@ -170,21 +160,41 @@ func setNextPiece(m mino.Mino) {
 		playerMatrix = matrix.NewMatrix(10, 20, 20)
 	}
 
+	piece = m
+
 RANDOMPIECE:
 	for i := 0; i < playerMatrix.H; i++ {
 		for j := 0; j < 300; j++ {
-			err = playerMatrix.Add(m, pieceColor, mino.Point{rand.Intn(8), i})
+			err = playerMatrix.Add(m, solidBlock, mino.Point{rand.Intn(8), i}, false)
 			if err == nil {
 				break RANDOMPIECE
 			}
 		}
 	}
 
+	playerMatrix.ClearFilled()
+
 	renderPlayerMatrix()
 }
 
 func renderPlayerMatrix() {
 	mtx.Clear()
+
+	ghostBlock := piece.GhostBlock()
+	solidBlock := piece.SolidBlock()
+
+	playerMatrix.ClearOverlay()
+	if piece != nil {
+		err := playerMatrix.Add(piece, solidBlock, mino.Point{pieceX, 17}, true)
+		if err != nil {
+			panic(err)
+		}
+
+		err = playerMatrix.Add(piece, ghostBlock, mino.Point{pieceX, 0}, true)
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	if playerMatrix == nil {
 		return

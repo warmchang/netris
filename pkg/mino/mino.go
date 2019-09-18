@@ -44,6 +44,50 @@ const (
 	PentominoR = "(0,0),(1,0),(2,0),(3,0),(1,1)"
 )
 
+func (m Mino) GhostBlock() Block {
+	block := BlockGhostYellow
+	switch m.Canonical().String() {
+	case TetrominoI:
+		block = BlockGhostCyan
+	case TetrominoJ:
+		block = BlockGhostBlue
+	case TetrominoL:
+		block = BlockGhostOrange
+	case TetrominoO:
+		block = BlockGhostYellow
+	case TetrominoS:
+		block = BlockGhostGreen
+	case TetrominoT:
+		block = BlockGhostMagenta
+	case TetrominoZ:
+		block = BlockGhostRed
+	}
+
+	return block
+}
+
+func (m Mino) SolidBlock() Block {
+	block := BlockSolidYellow
+	switch m.Canonical().String() {
+	case TetrominoI:
+		block = BlockSolidCyan
+	case TetrominoJ:
+		block = BlockSolidBlue
+	case TetrominoL:
+		block = BlockSolidOrange
+	case TetrominoO:
+		block = BlockSolidYellow
+	case TetrominoS:
+		block = BlockSolidGreen
+	case TetrominoT:
+		block = BlockSolidMagenta
+	case TetrominoZ:
+		block = BlockSolidRed
+	}
+
+	return block
+}
+
 func (m Mino) Equal(other Mino) bool {
 	if len(m) != len(other) {
 		return false
@@ -83,6 +127,28 @@ func (m Mino) Less(i, j int) bool {
 	return m[i].Y < m[j].Y || (m[i].Y == m[j].Y && m[i].X < m[j].X)
 }
 
+func (m Mino) Width() int {
+	var x int
+	for _, p := range m {
+		if p.X > x {
+			x = p.X
+		}
+	}
+
+	return x + 1
+}
+
+func (m Mino) Height() int {
+	var y int
+	for _, p := range m {
+		if p.Y > y {
+			y = p.Y
+		}
+	}
+
+	return y + 1
+}
+
 func (m Mino) Size() (int, int) {
 	var x, y int
 	for _, p := range m {
@@ -98,6 +164,7 @@ func (m Mino) Size() (int, int) {
 }
 
 func (m Mino) Render() string {
+	m = m.translateToOrigin()
 	sort.Sort(m)
 
 	var b strings.Builder

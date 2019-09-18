@@ -2,34 +2,10 @@ package mino
 
 import (
 	"errors"
-	"sync"
 )
-
-type MinoCache struct {
-	m map[int][]Mino
-	sync.RWMutex
-}
-
-func getCachedMinos(rank int) ([]Mino, bool) {
-	cachedMinos.RLock()
-	defer cachedMinos.RUnlock()
-
-	minos, ok := cachedMinos.m[rank]
-	return minos, ok
-}
-
-func resetCachedMinos() {
-	cachedMinos = &MinoCache{m: make(map[int][]Mino)}
-}
-
-var cachedMinos = &MinoCache{m: make(map[int][]Mino)}
 
 // Generate
 func Generate(rank int) ([]Mino, error) {
-	if minos, ok := getCachedMinos(rank); ok {
-		return minos, nil
-	}
-
 	switch {
 	case rank < 0:
 		return nil, errors.New("invalid rank")
@@ -53,10 +29,6 @@ func Generate(rank int) ([]Mino, error) {
 				}
 			}
 		}
-
-		cachedMinos.Lock()
-		cachedMinos.m[rank] = minos
-		cachedMinos.Unlock()
 
 		return minos, nil
 	}

@@ -42,10 +42,6 @@ func BenchmarkGenerate(b *testing.B) {
 		err   error
 	)
 	for n := 0; n < b.N; n++ {
-		b.StopTimer()
-		resetCachedMinos()
-		b.StartTimer()
-
 		for _, d := range minoTestData {
 			minos, err = Generate(d.Rank)
 			if err != nil {

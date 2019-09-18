@@ -28,7 +28,7 @@ func renderMatrix(m *matrix.Matrix) string {
 
 	for y := m.H - 1; y >= 0; y-- {
 		for x := 0; x < m.W; x++ {
-			b.WriteString(renderBlock(m.M[matrix.I(x, y, m.W)]))
+			b.WriteString(renderBlock(m.Block(x, y)))
 		}
 
 		if y == 0 {
@@ -47,19 +47,19 @@ func renderBlock(b mino.Block) string {
 	color := 39
 
 	switch b {
-	case mino.BlockSolidBlue:
+	case mino.BlockGhostBlue, mino.BlockSolidBlue:
 		color = 25
-	case mino.BlockSolidCyan:
+	case mino.BlockGhostCyan, mino.BlockSolidCyan:
 		color = 45
-	case mino.BlockSolidRed:
+	case mino.BlockGhostRed, mino.BlockSolidRed:
 		color = 160
-	case mino.BlockSolidYellow:
+	case mino.BlockGhostYellow, mino.BlockSolidYellow:
 		color = 226
-	case mino.BlockSolidMagenta:
+	case mino.BlockGhostMagenta, mino.BlockSolidMagenta:
 		color = 91
-	case mino.BlockSolidGreen:
+	case mino.BlockGhostGreen, mino.BlockSolidGreen:
 		color = 46
-	case mino.BlockSolidOrange:
+	case mino.BlockGhostOrange, mino.BlockSolidOrange:
 		color = 202
 	}
 
@@ -71,7 +71,7 @@ func main() {
 
 	tty := isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())
 	if !tty {
-		log.Fatal("failed to start gmenu: non-interactive terminals are not supported")
+		log.Fatal("failed to start netris: non-interactive terminals are not supported")
 	}
 
 	err := initGUI()

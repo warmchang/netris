@@ -24,7 +24,7 @@ func Generate(rank int) ([]Mino, error) {
 		for _, mino := range r {
 			for _, newMino := range mino.newMinos() {
 				if s := newMino.String(); !found[s] {
-					minos = append(minos, newMino.translateToOrigin())
+					minos = append(minos, newMino.Origin())
 					found[s] = true
 				}
 			}

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync"
 
+	"git.sr.ht/~tslocum/netris/pkg/game"
+
 	"git.sr.ht/~tslocum/netris/pkg/mino"
 	"github.com/jroimartin/gocui"
 )
@@ -130,11 +132,11 @@ func setBufferStatus(active bool) {
 }
 
 func printDebug(msg string) {
-	fmt.Fprintln(dbg, msg)
+	gm.Event <- &game.Event{msg}
 }
 
 func printDebugf(format string, a ...interface{}) {
-	fmt.Fprintf(dbg, format+"\n", a...)
+	printDebug(fmt.Sprintf(format+"\n", a...))
 }
 
 func printHeader() {
@@ -173,7 +175,7 @@ func renderPlayerMatrix() {
 	if gm.Pieces[0] != nil {
 		// Draw ghost piece
 		for y := 0; y < gm.Matrixes[0].H && y < gm.Pieces[0].Y; y++ {
-			if gm.Matrixes[0].CanAdd(gm.Pieces[0], mino.Point{gm.Pieces[0].X, y}) {
+			if gm.Matrixes[0].CanAddAt(gm.Pieces[0], mino.Point{gm.Pieces[0].X, y}) {
 				err := gm.Matrixes[0].Add(gm.Pieces[0], ghostBlock, mino.Point{gm.Pieces[0].X, y}, true)
 				if err != nil {
 					panic(err)

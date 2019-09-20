@@ -2,6 +2,7 @@ package game
 
 import (
 	"math/rand"
+	"strconv"
 	"sync"
 	"time"
 
@@ -23,6 +24,8 @@ type Game struct {
 	Pieces     map[int]*mino.Piece
 	NextPieces map[int]*mino.Piece
 	FallTime   time.Duration
+
+	Event chan *Event
 
 	dropped map[int]chan bool
 	tickers map[int]*time.Ticker
@@ -52,6 +55,7 @@ func NewGame(rank int, seed int64) (*Game, error) {
 		Bags:       make(map[int]*mino.Bag),
 		Pieces:     make(map[int]*mino.Piece),
 		NextPieces: make(map[int]*mino.Piece),
+		Event:      make(chan *Event, 10),
 		tickers:    make(map[int]*time.Ticker),
 		dropped:    make(map[int]chan bool)}
 
@@ -99,7 +103,7 @@ func (g *Game) handle(player int) {
 }
 
 func (g *Game) lowerPiece(player int) {
-	if g.Matrixes[0].CanAdd(g.Pieces[0], mino.Point{g.Pieces[0].X, g.Pieces[0].Y - 1}) {
+	if g.Matrixes[0].CanAddAt(g.Pieces[0], mino.Point{g.Pieces[0].X, g.Pieces[0].Y - 1}) {
 		g.Pieces[0].Y -= 1
 	} else {
 		g.landPiece(player)
@@ -111,7 +115,7 @@ func (g *Game) landPiece(player int) {
 
 	dropped := false
 	for y := 0; y < g.Matrixes[0].H+g.Matrixes[0].B && y <= g.Pieces[0].Y; y++ {
-		if g.Matrixes[0].CanAdd(g.Pieces[0], mino.Point{g.Pieces[0].X, y}) {
+		if g.Matrixes[0].CanAddAt(g.Pieces[0], mino.Point{g.Pieces[0].X, y}) {
 			err := g.Matrixes[0].Add(g.Pieces[0], solidBlock, mino.Point{g.Pieces[0].X, y}, false)
 			if err != nil {
 				panic(err)
@@ -137,6 +141,27 @@ func (g *Game) landPiece(player int) {
 	}
 }
 
+func (g *Game) MovePiece(player int, x int, y int) bool {
+	g.Lock()
+	defer g.Unlock()
+
+	px := g.Pieces[player].X + x
+	py := g.Pieces[player].Y + y
+
+	if px+g.Pieces[0].Width() > g.Matrixes[0].W || py >= g.Matrixes[0].W+g.Matrixes[0].B {
+		return false
+	}
+
+	if !g.Matrixes[0].CanAddAt(g.Pieces[player], mino.Point{px, py}) {
+		return false
+	}
+
+	g.Pieces[0].X = px
+	g.Pieces[0].Y = py
+
+	return true
+}
+
 func (g *Game) LandPiece(player int) {
 	g.Lock()
 	defer g.Unlock()
@@ -145,8 +170,11 @@ func (g *Game) LandPiece(player int) {
 }
 
 func (g *Game) takePiece(player int) {
-	g.Pieces[player] = mino.NewPiece(g.Bags[player].Take(), mino.Point{4, 17})
-	g.NextPieces[player] = mino.NewPiece(g.Bags[player].Next(), mino.Point{0, 0})
+	p := mino.NewPiece(g.Bags[player].Take(), &mino.Point{0, g.Matrixes[player].H - 1})
+	p.X = g.Matrixes[player].PieceStartX(p)
+
+	g.Pieces[player] = p
+	g.NextPieces[player] = mino.NewPiece(g.Bags[player].Next(), &mino.Point{0, 0})
 }
 
 func (g *Game) TakePiece(player int) {
@@ -154,4 +182,18 @@ func (g *Game) TakePiece(player int) {
 	defer g.Unlock()
 
 	g.takePiece(player)
+}
+
+func (g *Game) RotatePiece(player int, deg int) bool {
+	g.Event <- &Event{"Rot " + strconv.Itoa(deg) + " " + g.Pieces[player].String()}
+	if g.Matrixes[player].Rotate(g.Pieces[player], deg) {
+		g.Lock()
+		defer g.Unlock()
+		g.Event <- &Event{"Rot " + strconv.Itoa(deg) + " " + g.Pieces[player].String()}
+		return true
+	}
+
+	g.Event <- &Event{"Failed to rot"}
+
+	return false
 }

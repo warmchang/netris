@@ -14,7 +14,7 @@ func TestMatrix(t *testing.T) {
 
 	m := NewMatrix(10, 20, 20)
 
-	piece := mino.NewPiece(minos[0], mino.Point{0, 0})
+	piece := mino.NewPiece(&minos[0], &mino.Point{0, 0})
 
 	err = m.Add(piece, mino.BlockSolidBlue, mino.Point{3, 3}, false)
 	if err != nil {

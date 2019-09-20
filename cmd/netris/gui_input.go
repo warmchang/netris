@@ -1,35 +1,20 @@
 package main
 
 import (
-	"git.sr.ht/~tslocum/netris/pkg/mino"
 	"github.com/jroimartin/gocui"
 )
 
 func moveLeft(_ *gocui.Gui, _ *gocui.View) error {
-	gm.Lock()
+	gm.MovePiece(0, -1, 0)
 
-	x := gm.Pieces[0].X - 1
-	if x < 0 {
-		x = 0
-	}
-
-	gm.Pieces[0].X = x
-	gm.Unlock()
 	renderPlayerMatrix()
 
 	return nil
 }
 
 func moveRight(_ *gocui.Gui, _ *gocui.View) error {
-	gm.Lock()
+	gm.MovePiece(0, 1, 0)
 
-	x := gm.Pieces[0].X + 1
-	if x+gm.Pieces[0].Width() >= gm.Matrixes[0].W {
-		x = gm.Matrixes[0].W - gm.Pieces[0].Width()
-	}
-
-	gm.Pieces[0].X = x
-	gm.Unlock()
 	renderPlayerMatrix()
 
 	return nil
@@ -44,14 +29,8 @@ func moveUp(_ *gocui.Gui, _ *gocui.View) error {
 }
 
 func moveDown(_ *gocui.Gui, _ *gocui.View) error {
-	gm.Lock()
+	gm.MovePiece(0, 0, -1)
 
-	y := gm.Pieces[0].Y - 1
-	if y >= 0 && gm.Matrixes[0].CanAdd(gm.Pieces[0], mino.Point{gm.Pieces[0].X, y}) {
-		gm.Pieces[0].Y = y
-	}
-
-	gm.Unlock()
 	gm.DroppedPiece(0)
 
 	renderPlayerMatrix()
@@ -60,9 +39,7 @@ func moveDown(_ *gocui.Gui, _ *gocui.View) error {
 }
 
 func rotateBack(_ *gocui.Gui, _ *gocui.View) error {
-	gm.Lock()
-	gm.Pieces[0].Rotate(270)
-	gm.Unlock()
+	gm.RotatePiece(0, 270)
 
 	renderPlayerMatrix()
 
@@ -70,11 +47,12 @@ func rotateBack(_ *gocui.Gui, _ *gocui.View) error {
 }
 
 func rotateForward(_ *gocui.Gui, _ *gocui.View) error {
-	gm.Lock()
-	gm.Pieces[0].Rotate(90)
-	gm.Unlock()
+	printDebug("F1 " + gm.Pieces[0].String())
+	gm.RotatePiece(0, 90)
 
+	printDebug("F2 " + gm.Pieces[0].String())
 	renderPlayerMatrix()
+	printDebug("F3 " + gm.Pieces[0].String())
 
 	return nil
 }

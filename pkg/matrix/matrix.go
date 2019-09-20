@@ -25,7 +25,7 @@ func NewMatrix(w int, h int, b int) *Matrix {
 	return &Matrix{W: w, H: h, B: b, M: make(map[int]mino.Block)}
 }
 
-func (m *Matrix) CanAdd(mn *mino.Piece, loc mino.Point) bool {
+func (m *Matrix) CanAddAt(mn *mino.Piece, loc mino.Point) bool {
 	if loc.X < 0 || loc.Y < 0 {
 		return false
 	}
@@ -38,9 +38,35 @@ func (m *Matrix) CanAdd(mn *mino.Piece, loc mino.Point) bool {
 		index int
 	)
 
-	for _, p := range mn.Mino {
+	for _, p := range *mn.Mino {
 		x = p.X + loc.X
 		y = p.Y + loc.Y
+
+		if x >= m.W || y >= m.H+m.B {
+			return false
+		}
+
+		index = I(x, y, m.W)
+		if m.M[index] != mino.BlockNone {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (m *Matrix) CanAdd(mn *mino.Piece) bool {
+	m.Lock()
+	defer m.Unlock()
+
+	var (
+		x, y  int
+		index int
+	)
+
+	for _, p := range *mn.Mino {
+		x = p.X + mn.X
+		y = p.Y + mn.Y
 
 		if x >= m.W || y >= m.H+m.B {
 			return false
@@ -72,7 +98,7 @@ func (m *Matrix) Add(mn *mino.Piece, b mino.Block, loc mino.Point, overlay bool)
 		newM = m.NewM()
 	}
 
-	for _, p := range mn.Mino {
+	for _, p := range *mn.Mino {
 		x = p.X + loc.X
 		y = p.Y + loc.Y
 
@@ -184,6 +210,31 @@ func (m *Matrix) Block(x int, y int) mino.Block {
 	}
 
 	return m.M[index]
+}
+
+func (m *Matrix) Rotate(p *mino.Piece, deg int) bool {
+	if deg == 0 {
+		return false
+	}
+
+	originalMino := *p.Mino
+
+	// Try rotations
+
+	mn := p.Rotate(deg).Origin()
+	p.Mino = &mn
+	if m.CanAdd(p) {
+		return true
+	}
+
+	p.Mino = &originalMino
+	return false
+}
+
+func (m *Matrix) PieceStartX(p *mino.Piece) int {
+	w, _ := p.Size()
+	return (m.W / 2) - (w / 2)
+
 }
 
 func (m *Matrix) Render() string {

@@ -106,7 +106,7 @@ func (m Mino) String() string {
 	sort.Sort(m)
 
 	var b strings.Builder
-	for i, p := range m.translateToOrigin() {
+	for i, p := range m.Origin() {
 		if i > 0 {
 			b.WriteRune(',')
 		}
@@ -164,7 +164,7 @@ func (m Mino) Size() (int, int) {
 }
 
 func (m Mino) Render() string {
-	m = m.translateToOrigin()
+	m = m.Origin()
 	sort.Sort(m)
 
 	var b strings.Builder
@@ -217,46 +217,13 @@ func (m Mino) minCoords() (int, int) {
 	return minx, miny
 }
 
-func (m Mino) translateToOrigin() Mino {
+func (m Mino) Origin() Mino {
 	minx, miny := m.minCoords()
 	for i, p := range m {
 		m[i].X = p.X - minx
 		m[i].Y = p.Y - miny
 	}
 	return m
-}
-
-func (m Mino) Rotate(deg int) Mino {
-	if deg == 0 {
-		return m
-	}
-
-	px := 1
-	py := 1
-
-	w, h := m.Size()
-	maxSize := w
-	if h > maxSize {
-		maxSize = h
-	}
-
-	rotations := 1
-	if deg == 270 { // TODO: Implement reverse formula
-		rotations = 3
-	} else if deg == 180 {
-		rotations = 2
-	}
-
-	newMino := make(Mino, len(m))
-	copy(newMino, m)
-
-	for i := 0; i < len(m); i++ {
-		for j := 0; j < rotations; j++ {
-			newMino[i] = Point{newMino[i].Y + px - py, px + py - newMino[i].X + py - maxSize}
-		}
-	}
-
-	return newMino
 }
 
 func (m Mino) Variations() []Mino {
@@ -316,21 +283,28 @@ func (m Mino) Flatten() Mino {
 	}
 
 	flattest := bottom
-	var rotate int
+	var rotateFunc func(Point) Point
 	if left > flattest {
 		flattest = left
-		rotate = 270
+		rotateFunc = Point.Rotate270
 	}
 	if top > flattest {
 		flattest = top
-		rotate = 180
+		rotateFunc = Point.Rotate180
 	}
 	if right > flattest {
 		flattest = right
-		rotate = 90
+		rotateFunc = Point.Rotate90
 	}
-	if rotate > 0 {
-		return m.Rotate(rotate)
+	if rotateFunc != nil {
+		newMino := make(Mino, len(m))
+		copy(newMino, m)
+
+		for i := 0; i < len(m); i++ {
+			newMino[i] = rotateFunc(newMino[i])
+		}
+
+		return newMino
 	}
 
 	return m

@@ -18,7 +18,7 @@ func TestPiece(t *testing.T) {
 		t.Errorf("unexpected mino found when generating J teromino: %s", minos[2])
 	}
 
-	p := NewPiece(minos[2], Point{0, 0})
+	p := NewPiece(&minos[2], &Point{0, 0})
 	// TODO
 	_ = p
 }

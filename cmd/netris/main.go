@@ -24,6 +24,8 @@ var (
 	gm *game.Game
 )
 
+const RefreshRate = 15 * time.Millisecond
+
 func init() {
 	log.SetFlags(0)
 }
@@ -128,13 +130,24 @@ func main() {
 		panic(err)
 	}
 
+	go func() {
+		for {
+			e := <-gm.Event
+
+			fmt.Fprintln(dbg, e.Message)
+		}
+	}()
+
 	gm.Start()
 
 	go func() {
 		for {
-			time.Sleep(25 * time.Millisecond)
+			time.Sleep(RefreshRate)
 
 			gui.Update(func(i *gocui.Gui) error {
+				gm.Lock()
+				gm.Unlock()
+
 				renderPreviewMatrix()
 				renderPlayerMatrix()
 

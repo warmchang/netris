@@ -114,8 +114,8 @@ func (g *Game) landPiece(player int) {
 	solidBlock := g.Pieces[0].SolidBlock()
 
 	dropped := false
-	for y := 0; y < g.Matrixes[0].H+g.Matrixes[0].B && y <= g.Pieces[0].Y; y++ {
-		if g.Matrixes[0].CanAddAt(g.Pieces[0], mino.Point{g.Pieces[0].X, y}) {
+	for y := g.Pieces[0].Y; y >= 0; y-- {
+		if y == 0 || !g.Matrixes[0].CanAddAt(g.Pieces[0], mino.Point{g.Pieces[0].X, y - 1}) {
 			err := g.Matrixes[0].Add(g.Pieces[0], solidBlock, mino.Point{g.Pieces[0].X, y}, false)
 			if err != nil {
 				panic(err)

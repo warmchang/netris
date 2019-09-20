@@ -174,8 +174,8 @@ func renderPlayerMatrix() {
 	gm.Matrixes[0].ClearOverlay()
 	if gm.Pieces[0] != nil {
 		// Draw ghost piece
-		for y := 0; y < gm.Matrixes[0].H && y < gm.Pieces[0].Y; y++ {
-			if gm.Matrixes[0].CanAddAt(gm.Pieces[0], mino.Point{gm.Pieces[0].X, y}) {
+		for y := gm.Pieces[0].Y; y >= 0; y-- {
+			if y == 0 || !gm.Matrixes[0].CanAddAt(gm.Pieces[0], mino.Point{gm.Pieces[0].X, y - 1}) {
 				err := gm.Matrixes[0].Add(gm.Pieces[0], ghostBlock, mino.Point{gm.Pieces[0].X, y}, true)
 				if err != nil {
 					panic(err)

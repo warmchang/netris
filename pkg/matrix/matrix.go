@@ -219,12 +219,22 @@ func (m *Matrix) Rotate(p *mino.Piece, deg int) bool {
 
 	originalMino := *p.Mino
 
-	// Try rotations
+	rotationOffset := 0
+	if p.Rotation < len(p.Offsets) {
+		rotationOffset = p.Rotation
+	}
 
 	mn := p.Rotate(deg).Origin()
 	p.Mino = &mn
-	if m.CanAdd(p) {
-		return true
+	for _, offset := range p.Offsets[rotationOffset] {
+		if m.CanAddAt(p, mino.Point{p.X + offset.X, p.Y + offset.Y}) {
+			p.X += offset.X
+			p.Y += offset.Y
+
+			p.ApplyRotation(deg)
+
+			return true
+		}
 	}
 
 	p.Mino = &originalMino

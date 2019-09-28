@@ -23,8 +23,8 @@ func Generate(rank int) ([]Mino, error) {
 		found := make(map[string]bool)
 		for _, mino := range r {
 			for _, newMino := range mino.newMinos() {
-				if s := newMino.String(); !found[s] {
-					minos = append(minos, newMino.Origin())
+				if s := newMino.Canonical().String(); !found[s] {
+					minos = append(minos, newMino.Canonical())
 					found[s] = true
 				}
 			}

@@ -16,18 +16,26 @@ func TestGenerate(t *testing.T) {
 		}
 
 		if len(minos) != len(d.Minos) {
-			t.Errorf("failed to generate minos for rank %d: expected to generate %d minos, got %d", d.Rank, len(d.Minos), len(minos))
+			t.Errorf("failed to generate minos for rank %d: expected to generate %d minos, got %d - %s", d.Rank, len(d.Minos), len(minos), minos)
 		}
 
-		for i, ex := range d.Minos {
-			found := 0
+		found := make(map[string]int)
+
+		for _, ex := range d.Minos {
 			for _, m := range minos {
 				if m.String() == ex {
-					found++
+					found[m.String()]++
 				}
 			}
-			if found != 1 {
-				t.Errorf("failed to generate minos for rank %d mino %d: expected to generate 1 mino %s - got %d", d.Rank, i, ex, found)
+		}
+
+		if len(found) != len(d.Minos) {
+			t.Errorf("failed to generate minos for rank %d: got unexpected minos %s", d.Rank, minos)
+		}
+
+		for _, ms := range d.Minos {
+			if found[ms] != 1 {
+				t.Errorf("failed to generate minos for rank %d: expected to generate 1 mino %s, got %d", d.Rank, ms, found[ms])
 			}
 		}
 	}

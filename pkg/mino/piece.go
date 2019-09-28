@@ -30,16 +30,29 @@ const (
 	PieceJLSTZ
 )
 
-var AllRotationPivots = map[PieceType][]Point{
-	PieceI: {{1, 0}, {0, 2}, {2, 0}, {0, 1}},
-	PieceO: {{0, 0}, {0, 1}, {1, 1}, {2, 0}},
-	PieceJ: {{1, 0}, {0, 1}, {1, 1}, {1, 1}},
-	PieceL: {{1, 0}, {0, 1}, {1, 1}, {1, 1}},
-	PieceS: {{1, 0}, {0, 1}, {1, 1}, {1, 1}},
-	PieceT: {{1, 0}, {0, 1}, {1, 1}, {1, 1}},
-	PieceZ: {{1, 0}, {0, 1}, {1, 1}, {1, 1}},
+var AllRotationPivotsCW = map[PieceType][]Point{
+	PieceI: {{1, -2}, {-1, 0}, {1, -1}, {0, 0}},
+	PieceO: {{1, 0}, {1, 0}, {1, 0}, {1, 0}},
+	PieceJ: {{1, -1}, {0, 0}, {1, 0}, {1, 0}},
+	PieceL: {{1, -1}, {0, 0}, {1, 0}, {1, 0}},
+	PieceS: {{1, -1}, {0, 0}, {1, 0}, {1, 0}},
+	PieceT: {{1, -1}, {0, 0}, {1, 0}, {1, 0}},
+	PieceZ: {{1, -1}, {0, 0}, {1, 0}, {1, 0}},
 }
 
+// IN PROGRESS
+var AllRotationPivotsCCW = map[PieceType][]Point{
+	PieceI: {{2, 1}, {-1, 00}, {2, 2}, {1, 3}},
+	PieceO: {{0, 1}, {0, 1}, {0, 1}, {0, 1}},
+	PieceJ: {{1, 1}, {0, 0}, {1, 2}, {1, 2}},
+	PieceL: {{1, 1}, {0, 0}, {1, 2}, {1, 2}},
+	PieceS: {{1, 1}, {0, 0}, {1, 2}, {1, 2}},
+	PieceT: {{1, 1}, {0, 2}, {1, 2}, {1, 2}},
+	PieceZ: {{1, 1}, {0, 0}, {1, 2}, {1, 2}},
+}
+
+// AllRotationOffets is a list of all piece offsets.  Each set includes offsets
+// for 0, R, L and 2 rotation states.
 var AllRotationOffsets = map[PieceType][]RotationOffsets{
 	PieceI: {
 		{{0, 0}, {-1, 0}, {-1, 1}, {0, 1}},
@@ -56,14 +69,16 @@ var AllRotationOffsets = map[PieceType][]RotationOffsets{
 		{{0, 0}, {1, 2}, {0, 0}, {-1, 2}}}}
 
 type Piece struct {
-	*Point
-	*Mino
+	Point
+	Mino
+	Original Mino
+
+	Rotation  int
+	PivotsCW  []Point
+	PivotsCCW []Point
+	Offsets   []RotationOffsets
 
 	Color int
-
-	Rotation int
-	Pivots   []Point
-	Offsets  []RotationOffsets
 
 	sync.Mutex
 }
@@ -72,12 +87,12 @@ func (p *Piece) String() string {
 	return fmt.Sprintf("%+v", *p)
 }
 
-func NewPiece(m *Mino, loc *Point) *Piece {
-	p := &Piece{Mino: m, Point: loc, Color: 0}
+func NewPiece(m Mino, loc Point) *Piece {
+	p := &Piece{Mino: m, Original: m, Point: loc, Color: 0}
 
 	offsetType := PieceJLSTZ
-	pieceType := PieceT
-	switch m.String() {
+	var pieceType PieceType
+	switch m.Canonical().String() {
 	case TetrominoI:
 		offsetType = PieceI
 		pieceType = PieceI
@@ -90,64 +105,82 @@ func NewPiece(m *Mino, loc *Point) *Piece {
 		pieceType = PieceL
 	case TetrominoS:
 		pieceType = PieceS
+	case TetrominoT:
+		pieceType = PieceT
 	case TetrominoZ:
 		pieceType = PieceZ
 	}
 
-	p.Pivots = AllRotationPivots[pieceType]
+	p.PivotsCW = AllRotationPivotsCW[pieceType]
+	p.PivotsCCW = AllRotationPivotsCCW[pieceType]
 	p.Offsets = AllRotationOffsets[offsetType]
 
 	return p
 }
 
-func (p *Piece) Rotate(deg int) *Mino {
+// Rotate returns the new mino of a piece when a rotation is applied
+func (p *Piece) Rotate(rotations int, direction int) Mino {
 	p.Lock()
 	defer p.Unlock()
 
-	if deg == 0 {
+	if rotations == 0 {
 		return p.Mino
 	}
 
-	rotations := 1
-	if deg == 270 { // TODO: Implement reverse formula
-		rotations = 3
-	} else if deg == 180 {
-		rotations = 2
-	}
+	newMino := make(Mino, len(p.Mino))
+	copy(newMino, p.Mino.Origin())
 
-	pp := p.Pivots[p.Rotation]
-	px, py := pp.X, pp.Y
-
-	w, h := p.Mino.Size()
+	w, h := newMino.Size()
 	maxSize := w
 	if h > maxSize {
 		maxSize = h
 	}
 
-	newMino := make(Mino, len(*p.Mino))
-	copy(newMino, *p.Mino)
+	var rotationPivot int
+	for j := 0; j < rotations; j++ {
+		if direction == 0 {
+			rotationPivot = p.Rotation + j
+		} else {
+			rotationPivot = p.Rotation - j
+		}
 
-	for i := 0; i < len(*p.Mino); i++ {
-		for j := 0; j < rotations; j++ {
-			newMino[i] = Point{newMino[i].Y + px - py, px + py - newMino[i].X + py - maxSize}
+		if rotationPivot < 0 {
+			rotationPivot += RotationStates
+		}
+
+		if (rotationPivot == 3 && direction == 0) || (rotationPivot == 1 && direction == 1) {
+			newMino = p.Original
+		} else {
+			pp := p.PivotsCW[rotationPivot%RotationStates]
+			if direction == 1 {
+				pp = p.PivotsCCW[rotationPivot%RotationStates]
+			}
+			px, py := pp.X, pp.Y
+
+			for i := 0; i < len(newMino); i++ {
+				x := newMino[i].X
+				y := newMino[i].Y
+
+				if direction == 0 {
+					newMino[i] = Point{(0 * (x - px)) + (1 * (y - py)), (-1 * (x - px)) + (0 * (y - py))}
+				} else {
+					newMino[i] = Point{(0 * (x - px)) + (-1 * (y - py)), (1 * (x - px)) + (0 * (y - py))}
+				}
+			}
 		}
 	}
 
-	return &newMino
+	return newMino
 }
 
-func (p *Piece) ApplyRotation(deg int) {
-
-	if deg == 0 {
-		return
+func (p *Piece) ApplyRotation(rotations int, direction int) {
+	if direction == 1 {
+		rotations *= -1
 	}
 
-	rotations := 1
-	if deg == 270 { // TODO: Implement reverse formula
-		rotations = 3
-	} else if deg == 180 {
-		rotations = 2
+	p.Rotation = p.Rotation + rotations
+	if p.Rotation < 0 {
+		p.Rotation += RotationStates
 	}
-
-	p.Rotation = (p.Rotation + rotations) % RotationStates
+	p.Rotation %= RotationStates
 }

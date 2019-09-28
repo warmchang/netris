@@ -4,15 +4,16 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"strings"
 	"time"
 
+	"git.sr.ht/~tslocum/netris/pkg/event"
+
 	"git.sr.ht/~tslocum/netris/pkg/game"
-
-	"git.sr.ht/~tslocum/netris/pkg/matrix"
 	"git.sr.ht/~tslocum/netris/pkg/mino"
-
 	"github.com/jroimartin/gocui"
 	"github.com/mattn/go-isatty"
 )
@@ -22,6 +23,8 @@ var (
 	done  = make(chan bool)
 
 	gm *game.Game
+
+	debugAddress string
 )
 
 const RefreshRate = 15 * time.Millisecond
@@ -30,7 +33,7 @@ func init() {
 	log.SetFlags(0)
 }
 
-func renderMatrix(m *matrix.Matrix) string {
+func renderMatrix(m *mino.Matrix) string {
 	var b strings.Builder
 
 	for y := m.H - 1; y >= 0; y-- {
@@ -74,35 +77,15 @@ func renderBlock(b mino.Block) string {
 }
 
 func main() {
+	flag.StringVar(&debugAddress, "debug", "", "address to serve debug info")
 	flag.Parse()
-	/*
-		playerMatrix = matrix.NewMatrix(10, 20, 20)
 
-		minos, err := mino.Generate(4)
-		if err != nil {
-			panic(err)
-		}
+	if debugAddress != "" {
+		go func() {
+			log.Fatal(http.ListenAndServe(debugAddress, nil))
+		}()
+	}
 
-		m := minos[3]
-
-		m = m.Rotate(90)
-
-		m = m.Rotate(90)
-
-		m = m.Rotate(90)
-
-		log.Println(m)
-		log.Println()
-
-		err = playerMatrix.Add(m, mino.BlockSolidCyan, mino.Point{rand.Intn(8), 4}, false)
-		if err != nil {
-			panic(err)
-		}
-
-		log.Println(m.Render())
-
-		os.Exit(0)
-	*/
 	var err error
 
 	tty := isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())
@@ -133,8 +116,19 @@ func main() {
 	go func() {
 		for {
 			e := <-gm.Event
+			if ev, ok := e.(*event.ScoreEvent); ok {
+				gm.Scores[ev.Player] += ev.Score
 
-			fmt.Fprintln(dbg, e.Message)
+				if ev.Message != "" {
+					fmt.Fprintln(dbg, ev.Message)
+				}
+			} else if ev, ok := e.(*event.Event); ok {
+				if ev.Message != "" {
+					fmt.Fprintln(dbg, ev.Message)
+				}
+			} else {
+				panic(fmt.Sprintf("unknown event type: %+v", e))
+			}
 		}
 	}()
 
@@ -146,10 +140,9 @@ func main() {
 
 			gui.Update(func(i *gocui.Gui) error {
 				gm.Lock()
-				gm.Unlock()
-
 				renderPreviewMatrix()
 				renderPlayerMatrix()
+				gm.Unlock()
 
 				return nil
 			})

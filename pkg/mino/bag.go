@@ -18,7 +18,7 @@ func NewBag(minos []Mino) (*Bag, error) {
 	return b, nil
 }
 
-func (b *Bag) Take() *Mino {
+func (b *Bag) Take() Mino {
 	b.Lock()
 	defer b.Unlock()
 
@@ -29,14 +29,14 @@ func (b *Bag) Take() *Mino {
 		b.Minos = b.Minos[1:]
 	}
 
-	return &mino
+	return mino
 }
 
-func (b *Bag) Next() *Mino {
+func (b *Bag) Next() Mino {
 	b.Lock()
 	defer b.Unlock()
 
-	return &b.Minos[0]
+	return b.Minos[0]
 }
 
 func (b *Bag) Shuffle() {

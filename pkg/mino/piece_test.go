@@ -14,11 +14,7 @@ func TestPiece(t *testing.T) {
 		t.Errorf("failed to generate minos for rank %d: unexpected number of minos generated", 4)
 	}
 
-	if minos[2].String() != TetrominoJ {
-		t.Errorf("unexpected mino found when generating J teromino: %s", minos[2])
-	}
-
-	p := NewPiece(&minos[2], &Point{0, 0})
+	p := NewPiece(minos[2], Point{0, 0})
 	// TODO
 	_ = p
 }

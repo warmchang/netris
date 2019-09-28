@@ -5,54 +5,37 @@ import (
 )
 
 func moveLeft(_ *gocui.Gui, _ *gocui.View) error {
-	gm.MovePiece(0, -1, 0)
-
-	renderPlayerMatrix()
+	gm.Matrixes[0].MovePiece(0, -1, 0)
 
 	return nil
 }
 
 func moveRight(_ *gocui.Gui, _ *gocui.View) error {
-	gm.MovePiece(0, 1, 0)
-
-	renderPlayerMatrix()
+	gm.Matrixes[0].MovePiece(0, 1, 0)
 
 	return nil
 }
 
 func moveUp(_ *gocui.Gui, _ *gocui.View) error {
-	gm.LandPiece(0)
-
-	renderPlayerMatrix()
+	gm.Matrixes[0].LandPiece(0)
 
 	return nil
 }
 
 func moveDown(_ *gocui.Gui, _ *gocui.View) error {
-	gm.MovePiece(0, 0, -1)
-
-	gm.DroppedPiece(0)
-
-	renderPlayerMatrix()
+	gm.Matrixes[0].MovePiece(0, 0, -1)
 
 	return nil
 }
 
 func rotateBack(_ *gocui.Gui, _ *gocui.View) error {
-	gm.RotatePiece(0, 270)
-
-	renderPlayerMatrix()
+	gm.Matrixes[0].Rotate(0, 1, 1)
 
 	return nil
 }
 
 func rotateForward(_ *gocui.Gui, _ *gocui.View) error {
-	printDebug("F1 " + gm.Pieces[0].String())
-	gm.RotatePiece(0, 90)
-
-	printDebug("F2 " + gm.Pieces[0].String())
-	renderPlayerMatrix()
-	printDebug("F3 " + gm.Pieces[0].String())
+	gm.Matrixes[0].Rotate(0, 1, 0)
 
 	return nil
 }

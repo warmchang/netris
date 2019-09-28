@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"sync"
 
-	"git.sr.ht/~tslocum/netris/pkg/game"
-
+	"git.sr.ht/~tslocum/netris/pkg/event"
 	"git.sr.ht/~tslocum/netris/pkg/mino"
 	"github.com/jroimartin/gocui"
 )
@@ -58,7 +58,7 @@ func layout(_ *gocui.Gui) error {
 		v.Frame = true
 		v.Wrap = false
 	}
-	if v, err := gui.SetView("info", 14, 3, 42, 10); err != nil {
+	if v, err := gui.SetView("info", 14, 3, 42, 20); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -132,7 +132,7 @@ func setBufferStatus(active bool) {
 }
 
 func printDebug(msg string) {
-	gm.Event <- &game.Event{msg}
+	gm.Event <- &event.Event{Message: msg}
 }
 
 func printDebugf(format string, a ...interface{}) {
@@ -148,11 +148,12 @@ func printHeader() {
 }
 
 func renderPreviewMatrix() {
-	m := gm.NextPieces[0]
+	m := mino.NewPiece(gm.Bags[0].Next(), mino.Point{0, 0})
 
 	solidBlock := m.SolidBlock()
 
-	gm.Previews[0].ClearMatrix()
+	gm.Previews[0].Clear()
+
 	err := gm.Previews[0].Add(m, solidBlock, mino.Point{0, 0}, false)
 	if err != nil {
 		panic(err)
@@ -160,25 +161,25 @@ func renderPreviewMatrix() {
 
 	info.Clear()
 	fmt.Fprint(info, renderMatrix(gm.Previews[0]))
+	fmt.Fprint(info, "\n\n\n\n\n\nScore:\n\n"+strconv.Itoa(gm.Scores[0]))
 }
 
 func renderPlayerMatrix() {
-	gm.Lock()
-	defer gm.Unlock()
-
 	mtx.Clear()
 
-	ghostBlock := gm.Pieces[0].GhostBlock()
-	solidBlock := gm.Pieces[0].SolidBlock()
+	p := gm.Matrixes[0].P[0]
+
+	ghostBlock := p.GhostBlock()
+	solidBlock := p.SolidBlock()
 
 	gm.Matrixes[0].ClearOverlay()
-	if gm.Pieces[0] != nil {
+	if p != nil {
 		// Draw ghost piece
-		for y := gm.Pieces[0].Y; y >= 0; y-- {
-			if y == 0 || !gm.Matrixes[0].CanAddAt(gm.Pieces[0], mino.Point{gm.Pieces[0].X, y - 1}) {
-				err := gm.Matrixes[0].Add(gm.Pieces[0], ghostBlock, mino.Point{gm.Pieces[0].X, y}, true)
+		for y := p.Y; y >= 0; y-- {
+			if y == 0 || !gm.Matrixes[0].CanAddAt(p, mino.Point{p.X, y - 1}) {
+				err := gm.Matrixes[0].Add(p, ghostBlock, mino.Point{p.X, y}, true)
 				if err != nil {
-					panic(err)
+					panic(fmt.Sprintf("failed to draw ghost piece: %+v", err))
 				}
 
 				break
@@ -186,9 +187,9 @@ func renderPlayerMatrix() {
 		}
 
 		// Draw piece
-		err := gm.Matrixes[0].Add(gm.Pieces[0], solidBlock, mino.Point{gm.Pieces[0].X, gm.Pieces[0].Y}, true)
+		err := gm.Matrixes[0].Add(p, solidBlock, mino.Point{p.X, p.Y}, true)
 		if err != nil {
-			panic(err)
+			panic(fmt.Sprintf("failed to draw active piece: %+v", err))
 		}
 
 	}

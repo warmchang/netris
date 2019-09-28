@@ -103,18 +103,21 @@ func (m Mino) Equal(other Mino) bool {
 }
 
 func (m Mino) String() string {
-	sort.Sort(m)
+	newMino := make(Mino, len(m))
+	copy(newMino, m)
+
+	sort.Sort(newMino)
 
 	var b strings.Builder
-	for i, p := range m.Origin() {
+	for i := range newMino {
 		if i > 0 {
 			b.WriteRune(',')
 		}
 
 		b.WriteRune('(')
-		b.WriteString(strconv.Itoa(p.X))
+		b.WriteString(strconv.Itoa(newMino[i].X))
 		b.WriteRune(',')
-		b.WriteString(strconv.Itoa(p.Y))
+		b.WriteString(strconv.Itoa(newMino[i].Y))
 		b.WriteRune(')')
 	}
 
@@ -164,9 +167,6 @@ func (m Mino) Size() (int, int) {
 }
 
 func (m Mino) Render() string {
-	m = m.Origin()
-	sort.Sort(m)
-
 	var b strings.Builder
 
 	w, h := m.Size()
@@ -219,11 +219,15 @@ func (m Mino) minCoords() (int, int) {
 
 func (m Mino) Origin() Mino {
 	minx, miny := m.minCoords()
-	for i, p := range m {
-		m[i].X = p.X - minx
-		m[i].Y = p.Y - miny
+
+	newMino := make(Mino, len(m))
+	copy(newMino, m)
+
+	for i := 0; i < len(m); i++ {
+		newMino[i] = Point{newMino[i].X - minx, newMino[i].Y - miny}
 	}
-	return m
+
+	return newMino
 }
 
 func (m Mino) Variations() []Mino {
@@ -243,14 +247,14 @@ func (m Mino) Variations() []Mino {
 
 func (m Mino) Canonical() Mino {
 	var (
-		ms = m.String()
+		ms = m.Origin().String()
 		c  = -1
-		v  = m.Variations()
+		v  = m.Origin().Variations()
 		vs string
 	)
 
 	for i := 0; i < 3; i++ {
-		vs = v[i].String()
+		vs = v[i].Origin().String()
 		if vs < ms {
 			c = i
 			ms = vs
@@ -258,10 +262,10 @@ func (m Mino) Canonical() Mino {
 	}
 
 	if c == -1 {
-		return m.Flatten()
+		return m.Origin().Flatten().Origin()
 	}
 
-	return v[c].Flatten()
+	return v[c].Origin().Flatten().Origin()
 }
 
 func (m Mino) Flatten() Mino {

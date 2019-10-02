@@ -4,15 +4,17 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"strings"
 	"time"
 
-	"git.sr.ht/~tslocum/netris/pkg/event"
+	"git.sr.ht/~tslocum/netris/pkg/player"
 
 	"git.sr.ht/~tslocum/netris/pkg/game"
+
 	"git.sr.ht/~tslocum/netris/pkg/mino"
 	"github.com/jroimartin/gocui"
 	"github.com/mattn/go-isatty"
@@ -22,12 +24,13 @@ var (
 	ready = make(chan bool)
 	done  = make(chan bool)
 
-	gm *game.Game
+	activeGame *game.Game
 
-	debugAddress string
+	connectAddress string
+	debugAddress   string
 )
 
-const RefreshRate = 15 * time.Millisecond
+const RefreshRate = 20 * time.Millisecond
 
 func init() {
 	log.SetFlags(0)
@@ -71,12 +74,15 @@ func renderBlock(b mino.Block) string {
 		color = 46
 	case mino.BlockGhostOrange, mino.BlockSolidOrange:
 		color = 202
+	case mino.BlockGarbage:
+		color = 8
 	}
 
 	return fmt.Sprintf("\033[38;5;%dm%c\033[0m", color, r)
 }
 
 func main() {
+	flag.StringVar(&connectAddress, "connect", "", "server address to connect to")
 	flag.StringVar(&debugAddress, "debug", "", "address to serve debug info")
 	flag.Parse()
 
@@ -108,46 +114,39 @@ func main() {
 
 	<-ready
 
-	gm, err = game.NewGame(4, 123454)
-	if err != nil {
-		panic(err)
+	if connectAddress != "" {
+		s := game.ConnectUnix("/tmp/netris.sock")
+
+		s.Out <- player.GameCommand{C: player.CommandJoinGame}
+
+		select {}
+
+		panic(fmt.Sprint("connected", s))
 	}
-
-	go func() {
-		for {
-			e := <-gm.Event
-			if ev, ok := e.(*event.ScoreEvent); ok {
-				gm.Scores[ev.Player] += ev.Score
-
-				if ev.Message != "" {
-					fmt.Fprintln(dbg, ev.Message)
-				}
-			} else if ev, ok := e.(*event.Event); ok {
-				if ev.Message != "" {
-					fmt.Fprintln(dbg, ev.Message)
-				}
-			} else {
-				panic(fmt.Sprintf("unknown event type: %+v", e))
-			}
-		}
-	}()
-
-	gm.Start()
 
 	go func() {
 		for {
 			time.Sleep(RefreshRate)
 
 			gui.Update(func(i *gocui.Gui) error {
-				gm.Lock()
 				renderPreviewMatrix()
 				renderPlayerMatrix()
-				gm.Unlock()
 
 				return nil
 			})
 		}
 	}()
+
+	activeGame, err = game.NewGame(4, 4)
+
+	server, client := net.Pipe()
+	_ = server
+
+	p := player.NewPlayer(client)
+
+	activeGame.AddPlayer(p)
+
+	activeGame.Start()
 
 	// Game logic
 

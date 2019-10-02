@@ -5,15 +5,20 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"os"
 	"os/exec"
 	"path"
 	"syscall"
+	"time"
 	"unsafe"
 
-	"git.sr.ht/~tslocum/netris/pkg/player"
 	"github.com/creack/pty"
 	"github.com/gliderlabs/ssh"
+)
+
+const (
+	ServerIdleTimeout = 1 * time.Minute
 )
 
 type SSHServer struct {
@@ -26,7 +31,7 @@ func setWinsize(f *os.File, w, h int) {
 		uintptr(unsafe.Pointer(&struct{ h, w, x, y uint16 }{uint16(h), uint16(w), 0, 0})))
 }
 
-func (s *SSHServer) Host(newPlayers chan<- *player.ConnectingPlayer) {
+func (s *SSHServer) Host(newPlayers chan<- net.Conn) {
 	if s.ListenAddress == "" {
 		panic("SSH server ListenAddress must be specified")
 	}
@@ -37,11 +42,17 @@ func (s *SSHServer) Host(newPlayers chan<- *player.ConnectingPlayer) {
 	}
 
 	server := &ssh.Server{
-		Addr: s.ListenAddress,
+		Addr:        s.ListenAddress,
+		IdleTimeout: ServerIdleTimeout,
 		Handler: func(sshSession ssh.Session) {
+			ctx := sshSession.Context()
 
-			ctx, cancel := context.WithCancel(context.Background())
-			cmd := exec.CommandContext(ctx, s.NetrisPath)
+			if publicKey, ok := ctx.Value("publickey").(ssh.PublicKey); ok {
+				log.Printf("logged in with %s", publicKey.Marshal())
+			}
+
+			cmdCtx, cancelCmd := context.WithCancel(ctx)
+			cmd := exec.CommandContext(cmdCtx, s.NetrisPath, "--connect", "/tmp/netris.sock")
 			ptyReq, winCh, isPty := sshSession.Pty()
 			if isPty {
 				cmd.Env = append(cmd.Env, fmt.Sprintf("TERM=%s", ptyReq.Term))
@@ -63,7 +74,7 @@ func (s *SSHServer) Host(newPlayers chan<- *player.ConnectingPlayer) {
 				}()
 				io.Copy(sshSession, f)
 
-				cancel()
+				cancelCmd()
 				cmd.Wait()
 			} else {
 				io.WriteString(sshSession, "No PTY requested.\n")
@@ -73,6 +84,10 @@ func (s *SSHServer) Host(newPlayers chan<- *player.ConnectingPlayer) {
 		PtyCallback: func(ctx ssh.Context, pty ssh.Pty) bool {
 			return true
 		},
+		PublicKeyHandler: func(ctx ssh.Context, key ssh.PublicKey) bool {
+			ctx.SetValue("publickey", key)
+			return true
+		},
 	}
 
 	err = server.SetOption(ssh.HostKeyFile(path.Join(homeDir, ".ssh", "id_rsa")))
@@ -80,7 +95,12 @@ func (s *SSHServer) Host(newPlayers chan<- *player.ConnectingPlayer) {
 		panic(err)
 	}
 
-	go log.Fatal(server.ListenAndServe())
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			panic(err)
+		}
+	}()
 }
 
 func (s *SSHServer) Shutdown(reason string) {

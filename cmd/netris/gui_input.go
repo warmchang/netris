@@ -5,57 +5,81 @@ import (
 )
 
 func moveLeft(_ *gocui.Gui, _ *gocui.View) error {
-	gm.Matrixes[0].MovePiece(0, -1, 0)
+	if activeGame == nil {
+		return nil
+	}
+
+	activeGame.Matrixes[0].MovePiece(0, -1, 0)
 
 	return nil
 }
 
 func moveRight(_ *gocui.Gui, _ *gocui.View) error {
-	gm.Matrixes[0].MovePiece(0, 1, 0)
+	if activeGame == nil {
+		return nil
+	}
+
+	activeGame.Matrixes[0].MovePiece(0, 1, 0)
 
 	return nil
 }
 
 func moveUp(_ *gocui.Gui, _ *gocui.View) error {
-	gm.Matrixes[0].LandPiece(0)
+	if activeGame == nil {
+		return nil
+	}
+
+	activeGame.Matrixes[0].HardDropPiece(0)
 
 	return nil
 }
 
 func moveDown(_ *gocui.Gui, _ *gocui.View) error {
-	gm.Matrixes[0].MovePiece(0, 0, -1)
+	if activeGame == nil {
+		return nil
+	}
+
+	activeGame.Matrixes[0].MovePiece(0, 0, -1)
 
 	return nil
 }
 
 func rotateBack(_ *gocui.Gui, _ *gocui.View) error {
-	gm.Matrixes[0].Rotate(0, 1, 1)
+	if activeGame == nil {
+		return nil
+	}
+
+	activeGame.Matrixes[0].Rotate(0, 1, 1)
 
 	return nil
 }
 
 func rotateForward(_ *gocui.Gui, _ *gocui.View) error {
-	gm.Matrixes[0].Rotate(0, 1, 0)
+	if activeGame == nil {
+		return nil
+	}
+
+	activeGame.Matrixes[0].Rotate(0, 1, 0)
 
 	return nil
 }
 
 func pressSelect(_ *gocui.Gui, _ *gocui.View) error {
-	if bufferActive {
+	if inputActive {
 		// Process input
 	}
 
-	setBufferStatus(!bufferActive)
+	setInputStatus(!inputActive)
 
 	return nil
 }
 
 func pressBack(_ *gocui.Gui, _ *gocui.View) error {
-	if !bufferActive {
+	if !inputActive {
 		return nil
 	}
 
-	setBufferStatus(false)
+	setInputStatus(false)
 
 	return nil
 }

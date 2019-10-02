@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"sync"
 
-	"git.sr.ht/~tslocum/netris/pkg/event"
 	"git.sr.ht/~tslocum/netris/pkg/mino"
 	"github.com/jroimartin/gocui"
 )
@@ -16,10 +15,10 @@ var (
 
 	info   *gocui.View
 	mtx    *gocui.View
+	input  *gocui.View
 	buffer *gocui.View
-	dbg    *gocui.View
 
-	bufferActive bool
+	inputActive bool
 
 	initialDraw sync.Once
 )
@@ -48,7 +47,7 @@ func layout(_ *gocui.Gui) error {
 	maxX, maxY := gui.Size()
 	listWidth := maxX
 
-	if v, err := gui.SetView("matrix", 1, 2, 12, 23); err != nil {
+	if v, err := gui.SetView("matrix", 1, 1, 12, 22); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -58,7 +57,7 @@ func layout(_ *gocui.Gui) error {
 		v.Frame = true
 		v.Wrap = false
 	}
-	if v, err := gui.SetView("info", 14, 3, 42, 20); err != nil {
+	if v, err := gui.SetView("info", 14, 3, 24, 20); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -68,7 +67,10 @@ func layout(_ *gocui.Gui) error {
 		v.Frame = false
 		v.Wrap = false
 	}
-	if v, err := gui.SetView("buffer", -1, -1, listWidth, 2); err != nil {
+
+	// TODO: Remove.  When enter is pressed, the chat history is shown instead of other players matrixes
+	// When there are no other matrixes, history is always displayed
+	if v, err := gui.SetView("buffer", 24, 1, maxX, maxY+1); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -76,31 +78,31 @@ func layout(_ *gocui.Gui) error {
 		buffer = v
 
 		v.Frame = false
-		v.Wrap = false
-		v.Editable = bufferActive
-		v.Wrap = true
-		//v.Editor = gocui.EditorFunc(searchEditor)
-
-		if _, err := gui.SetCurrentView("buffer"); err != nil {
-			return err
-		}
-	}
-
-	if v, err := gui.SetView("debug", 1, 24, maxX, maxY); err != nil {
-		if err != gocui.ErrUnknownView {
-			return err
-		}
-
-		dbg = v
-
-		v.Frame = false
 		v.Wrap = true
 		v.Autoscroll = true
 	}
 
+	if v, err := gui.SetView("input", -1, -1, listWidth, 2); err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+
+		input = v
+
+		v.Frame = false
+		v.Wrap = false
+		v.Editable = inputActive
+		v.Wrap = true
+		//v.Editor = gocui.EditorFunc(searchEditor)
+
+		if _, err := gui.SetCurrentView("input"); err != nil {
+			return err
+		}
+	}
+
 	initialDraw.Do(func() {
-		bufferActive = true // Force draw
-		setBufferStatus(false)
+		inputActive = true // Force draw
+		setInputStatus(false)
 
 		ready <- true
 	})
@@ -109,19 +111,19 @@ func layout(_ *gocui.Gui) error {
 	return nil
 }
 
-func setBufferStatus(active bool) {
-	if bufferActive == active {
+func setInputStatus(active bool) {
+	if inputActive == active {
 		return
 	}
 
-	bufferActive = active
+	inputActive = active
 
-	buffer.Editable = active
+	input.Editable = active
 
-	buffer.Clear()
+	input.Clear()
 
 	if active {
-		buffer.SetCursor(0, 0)
+		input.SetCursor(0, 0)
 		gui.Cursor = true
 
 		return
@@ -131,53 +133,56 @@ func setBufferStatus(active bool) {
 	printHeader()
 }
 
-func printDebug(msg string) {
-	gm.Event <- &event.Event{Message: msg}
-}
-
-func printDebugf(format string, a ...interface{}) {
-	printDebug(fmt.Sprintf(format+"\n", a...))
-}
-
 func printHeader() {
-	if bufferActive {
+	if inputActive {
 		return
 	}
 
-	fmt.Fprintln(buffer, "Welcome to netris")
+	fmt.Fprintln(input, "Welcome to netris")
 }
 
 func renderPreviewMatrix() {
-	m := mino.NewPiece(gm.Bags[0].Next(), mino.Point{0, 0})
+	info.Clear()
+
+	g := activeGame
+	if g == nil {
+		return
+	}
+
+	m := mino.NewPiece(g.Bags[0].Next(), mino.Point{0, 0})
 
 	solidBlock := m.SolidBlock()
 
-	gm.Previews[0].Clear()
+	g.Previews[0].Clear()
 
-	err := gm.Previews[0].Add(m, solidBlock, mino.Point{0, 0}, false)
+	err := g.Previews[0].Add(m, solidBlock, mino.Point{0, 0}, false)
 	if err != nil {
 		panic(err)
 	}
 
-	info.Clear()
-	fmt.Fprint(info, renderMatrix(gm.Previews[0]))
-	fmt.Fprint(info, "\n\n\n\n\n\nScore:\n\n"+strconv.Itoa(gm.Scores[0]))
+	fmt.Fprint(info, renderMatrix(g.Previews[0]))
+	fmt.Fprint(info, "\n\n\n\n\n\nScore:\n\n"+strconv.Itoa(g.Scores[0]))
 }
 
 func renderPlayerMatrix() {
 	mtx.Clear()
 
-	p := gm.Matrixes[0].P[0]
+	g := activeGame
+	if g == nil {
+		return
+	}
+
+	p := g.Matrixes[0].P[0]
 
 	ghostBlock := p.GhostBlock()
 	solidBlock := p.SolidBlock()
 
-	gm.Matrixes[0].ClearOverlay()
+	g.Matrixes[0].ClearOverlay()
 	if p != nil {
 		// Draw ghost piece
 		for y := p.Y; y >= 0; y-- {
-			if y == 0 || !gm.Matrixes[0].CanAddAt(p, mino.Point{p.X, y - 1}) {
-				err := gm.Matrixes[0].Add(p, ghostBlock, mino.Point{p.X, y}, true)
+			if y == 0 || !g.Matrixes[0].CanAddAt(p, mino.Point{p.X, y - 1}) {
+				err := g.Matrixes[0].Add(p, ghostBlock, mino.Point{p.X, y}, true)
 				if err != nil {
 					panic(fmt.Sprintf("failed to draw ghost piece: %+v", err))
 				}
@@ -187,18 +192,18 @@ func renderPlayerMatrix() {
 		}
 
 		// Draw piece
-		err := gm.Matrixes[0].Add(p, solidBlock, mino.Point{p.X, p.Y}, true)
+		err := g.Matrixes[0].Add(p, solidBlock, mino.Point{p.X, p.Y}, true)
 		if err != nil {
 			panic(fmt.Sprintf("failed to draw active piece: %+v", err))
 		}
 
 	}
 
-	if gm.Matrixes[0] == nil {
+	if g.Matrixes[0] == nil {
 		return
 	}
 
-	fmt.Fprint(mtx, renderMatrix(gm.Matrixes[0]))
+	fmt.Fprint(mtx, renderMatrix(g.Matrixes[0]))
 }
 
 func closeGUI() {

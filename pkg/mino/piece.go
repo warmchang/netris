@@ -3,6 +3,7 @@ package mino
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
 const (
@@ -79,6 +80,11 @@ type Piece struct {
 	Offsets   []RotationOffsets
 
 	Color int
+
+	Landing   bool
+	Resets    int
+	LastReset time.Time
+	Landed    bool
 
 	sync.Mutex
 }

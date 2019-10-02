@@ -8,11 +8,13 @@ import (
 type Bag struct {
 	Minos    []Mino
 	Original []Mino
+
+	rand *rand.Rand
 	sync.Mutex
 }
 
-func NewBag(minos []Mino) (*Bag, error) {
-	b := &Bag{Original: minos}
+func NewBag(seed int64, minos []Mino) (*Bag, error) {
+	b := &Bag{Original: minos, rand: rand.New(rand.NewSource(seed))}
 	b.Shuffle()
 
 	return b, nil
@@ -41,5 +43,6 @@ func (b *Bag) Next() Mino {
 
 func (b *Bag) Shuffle() {
 	b.Minos = b.Original
-	rand.Shuffle(len(b.Minos), func(i, j int) { b.Minos[i], b.Minos[j] = b.Minos[j], b.Minos[i] })
+
+	b.rand.Shuffle(len(b.Minos), func(i, j int) { b.Minos[i], b.Minos[j] = b.Minos[j], b.Minos[i] })
 }

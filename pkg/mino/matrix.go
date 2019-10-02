@@ -2,8 +2,10 @@ package mino
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 	"sync"
+	"time"
 
 	"git.sr.ht/~tslocum/netris/pkg/event"
 )
@@ -45,22 +47,30 @@ func NewMatrix(w int, h int, b int, players int, bags []*Bag, event chan<- inter
 	return &m
 }
 
-func (m *Matrix) takePiece(player int) {
+func (m *Matrix) takePiece(player int) bool {
 	if m.preview {
-		return
+		return true
 	}
 
-	p := NewPiece(m.Bags[player].Take(), Point{0, m.H - 1})
-	p.X = m.PieceStartX(p)
+	p := NewPiece(m.Bags[player].Take(), Point{0, 0})
+
+	pieceStart := m.pieceStart(player, p)
+	if pieceStart.X < 0 || pieceStart.Y < 0 {
+		return false
+	}
+
+	p.Point = pieceStart
 
 	m.P[player] = p
+
+	return true
 }
 
-func (m *Matrix) TakePiece(player int) {
+func (m *Matrix) TakePiece(player int) bool {
 	m.Lock()
 	defer m.Unlock()
 
-	m.takePiece(player)
+	return m.takePiece(player)
 }
 
 func (m *Matrix) CanAddAt(mn *Piece, loc Point) bool {
@@ -214,6 +224,31 @@ func (m *Matrix) clearFilled() int {
 	return cleared
 }
 
+func (m *Matrix) addGarbage(player int, lines int) bool {
+	for my := m.H + m.B; my >= 0; my-- {
+		for mx := 0; mx < m.W; mx++ {
+			if my >= m.H+m.B-lines && m.M[I(mx, my, m.W)] != BlockNone {
+				return false
+			}
+
+			m.M[I(mx, my+lines, m.W)] = m.M[I(mx, my, m.W)]
+		}
+	}
+
+	for my := 0; my < lines; my++ {
+		hole := rand.Intn(m.W)
+		for mx := 0; mx < m.W; mx++ {
+			if mx == hole {
+				m.M[I(mx, my, m.W)] = BlockNone
+			} else {
+				m.M[I(mx, my, m.W)] = BlockGarbage
+			}
+		}
+	}
+
+	return true
+}
+
 func (m *Matrix) ClearOverlay() {
 	m.Lock()
 	defer m.Unlock()
@@ -266,6 +301,11 @@ func (m *Matrix) Rotate(player int, rotations int, direction int) bool {
 	}
 
 	p := m.P[player]
+
+	if p.Resets < 15 {
+		p.Resets++
+		p.LastReset = time.Now()
+	}
 
 	originalMino := make(Mino, len(p.Mino))
 	copy(originalMino, p.Mino)
@@ -320,9 +360,17 @@ func (m *Matrix) Rotate(player int, rotations int, direction int) bool {
 	return false
 }
 
-func (m *Matrix) PieceStartX(p *Piece) int {
+func (m *Matrix) pieceStart(player int, p *Piece) Point {
 	w, _ := p.Size()
-	return (m.W / 2) - (w / 2)
+	x := (m.W / 2) - (w / 2)
+
+	for y := m.H; y < m.H+m.B; y++ {
+		if m.canAddAt(p, Point{x, y}) {
+			return Point{x, y}
+		}
+	}
+
+	return Point{-1, -1}
 
 }
 
@@ -360,7 +408,13 @@ func (m *Matrix) LowerPiece(player int) {
 	}
 }
 
-func (m *Matrix) landPiece(player int) {
+func (m *Matrix) finishLandingPiece(player int) {
+	if m.P[0].Landed {
+		return
+	}
+
+	m.P[0].Landed = true
+
 	solidBlock := m.P[0].SolidBlock()
 
 	dropped := false
@@ -388,8 +442,6 @@ LANDPIECE:
 		return
 	}
 
-	//m.takePiece(player)
-
 	cleared := m.clearFilled()
 
 	score := 0
@@ -410,13 +462,53 @@ LANDPIECE:
 
 	m.Moved[player] <- score
 	if cleared > 0 {
-		ev := event.ScoreEvent{Score: score}
+		ev := event.ScoreEvent{Score: score, Event: event.Event{Message: "test"}}
 		ev.Player = 0
 
 		m.Event <- &ev
 	}
 
-	m.takePiece(player)
+	if !m.takePiece(player) {
+		// TODO Game over event
+		panic("Game over")
+	}
+}
+
+func (m *Matrix) landPiece(player int) {
+	if m.P[0].Landing || m.P[0].Landed {
+		return
+	}
+
+	p := m.P[0]
+	p.Landing = true
+
+	go func() {
+		var t *time.Ticker
+		t = time.NewTicker(500 * time.Millisecond)
+		for {
+			<-t.C
+
+			m.Lock()
+
+			if p.Landed {
+				m.Unlock()
+				return
+			}
+
+			t.Stop()
+
+			if p.Resets > 0 && time.Since(p.LastReset) < 500*time.Millisecond {
+				t = time.NewTicker((500 * time.Millisecond) - time.Since(p.LastReset))
+				m.Unlock()
+				continue
+			}
+
+			break
+		}
+		defer m.Unlock()
+
+		m.finishLandingPiece(player)
+	}()
 }
 
 func (m *Matrix) MovePiece(player int, x int, y int) bool {
@@ -437,6 +529,10 @@ func (m *Matrix) movePiece(player int, x int, y int) bool {
 	m.P[0].X = px
 	m.P[0].Y = py
 
+	if !m.canAddAt(m.P[0], Point{m.P[0].X, m.P[0].Y - 1}) {
+		m.landPiece(player)
+	}
+
 	if y < 0 {
 		m.Moved[player] <- 0
 	}
@@ -444,9 +540,9 @@ func (m *Matrix) movePiece(player int, x int, y int) bool {
 	return true
 }
 
-func (m *Matrix) LandPiece(player int) {
+func (m *Matrix) HardDropPiece(player int) {
 	m.Lock()
 	defer m.Unlock()
 
-	m.landPiece(player)
+	m.finishLandingPiece(player)
 }

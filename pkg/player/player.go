@@ -1,13 +1,16 @@
 package player
 
 import (
+	"bufio"
 	"log"
-	"sync"
+	"net"
 )
 
 const CommandQueueSize = 10
 
 type Player struct {
+	Conn net.Conn
+
 	Client ClientInterface
 
 	In  chan<- GameCommand
@@ -22,15 +25,33 @@ type ConnectingPlayer struct {
 	Name string
 }
 
-func NewPlayer(c *ConnectingPlayer) *Player {
+func NewPlayer(conn net.Conn) *Player {
 	in := make(chan GameCommand, CommandQueueSize)
 	out := make(chan GameCommand, CommandQueueSize)
 
-	p := &Player{Name: c.Name, Client: c.Client, In: in, Out: out}
+	p := &Player{Conn: conn, In: in, Out: out}
 
-	p.Client.Attach(in, out)
+	go p.handleRead()
+	go p.handleWrite()
 
 	return p
+}
+
+func (p *Player) handleRead() {
+	scanner := bufio.NewScanner(p.Conn)
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		log.Println("read ", line)
+	}
+}
+
+func (p *Player) handleWrite() {
+	for e := range p.Out {
+		_ = e
+		log.Println("player write", e)
+		p.Conn.Write([]byte("test\n"))
+	}
 }
 
 type ClientInterface interface {
@@ -40,44 +61,8 @@ type ClientInterface interface {
 
 type ServerInterface interface {
 	// Load config
-	Host(newPlayers chan<- *ConnectingPlayer)
+	Host(newPlayers chan<- net.Conn)
 	Shutdown(reason string)
-}
-
-type Server struct {
-	I []ServerInterface
-
-	In  chan<- GameCommand
-	Out <-chan GameCommand
-
-	sync.RWMutex
-}
-
-func NewServer(si []ServerInterface) *Server {
-	in := make(chan GameCommand, CommandQueueSize)
-	out := make(chan GameCommand, CommandQueueSize)
-
-	s := &Server{I: si, In: in, Out: out}
-
-	newPlayers := make(chan *ConnectingPlayer, CommandQueueSize)
-
-	go s.accept(newPlayers)
-
-	for _, serverInterface := range si {
-		serverInterface.Host(newPlayers)
-	}
-
-	return s
-}
-
-func (s *Server) accept(newPlayers <-chan *ConnectingPlayer) {
-	for {
-		np := <-newPlayers
-
-		p := NewPlayer(np)
-		log.Println("accept", p.Name)
-		log.Println(p)
-	}
 }
 
 type Command int

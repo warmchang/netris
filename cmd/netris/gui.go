@@ -23,6 +23,7 @@ var (
 	inputActive bool
 
 	app        *tview.Application
+	grid       *tview.Grid
 	inputView  *tview.InputField
 	mtx        *tview.TextView
 	side       *tview.TextView
@@ -34,6 +35,9 @@ var (
 
 	renderLock   = new(sync.Mutex)
 	renderBuffer bytes.Buffer
+
+	screenW, screenH       int
+	newScreenW, newScreenH int
 )
 
 // TODO: Darken ghost color?
@@ -65,6 +69,11 @@ var (
 
 func initGUI() (*tview.Application, error) {
 	app = tview.NewApplication()
+
+	if blockSize == 0 {
+		app.SetBeforeDrawFunc(handleResize)
+	}
+
 	inputView = tview.NewInputField().
 		SetLabel("").
 		SetFieldWidth(0).
@@ -79,7 +88,7 @@ func initGUI() (*tview.Application, error) {
 		return event
 	})
 
-	grid := tview.NewGrid().
+	grid = tview.NewGrid().
 		SetBorders(false).
 		SetRows(2+(20*blockSize), -1)
 
@@ -101,8 +110,8 @@ func initGUI() (*tview.Application, error) {
 
 	buffer = tview.NewTextView().
 		SetTextAlign(tview.AlignLeft).
-		SetWrap(true).
-		SetWordWrap(true)
+		SetWrap(false).
+		SetWordWrap(false)
 
 	buffer.SetDynamicColors(true)
 
@@ -133,7 +142,6 @@ func initGUI() (*tview.Application, error) {
 		recent,
 		true, true)
 
-	// TODO: Chat input on right top, when enter is pressed show history below it
 	grid = grid.SetColumns(1, 4+(10*blockSize), 10, -1).
 		AddItem(spacer, 0, 0, 2, 1, 0, 0, false).
 		AddItem(mtx, 0, 1, 1, 1, 0, 0, false).
@@ -148,6 +156,30 @@ func initGUI() (*tview.Application, error) {
 	go handleDraw()
 
 	return app, nil
+}
+
+func handleResize(screen tcell.Screen) bool {
+	newScreenW, newScreenH = screen.Size()
+	if newScreenW != screenW || newScreenH != screenH {
+		screenW, screenH = newScreenW, newScreenH
+
+		oldBlockSize := blockSize
+		if screenW >= 80 && screenH >= 44 {
+			blockSize = 2
+		} else {
+			blockSize = 1
+		}
+		if blockSize == oldBlockSize {
+			return false
+		}
+
+		grid.SetRows(2+(20*blockSize), -1).SetColumns(1, 4+(10*blockSize), 10, -1)
+
+		draw <- event.DrawAll
+		return true
+	}
+
+	return false
 }
 
 func drawAll() {
@@ -339,18 +371,17 @@ func renderMatrix(m *mino.Matrix) []byte {
 
 	m.DrawPiecesL()
 
-	bs := blockSize
-	if m.Preview && bs > 2 {
-		bs = 2
+	if m.Preview && blockSize > 2 {
+		blockSize = 2
 	}
 
 	for y := m.H - 1; y >= 0; y-- {
-		for j := 0; j < bs; j++ {
+		for j := 0; j < blockSize; j++ {
 			if !m.Preview {
 				renderBuffer.Write(renderVLine)
 			}
 			for x := 0; x < m.W; x++ {
-				for k := 0; k < bs; k++ {
+				for k := 0; k < blockSize; k++ {
 					renderBuffer.Write(renderBlock[m.Block(x, y)])
 				}
 			}
@@ -368,16 +399,19 @@ func renderMatrix(m *mino.Matrix) []byte {
 	}
 
 	renderBuffer.Write(renderLLCorner)
-	for x := 0; x < m.W*bs; x++ {
+	for x := 0; x < m.W*blockSize; x++ {
 		renderBuffer.Write(renderHLine)
 	}
 	renderBuffer.Write(renderLRCorner)
 
 	renderBuffer.WriteRune('\n')
-	renderBuffer.WriteRune(' ')
 	name := m.PlayerName
-	if len(name) > m.W {
-		name = name[:m.W]
+	if len(name) > m.W*blockSize {
+		name = name[:m.W*blockSize]
+	}
+	padName := ((m.W*blockSize - len(name)) / 2) + 1
+	for i := 0; i < padName; i++ {
+		renderBuffer.WriteRune(' ')
 	}
 	renderBuffer.WriteString(name)
 
@@ -445,20 +479,22 @@ func renderMatrixes(mx []*mino.Matrix) []byte {
 
 	renderBuffer.WriteRune('\n')
 
-	for i := range mx {
+	for i, m := range mx {
 		if i > 0 {
 			renderBuffer.WriteString(div)
 		}
-		renderBuffer.WriteRune(' ')
 
-		name := mx[i].PlayerName
-		if len(name) > mx[i].W {
-			name = name[:mx[i].W]
+		name := m.PlayerName
+		if len(name) > m.W*blockSize {
+			name = name[:m.W*blockSize]
+		}
+		padName := ((m.W*blockSize - len(name)) / 2) + 1
+		for i := 0; i < padName; i++ {
+			renderBuffer.WriteRune(' ')
 		}
 		renderBuffer.WriteString(name)
-
-		padLength := mx[i].W + 1 - len(name)
-		for x := 0; x < padLength; x++ {
+		padName = (m.W * blockSize) + 2 - len(name) - padName
+		for i := 0; i < padName; i++ {
 			renderBuffer.WriteRune(' ')
 		}
 	}

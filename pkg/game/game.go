@@ -44,6 +44,8 @@ type Game struct {
 	logger   chan string
 	LogLevel int
 
+	Local bool
+
 	*sync.Mutex
 }
 
@@ -382,7 +384,7 @@ func (g *Game) handleDistributeMatrixes() {
 			}
 		}
 
-		if !g.GameOver && remainingPlayers <= 1 {
+		if !g.GameOver && !g.Local && remainingPlayers <= 1 {
 			g.GameOver = true
 
 			winner := "Tie!"
@@ -402,11 +404,10 @@ func (g *Game) handleDistributeMatrixes() {
 
 				otherPlayers += g.Players[i].Name
 			}
-			g.Log(LogStandard, "Game over - winner: "+winner+" (versus "+otherPlayers+")")
-			g.WriteMessage("Game over - winner: " + winner + " (versus " + otherPlayers + ")")
+
+			g.WriteMessage("Game over - winner: " + winner)
 			g.WriteMessage("Garbage sent/received:")
 			for _, p := range g.Players {
-				g.Log(LogStandard, p.Name+" - "+strconv.Itoa(p.totalGarbageSent)+"/"+strconv.Itoa(p.totalGarbageReceived))
 				g.WriteMessage(p.Name + " - " + strconv.Itoa(p.totalGarbageSent) + "/" + strconv.Itoa(p.totalGarbageReceived))
 			}
 
@@ -522,8 +523,6 @@ func (g *Game) HandleReadCommands(in chan GameCommandInterface) {
 					for _, p := range g.Players {
 						p.Matrix.SetGameOver()
 					}
-
-					g.Log(LogStandard, "Game over - Winner: "+p.Winner)
 
 					g.draw <- event.DrawAll
 				} else {

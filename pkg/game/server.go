@@ -125,6 +125,10 @@ func (s *Server) FindGame(p *Player, gameID int) *Game {
 		if err != nil {
 			panic(err)
 		}
+
+		if gameID == -1 {
+			g.Local = true
+		}
 	}
 
 	g.Lock()
@@ -143,10 +147,12 @@ func (s *Server) FindGame(p *Player, gameID int) *Game {
 		p.Write(&GameCommandMessage{Message: "Joined game - Players: " + strings.Join(players, " ")})
 	}
 
-	if gameID == -1 || len(g.Players) > 1 {
+	if gameID == -1 {
+		go g.Start(0)
+	} else if len(g.Players) > 1 {
 		go s.initiateAutoStart(g)
 	} else if !g.Started {
-		p.Write(&GameCommandMessage{Message: "Game will start when there are at least two players"})
+		p.Write(&GameCommandMessage{Message: "Waiting for at least two players to join..."})
 	}
 
 	g.Unlock()
@@ -222,24 +228,8 @@ func (s *Server) initiateAutoStart(g *Game) {
 	g.Starting = true
 
 	go func() {
-		g.WriteMessage("Starting game in 3 seconds...")
-		time.Sleep(3 * time.Second)
-		go g.Start(0)
-
-		return
-		// TODO
-
-		g.WriteMessage("Starting game in 10 seconds...")
-
-		time.Sleep(5 * time.Second)
-		g.WriteMessage("Starting game in 5 seconds...")
+		g.WriteMessage("Starting game...")
 		time.Sleep(2 * time.Second)
-		g.WriteMessage("3...")
-		time.Sleep(1 * time.Second)
-		g.WriteMessage("2...")
-		time.Sleep(1 * time.Second)
-		g.WriteMessage("1...")
-		time.Sleep(1 * time.Second)
 		g.Start(0)
 	}()
 }
@@ -306,16 +296,23 @@ func (s *Server) handleGameCommands(pl *Player, g *Game) {
 	}
 }
 
-func (s *Server) ListenUnix(path string) {
-	unixListener, err := net.Listen("unix", path)
+func (s *Server) Listen(address string) {
+	var network string
+	if strings.ContainsRune(address, ':') {
+		network = "tcp"
+	} else {
+		network = "unix"
+	}
+
+	listener, err := net.Listen(network, address)
 	if err != nil {
 		log.Fatal("Listen error: ", err)
 	}
 
-	s.listeners = append(s.listeners, unixListener)
+	s.listeners = append(s.listeners, listener)
 
 	for {
-		conn, err := unixListener.Accept()
+		conn, err := listener.Accept()
 		if err != nil {
 			log.Fatal("Accept error: ", err)
 		}

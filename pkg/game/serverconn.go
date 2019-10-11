@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -50,10 +51,21 @@ func NewServerConn(conn net.Conn, forwardOut chan GameCommandInterface) *ServerC
 	return &s
 }
 
-func ConnectUnix(path string) *ServerConn {
-	tries := 0
+func Connect(address string) *ServerConn {
+	var (
+		network string
+		conn    net.Conn
+		err     error
+		tries   int
+	)
+	if strings.ContainsRune(address, ':') {
+		network = "tcp"
+	} else {
+		network = "unix"
+	}
+
 	for {
-		conn, err := net.DialTimeout("unix", path, ConnTimeout)
+		conn, err = net.DialTimeout(network, address, ConnTimeout)
 		if err != nil {
 			if tries > 25 {
 				log.Fatal("Listen error: ", err)

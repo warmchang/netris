@@ -31,7 +31,7 @@ var (
 	nickname       string
 	startMatrix    string
 
-	blockSize = 1
+	blockSize = 0
 
 	logDebug   bool
 	logVerbose bool
@@ -66,14 +66,19 @@ func main() {
 		}
 	}()
 
-	flag.IntVar(&blockSize, "size", 1, "block size")
+	flag.IntVar(&blockSize, "scale", 0, "UI scale")
 	flag.StringVar(&nickname, "nick", "Anonymous", "nickname")
 	flag.StringVar(&startMatrix, "matrix", "", "pre-fill matrix with pieces")
-	flag.StringVar(&connectAddress, "connect", "", "server address to connect to")
+	flag.StringVar(&connectAddress, "connect", "", "connect to server address or socket path")
 	flag.StringVar(&debugAddress, "debug-address", "", "address to serve debug info")
 	flag.BoolVar(&logDebug, "debug", false, "enable debug logging")
 	flag.BoolVar(&logVerbose, "verbose", false, "enable verbose logging")
 	flag.Parse()
+
+	tty := isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())
+	if !tty {
+		log.Fatal("failed to start netris: non-interactive terminals are not supported")
+	}
 
 	// TODO Document
 	if blockSize > 3 {
@@ -91,11 +96,6 @@ func main() {
 		go func() {
 			log.Fatal(http.ListenAndServe(debugAddress, nil))
 		}()
-	}
-
-	tty := isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())
-	if !tty {
-		log.Fatal("failed to start netris: non-interactive terminals are not supported")
 	}
 
 	app, err := initGUI()
@@ -136,7 +136,7 @@ func main() {
 
 	// Connect to a game
 	if connectAddress != "" {
-		s := game.ConnectUnix("/tmp/netris.sock")
+		s := game.Connect(connectAddress)
 
 		activeGame, err = s.JoinGame(nickname, 0, logger, draw)
 		if err != nil {
@@ -155,18 +155,27 @@ func main() {
 	server := game.NewServer(nil)
 
 	server.Logger = make(chan string, game.LogQueueSize)
-	go func() {
-		for msg := range server.Logger {
-			logMutex.Lock()
-			logMessages = append(logMessages, time.Now().Format(LogTimeFormat)+" Local server: "+msg)
-			renderLogMessages = true
-			logMutex.Unlock()
-		}
-	}()
+	if logDebug || logVerbose {
+		go func() {
+			for msg := range server.Logger {
+				logMutex.Lock()
+				logMessages = append(logMessages, time.Now().Format(LogTimeFormat)+" Local server: "+msg)
+				renderLogMessages = true
+				logMutex.Unlock()
+			}
+		}()
+	} else {
+		go func() {
+			for range server.Logger {
+			}
+		}()
+	}
 
-	go server.ListenUnix("/tmp/netris.sock")
+	localListenAddress := "localhost:19840"
 
-	localServerConn := game.ConnectUnix("/tmp/netris.sock")
+	go server.Listen(localListenAddress)
+
+	localServerConn := game.Connect(localListenAddress)
 
 	activeGame, err = localServerConn.JoinGame(nickname, -1, logger, draw)
 	if err != nil {

@@ -12,9 +12,9 @@ import (
 	"unsafe"
 
 	"git.sr.ht/~tslocum/netris/pkg/game"
-
 	"github.com/creack/pty"
 	"github.com/gliderlabs/ssh"
+	gossh "golang.org/x/crypto/ssh"
 )
 
 const (
@@ -23,7 +23,8 @@ const (
 
 type SSHServer struct {
 	ListenAddress string
-	NetrisPath    string
+	NetrisBinary  string
+	NetrisAddress string
 }
 
 func setWinsize(f *os.File, w, h int) {
@@ -47,13 +48,8 @@ func (s *SSHServer) Host(newPlayers chan<- *game.IncomingPlayer) {
 		Handler: func(sshSession ssh.Session) {
 			ctx := sshSession.Context()
 
-			if publicKey, ok := ctx.Value("publickey").(ssh.PublicKey); ok {
-				//log.Printf("logged in with %s", publicKey.Marshal())
-				_ = publicKey
-			}
-
 			cmdCtx, cancelCmd := context.WithCancel(ctx)
-			cmd := exec.CommandContext(cmdCtx, s.NetrisPath, "--nick", "'"+game.Nickname(sshSession.User())+"'", "--connect", "/tmp/netris.sock")
+			cmd := exec.CommandContext(cmdCtx, s.NetrisBinary, "--nick", game.Nickname(sshSession.User()), "--connect", s.NetrisAddress)
 			ptyReq, winCh, isPty := sshSession.Pty()
 			if isPty {
 				cmd.Env = append(cmd.Env, fmt.Sprintf("TERM=%s", ptyReq.Term))
@@ -83,10 +79,17 @@ func (s *SSHServer) Host(newPlayers chan<- *game.IncomingPlayer) {
 			}
 		},
 		PtyCallback: func(ctx ssh.Context, pty ssh.Pty) bool {
+			// TODO: Compare public key
+
 			return true
 		},
 		PublicKeyHandler: func(ctx ssh.Context, key ssh.PublicKey) bool {
-			ctx.SetValue("publickey", key)
+			return true
+		},
+		PasswordHandler: func(ctx ssh.Context, password string) bool {
+			return true
+		},
+		KeyboardInteractiveHandler: func(ctx ssh.Context, challenger gossh.KeyboardInteractiveChallenge) bool {
 			return true
 		},
 	}

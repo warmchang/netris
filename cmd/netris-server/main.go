@@ -15,10 +15,12 @@ import (
 )
 
 var (
-	listenAddressSSH string
-	netrisPath       string
-	debugAddress     string
-	done             = make(chan bool)
+	listenAddressTCP    string
+	listenAddressSocket string
+	listenAddressSSH    string
+	netrisBinary        string
+	debugAddress        string
+	done                = make(chan bool)
 )
 
 const (
@@ -28,13 +30,19 @@ const (
 func init() {
 	log.SetFlags(0)
 
-	flag.StringVar(&listenAddressSSH, "listen-ssh", "", "SSH server listen address")
-	flag.StringVar(&netrisPath, "netris", "", "path to netris")
+	flag.StringVar(&listenAddressTCP, "listen-tcp", "", "host server on network address")
+	flag.StringVar(&listenAddressSocket, "listen-socket", "", "host server on socket path")
+	flag.StringVar(&listenAddressSSH, "listen-ssh", "", "host SSH server on network address")
+	flag.StringVar(&netrisBinary, "netris", "", "path to netris client")
 	flag.StringVar(&debugAddress, "debug", "", "address to serve debug info")
 }
 
 func main() {
 	flag.Parse()
+
+	if listenAddressTCP == "" && listenAddressSocket == "" {
+		log.Fatal("at least one listen path or address is required (--listen-tcp and/or --listen-socket)")
+	}
 
 	if debugAddress != "" {
 		go func() {
@@ -42,7 +50,12 @@ func main() {
 		}()
 	}
 
-	sshServer := &ssh.SSHServer{ListenAddress: listenAddressSSH, NetrisPath: netrisPath}
+	netrisAddress := listenAddressSocket
+	if netrisAddress == "" {
+		netrisAddress = listenAddressTCP
+	}
+
+	sshServer := &ssh.SSHServer{ListenAddress: listenAddressSSH, NetrisBinary: netrisBinary, NetrisAddress: netrisAddress}
 
 	server := game.NewServer([]game.ServerInterface{sshServer})
 
@@ -55,7 +68,12 @@ func main() {
 
 	server.Logger = logger
 
-	go server.ListenUnix("/tmp/netris.sock")
+	if listenAddressSocket != "" {
+		go server.Listen(listenAddressSocket)
+	}
+	if listenAddressTCP != "" {
+		go server.Listen(listenAddressTCP)
+	}
 
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc,

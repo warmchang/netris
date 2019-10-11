@@ -8,10 +8,10 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"git.sr.ht/~tslocum/netris/pkg/game"
-	"git.sr.ht/~tslocum/netris/pkg/player"
-	"git.sr.ht/~tslocum/netris/pkg/player/ssh"
+	"git.sr.ht/~tslocum/netris/pkg/game/ssh"
 )
 
 var (
@@ -19,6 +19,10 @@ var (
 	netrisPath       string
 	debugAddress     string
 	done             = make(chan bool)
+)
+
+const (
+	LogTimeFormat = "2006-01-02 15:04:05"
 )
 
 func init() {
@@ -40,7 +44,16 @@ func main() {
 
 	sshServer := &ssh.SSHServer{ListenAddress: listenAddressSSH, NetrisPath: netrisPath}
 
-	server := game.NewServer([]player.ServerInterface{sshServer})
+	server := game.NewServer([]game.ServerInterface{sshServer})
+
+	logger := make(chan string, game.LogQueueSize)
+	go func() {
+		for msg := range logger {
+			log.Println(time.Now().Format(LogTimeFormat) + " " + msg)
+		}
+	}()
+
+	server.Logger = logger
 
 	go server.ListenUnix("/tmp/netris.sock")
 

@@ -5,25 +5,10 @@ import (
 )
 
 func TestMatrix(t *testing.T) {
-	minos, err := Generate(4)
+	m, err := NewTestMatrix()
 	if err != nil {
-		t.Errorf("failed to generate minos: %s", err)
+		t.Error(err)
 	}
-
-	bag, err := NewBag(minos)
-	if err != nil {
-		t.Errorf("failed to generate minos: %s", err)
-	}
-
-	ev := make(chan interface{})
-	go func() {
-		for range ev {
-		}
-	}()
-
-	m := NewMatrix(10, 20, 20, 1, []*Bag{bag}, ev, false)
-
-	m.P[0] = NewPiece(minos[0], Point{3, 7})
 
 	err = m.Add(m.P[0], BlockSolidBlue, Point{3, 3}, false)
 	if err != nil {
@@ -43,7 +28,7 @@ func TestMatrix(t *testing.T) {
 	m.Clear()
 
 	for i := 0; i < 8; i++ {
-		ok := m.Rotate(0, 1, 0)
+		ok := m.RotatePiece(0, 1, 0)
 		if !ok {
 			t.Errorf("failed to rotate piece on iteration %d", i)
 		}

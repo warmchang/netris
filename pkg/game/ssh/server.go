@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
-	"net"
 	"os"
 	"os/exec"
 	"path"
 	"syscall"
 	"time"
 	"unsafe"
+
+	"git.sr.ht/~tslocum/netris/pkg/game"
 
 	"github.com/creack/pty"
 	"github.com/gliderlabs/ssh"
@@ -31,7 +31,7 @@ func setWinsize(f *os.File, w, h int) {
 		uintptr(unsafe.Pointer(&struct{ h, w, x, y uint16 }{uint16(h), uint16(w), 0, 0})))
 }
 
-func (s *SSHServer) Host(newPlayers chan<- net.Conn) {
+func (s *SSHServer) Host(newPlayers chan<- *game.IncomingPlayer) {
 	if s.ListenAddress == "" {
 		panic("SSH server ListenAddress must be specified")
 	}
@@ -48,11 +48,12 @@ func (s *SSHServer) Host(newPlayers chan<- net.Conn) {
 			ctx := sshSession.Context()
 
 			if publicKey, ok := ctx.Value("publickey").(ssh.PublicKey); ok {
-				log.Printf("logged in with %s", publicKey.Marshal())
+				//log.Printf("logged in with %s", publicKey.Marshal())
+				_ = publicKey
 			}
 
 			cmdCtx, cancelCmd := context.WithCancel(ctx)
-			cmd := exec.CommandContext(cmdCtx, s.NetrisPath, "--connect", "/tmp/netris.sock")
+			cmd := exec.CommandContext(cmdCtx, s.NetrisPath, "--nick", "'"+game.Nickname(sshSession.User())+"'", "--connect", "/tmp/netris.sock")
 			ptyReq, winCh, isPty := sshSession.Pty()
 			if isPty {
 				cmd.Env = append(cmd.Env, fmt.Sprintf("TERM=%s", ptyReq.Term))

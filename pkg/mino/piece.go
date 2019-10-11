@@ -54,6 +54,9 @@ var AllRotationPivotsCCW = map[PieceType][]Point{
 
 // AllRotationOffets is a list of all piece offsets.  Each set includes offsets
 // for 0, R, L and 2 rotation states.
+var AllOffsets = []Point{{0, 0}, {-1, 0}, {1, 0}, {0, -1}, {-1, -1}, {1, -1}, {-2, 0}, {2, 0}}
+
+/*
 var AllRotationOffsets = map[PieceType][]RotationOffsets{
 	PieceI: {
 		{{0, 0}, {-1, 0}, {-1, 1}, {0, 1}},
@@ -68,16 +71,18 @@ var AllRotationOffsets = map[PieceType][]RotationOffsets{
 		{{0, 0}, {1, -1}, {0, 0}, {-1, -1}},
 		{{0, 0}, {0, 2}, {0, 0}, {0, 2}},
 		{{0, 0}, {1, 2}, {0, 0}, {-1, 2}}}}
-
+*/
 type Piece struct {
 	Point
 	Mino
 	Original Mino
 
+	Ghost Block
+	Solid Block
+
 	Rotation  int
 	PivotsCW  []Point
 	PivotsCCW []Point
-	Offsets   []RotationOffsets
 
 	Color int
 
@@ -86,8 +91,10 @@ type Piece struct {
 	LastReset time.Time
 	Landed    bool
 
-	sync.Mutex
+	sync.Mutex `json:"-"`
 }
+
+type LockedPiece *Piece
 
 func (p *Piece) String() string {
 	return fmt.Sprintf("%+v", *p)
@@ -96,33 +103,56 @@ func (p *Piece) String() string {
 func NewPiece(m Mino, loc Point) *Piece {
 	p := &Piece{Mino: m, Original: m, Point: loc, Color: 0}
 
-	offsetType := PieceJLSTZ
 	var pieceType PieceType
 	switch m.Canonical().String() {
 	case TetrominoI:
-		offsetType = PieceI
 		pieceType = PieceI
+		p.Solid = BlockSolidCyan
+		p.Ghost = BlockGhostCyan
 	case TetrominoO:
-		offsetType = PieceO
 		pieceType = PieceO
+		p.Solid = BlockSolidYellow
+		p.Ghost = BlockGhostYellow
 	case TetrominoJ:
 		pieceType = PieceJ
+		p.Solid = BlockSolidBlue
+		p.Ghost = BlockGhostBlue
 	case TetrominoL:
 		pieceType = PieceL
+		p.Solid = BlockSolidOrange
+		p.Ghost = BlockGhostOrange
 	case TetrominoS:
 		pieceType = PieceS
+		p.Solid = BlockSolidGreen
+		p.Ghost = BlockGhostGreen
 	case TetrominoT:
 		pieceType = PieceT
+		p.Solid = BlockSolidMagenta
+		p.Ghost = BlockGhostMagenta
 	case TetrominoZ:
 		pieceType = PieceZ
+		p.Solid = BlockSolidRed
+		p.Ghost = BlockGhostRed
+	default:
+		p.Solid = BlockSolidYellow
+		p.Ghost = BlockGhostYellow
 	}
 
 	p.PivotsCW = AllRotationPivotsCW[pieceType]
 	p.PivotsCCW = AllRotationPivotsCCW[pieceType]
-	p.Offsets = AllRotationOffsets[offsetType]
 
 	return p
 }
+
+/*
+func (p *Piece) MarshalJSON() ([]byte, error) {
+	log.Println("LOCK PIECE")
+	p.Lock()
+	defer p.Unlock()
+	defer log.Println("UNLOCKED PIECE")
+
+	return json.Marshal(LockedPiece(p))
+}*/
 
 // Rotate returns the new mino of a piece when a rotation is applied
 func (p *Piece) Rotate(rotations int, direction int) Mino {
@@ -179,7 +209,22 @@ func (p *Piece) Rotate(rotations int, direction int) Mino {
 	return newMino
 }
 
+func (p *Piece) ApplyReset() {
+	p.Lock()
+	defer p.Unlock()
+
+	if !p.Landing || p.Resets >= 15 {
+		return
+	}
+
+	p.Resets++
+	p.LastReset = time.Now()
+}
+
 func (p *Piece) ApplyRotation(rotations int, direction int) {
+	p.Lock()
+	defer p.Unlock()
+
 	if direction == 1 {
 		rotations *= -1
 	}
@@ -189,4 +234,12 @@ func (p *Piece) ApplyRotation(rotations int, direction int) {
 		p.Rotation += RotationStates
 	}
 	p.Rotation %= RotationStates
+}
+
+func (p *Piece) SetLocation(x int, y int) {
+	p.Lock()
+	defer p.Unlock()
+
+	p.X = x
+	p.Y = y
 }

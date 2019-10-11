@@ -44,50 +44,6 @@ const (
 	PentominoR = "(0,0),(1,0),(2,0),(3,0),(1,1)"
 )
 
-func (m Mino) GhostBlock() Block {
-	block := BlockGhostYellow
-	switch m.Canonical().String() {
-	case TetrominoI:
-		block = BlockGhostCyan
-	case TetrominoJ:
-		block = BlockGhostBlue
-	case TetrominoL:
-		block = BlockGhostOrange
-	case TetrominoO:
-		block = BlockGhostYellow
-	case TetrominoS:
-		block = BlockGhostGreen
-	case TetrominoT:
-		block = BlockGhostMagenta
-	case TetrominoZ:
-		block = BlockGhostRed
-	}
-
-	return block
-}
-
-func (m Mino) SolidBlock() Block {
-	block := BlockSolidYellow
-	switch m.Canonical().String() {
-	case TetrominoI:
-		block = BlockSolidCyan
-	case TetrominoJ:
-		block = BlockSolidBlue
-	case TetrominoL:
-		block = BlockSolidOrange
-	case TetrominoO:
-		block = BlockSolidYellow
-	case TetrominoS:
-		block = BlockSolidGreen
-	case TetrominoT:
-		block = BlockSolidMagenta
-	case TetrominoZ:
-		block = BlockSolidRed
-	}
-
-	return block
-}
-
 func (m Mino) Equal(other Mino) bool {
 	if len(m) != len(other) {
 		return false

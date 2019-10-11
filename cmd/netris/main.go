@@ -4,19 +4,19 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/signal"
+	"runtime/debug"
+	"strconv"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 
-	"git.sr.ht/~tslocum/netris/pkg/player"
-
 	"git.sr.ht/~tslocum/netris/pkg/game"
-
 	"git.sr.ht/~tslocum/netris/pkg/mino"
-	"github.com/jroimartin/gocui"
 	"github.com/mattn/go-isatty"
 )
 
@@ -28,63 +28,64 @@ var (
 
 	connectAddress string
 	debugAddress   string
+	nickname       string
+	startMatrix    string
+
+	blockSize = 1
+
+	logDebug   bool
+	logVerbose bool
+
+	logMessages       []string
+	renderLogMessages bool
+	logMutex          = new(sync.Mutex)
+	showLogLines      = 7
 )
 
-const RefreshRate = 20 * time.Millisecond
+const (
+	LogTimeFormat = "3:04:05"
+)
 
 func init() {
 	log.SetFlags(0)
 }
-
-func renderMatrix(m *mino.Matrix) string {
-	var b strings.Builder
-
-	for y := m.H - 1; y >= 0; y-- {
-		for x := 0; x < m.W; x++ {
-			b.WriteString(renderBlock(m.Block(x, y)))
-		}
-
-		if y == 0 {
-			break
-		}
-
-		b.WriteRune('\n')
-	}
-
-	return b.String()
-}
-
-func renderBlock(b mino.Block) string {
-	r := b.Rune()
-
-	color := 39
-
-	switch b {
-	case mino.BlockGhostBlue, mino.BlockSolidBlue:
-		color = 25
-	case mino.BlockGhostCyan, mino.BlockSolidCyan:
-		color = 45
-	case mino.BlockGhostRed, mino.BlockSolidRed:
-		color = 160
-	case mino.BlockGhostYellow, mino.BlockSolidYellow:
-		color = 226
-	case mino.BlockGhostMagenta, mino.BlockSolidMagenta:
-		color = 91
-	case mino.BlockGhostGreen, mino.BlockSolidGreen:
-		color = 46
-	case mino.BlockGhostOrange, mino.BlockSolidOrange:
-		color = 202
-	case mino.BlockGarbage:
-		color = 8
-	}
-
-	return fmt.Sprintf("\033[38;5;%dm%c\033[0m", color, r)
-}
-
 func main() {
+	defer func() {
+		if r := recover(); r != nil {
+			closeGUI()
+
+			time.Sleep(time.Second)
+
+			log.Println()
+			log.Println()
+			log.Println()
+			log.Println()
+			debug.PrintStack()
+			log.Fatalf("panic: %+v", r)
+			os.Exit(0)
+		}
+	}()
+
+	flag.IntVar(&blockSize, "size", 1, "block size")
+	flag.StringVar(&nickname, "nick", "Anonymous", "nickname")
+	flag.StringVar(&startMatrix, "matrix", "", "pre-fill matrix with pieces")
 	flag.StringVar(&connectAddress, "connect", "", "server address to connect to")
-	flag.StringVar(&debugAddress, "debug", "", "address to serve debug info")
+	flag.StringVar(&debugAddress, "debug-address", "", "address to serve debug info")
+	flag.BoolVar(&logDebug, "debug", false, "enable debug logging")
+	flag.BoolVar(&logVerbose, "verbose", false, "enable verbose logging")
 	flag.Parse()
+
+	// TODO Document
+	if blockSize > 3 {
+		blockSize = 3
+	}
+
+	logLevel := game.LogStandard
+	if logVerbose {
+		logLevel = game.LogVerbose
+	} else if logDebug {
+		logLevel = game.LogDebug
+	}
 
 	if debugAddress != "" {
 		go func() {
@@ -92,69 +93,114 @@ func main() {
 		}()
 	}
 
-	var err error
-
 	tty := isatty.IsTerminal(os.Stdout.Fd()) || isatty.IsCygwinTerminal(os.Stdout.Fd())
 	if !tty {
 		log.Fatal("failed to start netris: non-interactive terminals are not supported")
 	}
 
-	err = initGUI()
+	app, err := initGUI()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to initialize GUI: %s", err)
 	}
 
 	go func() {
-		if err := gui.MainLoop(); err != nil && err != gocui.ErrQuit {
-			log.Fatal(err)
+		if err := app.Run(); err != nil {
+			log.Fatalf("failed to run application: %s", err)
 		}
 
 		done <- true
 	}()
 
-	<-ready
+	inputActive = true
+	setInputStatus(false)
 
-	if connectAddress != "" {
-		s := game.ConnectUnix("/tmp/netris.sock")
-
-		s.Out <- player.GameCommand{C: player.CommandJoinGame}
-
-		select {}
-
-		panic(fmt.Sprint("connected", s))
-	}
-
+	logger := make(chan string, game.LogQueueSize)
 	go func() {
-		for {
-			time.Sleep(RefreshRate)
-
-			gui.Update(func(i *gocui.Gui) error {
-				renderPreviewMatrix()
-				renderPlayerMatrix()
-
-				return nil
-			})
+		for msg := range logger {
+			logMutex.Lock()
+			logMessages = append(logMessages, time.Now().Format(LogTimeFormat)+" "+msg)
+			renderLogMessages = true
+			logMutex.Unlock()
 		}
 	}()
 
-	activeGame, err = game.NewGame(4, 4)
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc,
+		syscall.SIGINT,
+		syscall.SIGTERM)
+	go func() {
+		<-sigc
 
-	server, client := net.Pipe()
-	_ = server
+		done <- true
+	}()
 
-	p := player.NewPlayer(client)
+	// Connect to a game
+	if connectAddress != "" {
+		s := game.ConnectUnix("/tmp/netris.sock")
 
-	activeGame.AddPlayer(p)
+		activeGame, err = s.JoinGame(nickname, 0, logger, draw)
+		if err != nil {
+			panic(err)
+		}
 
-	activeGame.Start()
+		activeGame.LogLevel = logLevel
 
-	// Game logic
+		<-done
+
+		closeGUI()
+		return
+	}
+
+	// Host a game
+	server := game.NewServer(nil)
+
+	server.Logger = make(chan string, game.LogQueueSize)
+	go func() {
+		for msg := range server.Logger {
+			logMutex.Lock()
+			logMessages = append(logMessages, time.Now().Format(LogTimeFormat)+" Local server: "+msg)
+			renderLogMessages = true
+			logMutex.Unlock()
+		}
+	}()
+
+	go server.ListenUnix("/tmp/netris.sock")
+
+	localServerConn := game.ConnectUnix("/tmp/netris.sock")
+
+	activeGame, err = localServerConn.JoinGame(nickname, -1, logger, draw)
+	if err != nil {
+		panic(err)
+	}
+
+	activeGame.LogLevel = logLevel
+
+	if startMatrix != "" {
+		activeGame.Players[activeGame.LocalPlayer].Matrix.Lock()
+		startMatrixSplit := strings.Split(startMatrix, ",")
+		startMatrix = ""
+		var (
+			token int
+			x     int
+			err   error
+		)
+		for i := range startMatrixSplit {
+			token, err = strconv.Atoi(startMatrixSplit[i])
+			if err != nil {
+				panic(fmt.Sprintf("failed to parse initial matrix on token #%d", i))
+			}
+			if i%2 == 1 {
+				activeGame.Players[activeGame.LocalPlayer].Matrix.SetBlock(x, token, mino.BlockGarbage, false)
+			} else {
+				x = token
+			}
+		}
+		activeGame.Players[activeGame.LocalPlayer].Matrix.Unlock()
+	}
 
 	<-done
 
-	if !closedGUI {
-		closedGUI = true
+	server.StopListening()
 
-		gui.Close()
-	}
+	closeGUI()
 }

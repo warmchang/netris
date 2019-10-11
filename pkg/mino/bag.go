@@ -9,13 +9,20 @@ type Bag struct {
 	Minos    []Mino
 	Original []Mino
 
-	rand *rand.Rand
-	sync.Mutex
+	minoRandomizer    *rand.Rand
+	garbageRandomizer *rand.Rand
+
+	i     int
+	width int
+	*sync.Mutex
 }
 
-func NewBag(seed int64, minos []Mino) (*Bag, error) {
-	b := &Bag{Original: minos, rand: rand.New(rand.NewSource(seed))}
-	b.Shuffle()
+func NewBag(seed int64, minos []Mino, width int) (*Bag, error) {
+	minoSource := rand.NewSource(seed)
+	garbageSource := rand.NewSource(seed)
+	b := &Bag{Original: minos, minoRandomizer: rand.New(minoSource), garbageRandomizer: rand.New(garbageSource), width: width, Mutex: new(sync.Mutex)}
+
+	b.shuffle()
 
 	return b, nil
 }
@@ -24,11 +31,13 @@ func (b *Bag) Take() Mino {
 	b.Lock()
 	defer b.Unlock()
 
-	mino := b.Minos[0]
-	if len(b.Minos) == 1 {
-		b.Shuffle()
+	mino := b.Minos[b.i]
+	if b.i == len(b.Minos)-1 {
+		b.shuffle()
+
+		b.i = 0
 	} else {
-		b.Minos = b.Minos[1:]
+		b.i++
 	}
 
 	return mino
@@ -38,11 +47,21 @@ func (b *Bag) Next() Mino {
 	b.Lock()
 	defer b.Unlock()
 
-	return b.Minos[0]
+	return b.Minos[b.i]
 }
 
-func (b *Bag) Shuffle() {
-	b.Minos = b.Original
+func (b *Bag) shuffle() {
+	if b.Minos == nil {
+		b.Minos = make([]Mino, len(b.Original), len(b.Original))
+	}
+	copy(b.Minos, b.Original)
 
-	b.rand.Shuffle(len(b.Minos), func(i, j int) { b.Minos[i], b.Minos[j] = b.Minos[j], b.Minos[i] })
+	b.minoRandomizer.Shuffle(len(b.Minos), func(i, j int) { b.Minos[i], b.Minos[j] = b.Minos[j], b.Minos[i] })
+}
+
+func (b *Bag) GarbageHole() int {
+	b.Lock()
+	defer b.Unlock()
+
+	return b.garbageRandomizer.Intn(b.width)
 }

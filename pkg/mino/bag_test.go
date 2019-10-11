@@ -19,7 +19,7 @@ func TestBag(t *testing.T) {
 			t.Errorf("failed to generate minos for rank %d: unexpected number of minos generated", d.Rank)
 		}
 
-		b, err := NewBag(minos)
+		b, err := NewBag(0, minos, 10)
 		if err != nil {
 			t.Errorf("failed to create bag for rank %d: %s", d.Rank, err)
 

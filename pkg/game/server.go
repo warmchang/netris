@@ -1,35 +1,50 @@
 package game
 
 import (
+	"fmt"
 	"log"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
-	"git.sr.ht/~tslocum/netris/pkg/player"
+	"git.sr.ht/~tslocum/netris/pkg/event"
 )
 
 type Server struct {
-	I []player.ServerInterface
+	I []ServerInterface
 
-	In  chan<- player.GameCommand
-	Out <-chan player.GameCommand
+	In  chan GameCommandInterface
+	Out chan GameCommandInterface
 
-	NewPlayers chan net.Conn
+	NewPlayers chan *IncomingPlayer
 
 	Games map[int]*Game
+
+	Logger chan string
 
 	listeners []net.Listener
 	sync.RWMutex
 }
 
-func NewServer(si []player.ServerInterface) *Server {
-	in := make(chan player.GameCommand, player.CommandQueueSize)
-	out := make(chan player.GameCommand, player.CommandQueueSize)
+type IncomingPlayer struct {
+	Name string
+	Conn *ServerConn
+}
 
-	s := &Server{I: si, In: in, Out: out}
+type ServerInterface interface {
+	// Load config
+	Host(newPlayers chan<- *IncomingPlayer)
+	Shutdown(reason string)
+}
 
-	s.NewPlayers = make(chan net.Conn, player.CommandQueueSize)
+func NewServer(si []ServerInterface) *Server {
+	in := make(chan GameCommandInterface, CommandQueueSize)
+	out := make(chan GameCommandInterface, CommandQueueSize)
+
+	s := &Server{I: si, In: in, Out: out, Games: make(map[int]*Game)}
+
+	s.NewPlayers = make(chan *IncomingPlayer, CommandQueueSize)
 
 	go s.accept()
 
@@ -41,7 +56,7 @@ func NewServer(si []player.ServerInterface) *Server {
 }
 
 func (s *Server) NewGame() (*Game, error) {
-	var gameID int
+	gameID := 1
 	for {
 		if _, ok := s.Games[gameID]; !ok {
 			break
@@ -50,47 +65,244 @@ func (s *Server) NewGame() (*Game, error) {
 		gameID++
 	}
 
-	seed := time.Now().UTC().UnixNano()
+	draw := make(chan event.DrawObject)
+	go func() {
+		for range draw {
+		}
+	}()
 
-	g, err := NewGame(4, seed)
+	logger := make(chan string, LogQueueSize)
+	go func() {
+		for msg := range logger {
+			s.Log(fmt.Sprintf("Game %d: %s", gameID, msg))
+		}
+	}()
+
+	g, err := NewGame(4, nil, logger, draw)
 	if err != nil {
 		return nil, err
 	}
 
+	// TODO
+	//g.LogLevel = LogDebug
+
+	s.Games[gameID] = g
+
 	return g, nil
 }
 
-func (s *Server) AvailableGame() *Game {
-	for _, g := range s.Games {
-		if g == nil {
-			continue
-		}
+func (s *Server) FindGame(p *Player, gameID int) *Game {
+	s.Lock()
+	defer s.Unlock()
 
-		return g
+	var (
+		g   *Game
+		err error
+	)
+
+	if gm, ok := s.Games[gameID]; ok {
+		g = gm
 	}
 
-	return nil
+	if g == nil {
+		for gameID, g = range s.Games {
+			if g != nil {
+				if g.Terminated {
+					delete(s.Games, gameID)
+					g = nil
+
+					s.Log("Cleaned up game ", gameID)
+					continue
+				}
+
+				break
+			}
+		}
+	}
+
+	if g == nil {
+		g, err = s.NewGame()
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	g.Lock()
+
+	g.AddPlayerL(p)
+	if len(g.Players) > 1 {
+		var players []string
+		for playerID, player := range g.Players {
+			if playerID == p.Player {
+				continue
+			}
+
+			players = append(players, player.Name)
+		}
+
+		p.Write(&GameCommandMessage{Message: "Joined game - Players: " + strings.Join(players, " ")})
+	}
+
+	if gameID == -1 || len(g.Players) > 1 {
+		go s.initiateAutoStart(g)
+	} else if !g.Started {
+		p.Write(&GameCommandMessage{Message: "Game will start when there are at least two players"})
+	}
+
+	g.Unlock()
+
+	return g
+}
+
+func (s *Server) joinGame(p *Player, g *Game) {
+	var notified bool
+	for {
+		if p.Terminated {
+			return
+		}
+
+		g.Lock()
+		if !g.Started {
+			break
+		} else if !notified {
+			p.Write(&GameCommandMessage{Message: "Game in progress, waiting to join next game.."})
+		}
+
+		g.Unlock()
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	if !g.Starting {
+
+	}
+	g.Unlock()
 }
 
 func (s *Server) accept() {
 	for {
-		conn := <-s.NewPlayers
+		np := <-s.NewPlayers
 
-		p := player.NewPlayer(conn)
+		p := NewPlayer(np.Name, np.Conn)
 
-		g := s.AvailableGame()
-		if g == nil {
-			var err error
-			g, err = s.NewGame()
-			if err != nil {
-				panic(err)
+		s.Log("Incoming connection from ", np.Name)
+
+		go s.handleJoinGame(p)
+	}
+}
+
+func (s *Server) handleJoinGame(pl *Player) {
+	s.Log("waiting first msg handle join game ")
+	for e := range pl.In {
+		s.Log("handle join game ", e.Command(), e)
+		if e.Command() == CommandJoinGame {
+			if p, ok := e.(*GameCommandJoinGame); ok {
+				pl.Name = Nickname(p.Name)
+
+				s.Log("JOINING GAME", p)
+
+				g := s.FindGame(pl, p.GameID)
+
+				s.Log("New player added to game", *pl, p.GameID)
+
+				go s.handleGameCommands(pl, g)
+				return
+			}
+		}
+	}
+}
+
+func (s *Server) initiateAutoStart(g *Game) {
+	g.Lock()
+	defer g.Unlock()
+
+	if g.Starting || g.Started {
+		return
+	}
+
+	g.Starting = true
+
+	go func() {
+		g.WriteMessage("Starting game in 3 seconds...")
+		time.Sleep(3 * time.Second)
+		go g.Start(0)
+
+		return
+		// TODO
+
+		g.WriteMessage("Starting game in 10 seconds...")
+
+		time.Sleep(5 * time.Second)
+		g.WriteMessage("Starting game in 5 seconds...")
+		time.Sleep(2 * time.Second)
+		g.WriteMessage("3...")
+		time.Sleep(1 * time.Second)
+		g.WriteMessage("2...")
+		time.Sleep(1 * time.Second)
+		g.WriteMessage("1...")
+		time.Sleep(1 * time.Second)
+		g.Start(0)
+	}()
+}
+
+func (s *Server) handleGameCommands(pl *Player, g *Game) {
+	s.Log("waiting first msg handle game commands")
+	for e := range pl.In {
+		if e.Command() != CommandUpdateMatrix || g.LogLevel >= LogVerbose {
+			s.Log("REMOTE handle game command ", e.Command(), " from ", e.Source(), e)
+		}
+
+		g.Lock()
+
+		switch e.Command() {
+		case CommandMessage:
+			if p, ok := e.(*GameCommandMessage); ok {
+				if player, ok := g.Players[p.SourcePlayer]; ok {
+					s.Log("<" + player.Name + "> " + p.Message)
+
+					msg := strings.ReplaceAll(strings.TrimSpace(p.Message), "\n", "")
+					if msg != "" {
+						g.WriteAllL(&GameCommandMessage{Player: p.SourcePlayer, Message: msg})
+					}
+				}
+			}
+		case CommandUpdateMatrix:
+			if p, ok := e.(*GameCommandUpdateMatrix); ok {
+				for _, m := range p.Matrixes {
+					g.Players[p.SourcePlayer].Matrix.Replace(m)
+				}
+			}
+		case CommandGameOver:
+			if p, ok := e.(*GameCommandGameOver); ok {
+				g.Players[p.SourcePlayer].Matrix.SetGameOver()
+
+				g.WriteMessage(fmt.Sprintf("%s was knocked out", g.Players[p.SourcePlayer].Name))
+				g.WriteAllL(&GameCommandGameOver{Player: p.SourcePlayer})
+			}
+		case CommandSendGarbage:
+			if p, ok := e.(*GameCommandSendGarbage); ok {
+				leastGarbagePlayer := -1
+				leastGarbage := -1
+				for playerID, player := range g.Players {
+					if playerID == p.SourcePlayer || player.Matrix.GameOver {
+						continue
+					}
+
+					if leastGarbage == -1 || player.totalGarbageReceived < leastGarbage {
+						leastGarbagePlayer = playerID
+						leastGarbage = player.totalGarbageReceived
+					}
+				}
+
+				if leastGarbagePlayer != -1 {
+					g.Players[leastGarbagePlayer].totalGarbageReceived += p.Lines
+					g.Players[leastGarbagePlayer].pendingGarbage += p.Lines
+
+					g.Players[p.SourcePlayer].totalGarbageSent += p.Lines
+				}
 			}
 		}
 
-		g.AddPlayer(p)
-
-		log.Println("New player", p)
-		_ = p
+		g.Unlock()
 	}
 }
 
@@ -108,7 +320,7 @@ func (s *Server) ListenUnix(path string) {
 			log.Fatal("Accept error: ", err)
 		}
 
-		s.NewPlayers <- conn
+		s.NewPlayers <- &IncomingPlayer{Name: "Anonymous", Conn: NewServerConn(conn, nil)}
 	}
 }
 
@@ -116,4 +328,20 @@ func (s *Server) StopListening() {
 	for i := range s.listeners {
 		s.listeners[i].Close()
 	}
+}
+
+func (s *Server) Log(a ...interface{}) {
+	if s.Logger == nil {
+		return
+	}
+
+	s.Logger <- fmt.Sprint(a...)
+}
+
+func (s *Server) Logf(format string, a ...interface{}) {
+	if s.Logger == nil {
+		return
+	}
+
+	s.Logger <- fmt.Sprintf(format, a...)
 }

@@ -6,8 +6,11 @@ import (
 )
 
 func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
+	k := ev.Key()
+	r := ev.Rune()
+
 	if inputActive {
-		if ev.Key() == tcell.KeyEnter {
+		if k == tcell.KeyEnter {
 			msg := inputView.GetText()
 			if msg != "" {
 				if activeGame != nil {
@@ -18,14 +21,15 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 			}
 
 			setInputStatus(false)
-		} else if ev.Key() == tcell.KeyEscape {
+		} else if k == tcell.KeyEscape {
 			setInputStatus(false)
 		}
 
 		return ev
 	}
 
-	if ev.Key() == tcell.KeyUp {
+	switch k {
+	case tcell.KeyUp:
 		if activeGame == nil {
 			return ev
 		}
@@ -35,7 +39,7 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 		activeGame.Unlock()
 
 		return nil
-	} else if ev.Key() == tcell.KeyDown {
+	case tcell.KeyDown:
 		if activeGame == nil {
 			return ev
 		}
@@ -45,7 +49,7 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 		activeGame.Unlock()
 
 		return nil
-	} else if ev.Key() == tcell.KeyLeft {
+	case tcell.KeyLeft:
 		if activeGame == nil {
 			return ev
 		}
@@ -55,7 +59,7 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 		activeGame.Unlock()
 
 		return nil
-	} else if ev.Key() == tcell.KeyRight {
+	case tcell.KeyRight:
 		if activeGame == nil {
 			return ev
 		}
@@ -65,7 +69,16 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 		activeGame.Unlock()
 
 		return nil
-	} else if ev.Rune() == 'z' || ev.Rune() == 'Z' {
+	case tcell.KeyEnter:
+		setInputStatus(!inputActive)
+	case tcell.KeyTab:
+		setShowDetails(!showDetails)
+	case tcell.KeyEscape:
+		done <- true
+	}
+
+	switch r {
+	case 'z', 'Z':
 		if activeGame == nil {
 			return ev
 		}
@@ -75,20 +88,53 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 		activeGame.Unlock()
 
 		return nil
-	} else if ev.Rune() == 'x' || ev.Rune() == 'X' {
-		if activeGame == nil {
-			return ev
-		}
+	case 'x', 'X':
 
 		activeGame.Lock()
 		activeGame.Players[activeGame.LocalPlayer].Matrix.RotatePiece(1, 0)
 		activeGame.Unlock()
 
 		return nil
-	} else if ev.Key() == tcell.KeyEnter {
-		setInputStatus(!inputActive)
-	} else if ev.Key() == tcell.KeyEscape {
-		done <- true
+	case 'h', 'H':
+		if activeGame == nil {
+			return ev
+		}
+
+		activeGame.Lock()
+		activeGame.Players[activeGame.LocalPlayer].Matrix.MovePiece(-1, 0)
+		activeGame.Unlock()
+
+		return nil
+	case 'j', 'J':
+		if activeGame == nil {
+			return ev
+		}
+
+		activeGame.Lock()
+		activeGame.Players[activeGame.LocalPlayer].Matrix.MovePiece(0, -1)
+		activeGame.Unlock()
+
+		return nil
+	case 'k', 'K':
+		if activeGame == nil {
+			return ev
+		}
+
+		activeGame.Lock()
+		activeGame.Players[activeGame.LocalPlayer].Matrix.HardDropPiece()
+		activeGame.Unlock()
+
+		return nil
+	case 'l', 'L':
+		if activeGame == nil {
+			return ev
+		}
+
+		activeGame.Lock()
+		activeGame.Players[activeGame.LocalPlayer].Matrix.MovePiece(1, 0)
+		activeGame.Unlock()
+
+		return nil
 	}
 
 	return ev

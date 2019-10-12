@@ -867,7 +867,6 @@ func (m *Matrix) Replace(newmtx *Matrix) {
 	m.Lock()
 	defer m.Unlock()
 
-	m.W, m.H, m.B = newmtx.W, newmtx.H, newmtx.B
 	m.M = newmtx.M
 	m.P = newmtx.P
 	m.Preview = newmtx.Preview

@@ -22,6 +22,7 @@ var (
 	closedGUI bool
 
 	inputActive bool
+	showDetails bool
 
 	app        *tview.Application
 	grid       *tview.Grid
@@ -262,6 +263,15 @@ func setInputStatus(active bool) {
 	}
 }
 
+func setShowDetails(active bool) {
+	if showDetails == active {
+		return
+	}
+
+	showDetails = active
+	draw <- event.DrawAll
+}
+
 func renderPreviewMatrix() {
 	g := activeGame
 	if g == nil || len(g.Players) == 0 || g.Players[g.LocalPlayer].Matrix.Bag == nil {
@@ -428,17 +438,31 @@ func renderMatrix(m *mino.Matrix) []byte {
 	renderBuffer.Write(renderLRCorner)
 
 	renderBuffer.WriteRune('\n')
-	name := m.PlayerName
-	if len(name) > m.W*bs {
-		name = name[:m.W*bs]
-	}
-	padName := ((m.W*bs - len(name)) / 2) + 1
-	for i := 0; i < padName; i++ {
-		renderBuffer.WriteRune(' ')
-	}
-	renderBuffer.WriteString(name)
+	renderPlayerDetails(renderBuffer, m, bs)
 
 	return renderBuffer.Bytes()
+}
+
+func renderPlayerDetails(b bytes.Buffer, m *mino.Matrix, bs int) {
+	var buf string
+	if !showDetails {
+		buf = m.PlayerName
+	} else {
+		buf = strconv.Itoa(m.Speed)
+	}
+	if len(buf) > m.W*bs {
+		buf = buf[:m.W*bs]
+	}
+
+	padBuf := ((m.W*bs - len(buf)) / 2) + 1
+	for i := 0; i < padBuf; i++ {
+		renderBuffer.WriteRune(' ')
+	}
+	renderBuffer.WriteString(buf)
+	padBuf = m.W*bs + 2 - len(buf) - padBuf
+	for i := 0; i < padBuf; i++ {
+		renderBuffer.WriteRune(' ')
+	}
 }
 
 func renderMatrixes(mx []*mino.Matrix) []byte {
@@ -507,19 +531,7 @@ func renderMatrixes(mx []*mino.Matrix) []byte {
 			renderBuffer.WriteString(div)
 		}
 
-		name := m.PlayerName
-		if len(name) > m.W*blockSize {
-			name = name[:m.W*blockSize]
-		}
-		padName := ((m.W*blockSize - len(name)) / 2) + 1
-		for i := 0; i < padName; i++ {
-			renderBuffer.WriteRune(' ')
-		}
-		renderBuffer.WriteString(name)
-		padName = (m.W * blockSize) + 2 - len(name) - padName
-		for i := 0; i < padName; i++ {
-			renderBuffer.WriteRune(' ')
-		}
+		renderPlayerDetails(renderBuffer, m, blockSize)
 	}
 
 	for i := range mx {

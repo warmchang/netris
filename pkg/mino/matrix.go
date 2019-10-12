@@ -11,16 +11,18 @@ import (
 	"git.sr.ht/~tslocum/netris/pkg/event"
 )
 
-const GarbageDelayTicks = 3
+const GarbageDelay = 1500 * time.Millisecond
 
 type Matrix struct {
-	W, H, B int // TODO: Implement buffer zone
+	W int `json:"-"` // Width
+	H int `json:"-"` // Height
+	B int `json:"-"` // Buffer height
 
 	M map[int]Block // Matrix
 	O map[int]Block // Overlay
 
-	Bag        *Bag     `json:"-"`
-	P          []*Piece // Pieces
+	Bag        *Bag `json:"-"`
+	P          *Piece
 	PlayerName string
 
 	Preview bool
@@ -29,12 +31,12 @@ type Matrix struct {
 	Move  chan int              `json:"-"`
 	draw  chan event.DrawObject `json:"-"`
 
-	Combo               int
-	ComboStart          time.Time
-	ComboEnd            time.Time
-	PendingGarbage      int
-	PendingGarbageTicks int
-	Speed               int
+	Combo              int
+	ComboStart         time.Time `json:"-"`
+	ComboEnd           time.Time `json:"-"`
+	PendingGarbage     int       `json:"-"`
+	PendingGarbageTime time.Time `json:"-"`
+	Speed              int
 
 	GameOver bool
 
@@ -111,11 +113,7 @@ func (m *Matrix) takePiece() bool {
 
 	p.Point = pieceStart
 
-	if m.P != nil {
-		m.P[0] = p
-	} else {
-		m.P = append(m.P, p)
-	}
+	m.P = p
 
 	return true
 }
@@ -285,7 +283,7 @@ func (m *Matrix) AddPendingGarbage(lines int) {
 	defer m.Unlock()
 
 	if m.PendingGarbage == 0 {
-		m.PendingGarbageTicks = GarbageDelayTicks
+		m.PendingGarbageTime = time.Now().Add(GarbageDelay)
 	}
 
 	m.PendingGarbage += lines
@@ -297,8 +295,7 @@ func (m *Matrix) ReceiveGarbage() {
 
 	if m.PendingGarbage == 0 || m.GameOver {
 		return
-	} else if m.PendingGarbageTicks > 0 {
-		m.PendingGarbageTicks--
+	} else if time.Since(m.PendingGarbageTime) < 0 {
 		return
 	}
 
@@ -309,10 +306,6 @@ func (m *Matrix) ReceiveGarbage() {
 }
 
 func (m *Matrix) addGarbage(lines int) bool {
-	if len(m.P) == 0 {
-		return false
-	}
-
 	for my := m.H + m.B; my >= 0; my-- {
 		for mx := 0; mx < m.W; mx++ {
 			if my >= m.H+m.B-lines && m.M[I(mx, my, m.W)] != BlockNone {
@@ -334,18 +327,18 @@ func (m *Matrix) addGarbage(lines int) bool {
 		}
 	}
 
-	y := m.P[0].Y
+	y := m.P.Y
 	for {
 		if y == m.H+m.B {
 			return false
-		} else if m.canAddAt(m.P[0], Point{m.P[0].X, y}) {
+		} else if m.canAddAt(m.P, Point{m.P.X, y}) {
 			break
 		}
 
 		y++
 	}
 
-	m.P[0].Y = y
+	m.P.Y = y
 
 	m.Draw()
 
@@ -385,7 +378,7 @@ func (m *Matrix) Reset() {
 	m.lands = nil
 	m.Speed = 0
 	m.PendingGarbage = 0
-	m.PendingGarbageTicks = 0
+	m.PendingGarbageTime = time.Time{}
 	m.Unlock()
 
 	m.Clear()
@@ -415,11 +408,11 @@ func (m *Matrix) DrawPieces() {
 func (m *Matrix) DrawPiecesL() {
 	m.clearOverlay()
 
-	if m.GameOver || len(m.P) < 1 {
+	if m.GameOver {
 		return
 	}
 
-	p := m.P[0]
+	p := m.P
 	if p == nil {
 		return
 	}
@@ -527,15 +520,15 @@ func (m *Matrix) SetBlock(x int, y int, block Block, overlay bool) bool {
 	return true
 }
 
-func (m *Matrix) RotatePiece(player int, rotations int, direction int) bool {
+func (m *Matrix) RotatePiece(rotations int, direction int) bool {
 	m.Lock()
 	defer m.Unlock()
 
-	if m.GameOver || rotations == 0 || len(m.P) == 0 {
+	if m.GameOver || rotations == 0 {
 		return false
 	}
 
-	p := m.P[player]
+	p := m.P
 
 	originalMino := make(Mino, len(p.Mino))
 	copy(originalMino, p.Mino)
@@ -607,32 +600,32 @@ func (m *Matrix) LowerPiece() {
 	m.Lock()
 	defer m.Unlock()
 
-	if m.GameOver || len(m.P) == 0 {
+	if m.GameOver {
 		return
-	} else if m.canAddAt(m.P[0], Point{m.P[0].X, m.P[0].Y - 1}) {
-		m.movePiece(0, 0, -1)
+	} else if m.canAddAt(m.P, Point{m.P.X, m.P.Y - 1}) {
+		m.movePiece(0, -1)
 	} else {
 		m.landPiece()
 	}
 }
 
 func (m *Matrix) finishLandingPiece() {
-	if m.GameOver || len(m.P) == 0 || m.P[0].Landed {
+	if m.GameOver || m.P.Landed {
 		return
 	}
 
-	m.P[0].Landed = true
+	m.P.Landed = true
 
 	dropped := false
 LANDPIECE:
-	for y := m.P[0].Y; y >= 0; y-- {
-		if y == 0 || !m.canAddAt(m.P[0], Point{m.P[0].X, y - 1}) {
+	for y := m.P.Y; y >= 0; y-- {
+		if y == 0 || !m.canAddAt(m.P, Point{m.P.X, y - 1}) {
 			for dropY := y - 1; dropY < m.H+m.B; dropY++ {
-				if !m.canAddAt(m.P[0], Point{m.P[0].X, dropY}) {
+				if !m.canAddAt(m.P, Point{m.P.X, dropY}) {
 					continue
 				}
 
-				err := m.add(m.P[0], m.P[0].Solid, Point{m.P[0].X, dropY}, false)
+				err := m.add(m.P, m.P.Solid, Point{m.P.X, dropY}, false)
 				if err != nil {
 					log.Fatalf("failed to add piece when landing piece: %+v", err)
 				}
@@ -695,12 +688,12 @@ LANDPIECE:
 			remainingGarbage := sendGarbage
 			if m.PendingGarbage > 0 {
 				m.PendingGarbage -= sendGarbage
-				remainingGarbage = 0
 
-				if m.PendingGarbage <= 0 {
+				if m.PendingGarbage < 0 {
 					remainingGarbage = m.PendingGarbage * -1
 					m.PendingGarbage = 0
-					m.PendingGarbageTicks = 0
+				} else {
+					remainingGarbage = 0
 				}
 			}
 
@@ -772,11 +765,7 @@ func (m *Matrix) CalculateBonusGarbage() int {
 }
 
 func (m *Matrix) landPiece() {
-	if len(m.P) == 0 {
-		return
-	}
-
-	p := m.P[0]
+	p := m.P
 	p.Lock()
 	if p.Landing || p.Landed || m.GameOver {
 		p.Unlock()
@@ -824,29 +813,29 @@ func (m *Matrix) landPiece() {
 	}()
 }
 
-func (m *Matrix) MovePiece(player int, x int, y int) bool {
+func (m *Matrix) MovePiece(x int, y int) bool {
 	m.Lock()
 	defer m.Unlock()
 
-	return m.movePiece(player, x, y)
+	return m.movePiece(x, y)
 }
 
-func (m *Matrix) movePiece(player int, x int, y int) bool {
-	if m.GameOver || len(m.P) == 0 || (x == 0 && y == 0) {
+func (m *Matrix) movePiece(x int, y int) bool {
+	if m.GameOver || (x == 0 && y == 0) {
 		return false
 	}
 
-	px := m.P[player].X + x
-	py := m.P[player].Y + y
+	px := m.P.X + x
+	py := m.P.Y + y
 
-	if !m.canAddAt(m.P[player], Point{px, py}) {
+	if !m.canAddAt(m.P, Point{px, py}) {
 		return false
 	}
 
-	m.P[0].ApplyReset()
-	m.P[0].SetLocation(px, py)
+	m.P.ApplyReset()
+	m.P.SetLocation(px, py)
 
-	if !m.canAddAt(m.P[0], Point{m.P[0].X, m.P[0].Y - 1}) {
+	if !m.canAddAt(m.P, Point{m.P.X, m.P.Y - 1}) {
 		m.landPiece()
 	}
 
@@ -867,7 +856,7 @@ func (m *Matrix) Moved() {
 	m.Move <- 0
 }
 
-func (m *Matrix) HardDropPiece(player int) {
+func (m *Matrix) HardDropPiece() {
 	m.Lock()
 	defer m.Unlock()
 
@@ -880,28 +869,9 @@ func (m *Matrix) Replace(newmtx *Matrix) {
 
 	m.W, m.H, m.B = newmtx.W, newmtx.H, newmtx.B
 	m.M = newmtx.M
-	/*for i := range newmtx.P {
-		// TODO
-		if newmtx.P[i].Mutex == nil {
-			if i < len(m.P) {
-				m.P[i].Lock()
-
-				newmtx.P[i].Mutex = m.P[i].Mutex
-			} else {
-				newmtx.P[i].Mutex = new(sync.Mutex)
-
-				newmtx.P[i].Lock()
-			}
-		}
-	}*/
 	m.P = newmtx.P
-	/*for i := range m.P {
-		m.P[i].Unlock()
-	}*/
 	m.Preview = newmtx.Preview
 	m.Speed = newmtx.Speed
-
-	// TODO: Show opponents pending garbage
 }
 
 func fibonacci(value int) int {

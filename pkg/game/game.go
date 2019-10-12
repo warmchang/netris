@@ -12,7 +12,7 @@ import (
 	"git.sr.ht/~tslocum/netris/pkg/mino"
 )
 
-const UpdateDuration = 750 * time.Millisecond
+const UpdateDuration = 850 * time.Millisecond
 
 const (
 	LogStandard = iota
@@ -365,10 +365,6 @@ func (g *Game) handleDistributeMatrixes() {
 			return
 		}
 
-		// TODO: Check for inactive players and disconnect them
-		// Assign unique player ID and use maps instead of slices?
-		// Assign matrix, etc to player instead, and use only one slice of players?
-
 		remainingPlayer := -1
 		remainingPlayers := 0
 
@@ -444,8 +440,10 @@ func (g *Game) HandleReadCommands(in chan GameCommandInterface) {
 	for e = range in {
 		g.Lock()
 
+		c := e.Command()
+
 		logLevel := LogDebug
-		if e.Command() == CommandUpdateMatrix {
+		if c == CommandPing || c == CommandPong || c == CommandUpdateMatrix {
 			logLevel = LogVerbose
 		}
 		g.Log(logLevel, "LOCAL handle ", e.Command(), " from ", e.Source(), " ", e)
@@ -471,23 +469,7 @@ func (g *Game) HandleReadCommands(in chan GameCommandInterface) {
 			}
 		case CommandUpdateGame:
 			if p, ok := e.(*GameCommandUpdateGame); ok {
-				for playerID, playerName := range p.Players {
-					if existingPlayer, ok := g.Players[playerID]; ok {
-						existingPlayer.Name = playerName
-					} else {
-						pl := NewPlayer(playerName, nil)
-						pl.Player = playerID
-
-						g.AddPlayerL(pl)
-					}
-				}
-				for playerID := range g.Players {
-					if _, ok := p.Players[playerID]; !ok {
-						g.RemovePlayerL(playerID)
-					}
-				}
-
-				g.draw <- event.DrawMultiplayerMatrixes
+				g.processUpdateGameL(p)
 			}
 		case CommandStartGame:
 			if p, ok := e.(*GameCommandStartGame); ok {
@@ -618,4 +600,31 @@ func (g *Game) handleLowerPiece() {
 		m.LowerPiece()
 		g.Unlock()
 	}
+}
+
+func (g *Game) processUpdateGame(gc *GameCommandUpdateGame) {
+	g.Lock()
+	defer g.Unlock()
+
+	g.processUpdateGameL(gc)
+}
+
+func (g *Game) processUpdateGameL(gc *GameCommandUpdateGame) {
+	for playerID, playerName := range gc.Players {
+		if existingPlayer, ok := g.Players[playerID]; ok {
+			existingPlayer.Name = playerName
+		} else {
+			pl := NewPlayer(playerName, nil)
+			pl.Player = playerID
+
+			g.AddPlayerL(pl)
+		}
+	}
+	for playerID := range g.Players {
+		if _, ok := gc.Players[playerID]; !ok {
+			g.RemovePlayerL(playerID)
+		}
+	}
+
+	g.draw <- event.DrawMultiplayerMatrixes
 }

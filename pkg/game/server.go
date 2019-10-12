@@ -83,9 +83,6 @@ func (s *Server) NewGame() (*Game, error) {
 		return nil, err
 	}
 
-	// TODO
-	//g.LogLevel = LogDebug
-
 	s.Games[gameID] = g
 
 	return g, nil
@@ -206,6 +203,8 @@ func (s *Server) handleJoinGame(pl *Player) {
 
 				s.Log("JOINING GAME", p)
 
+				pl.Write(&GameCommandMessage{Message: "Welcome to netris"})
+
 				g := s.FindGame(pl, p.GameID)
 
 				s.Log("New player added to game", *pl, p.GameID)
@@ -237,13 +236,14 @@ func (s *Server) initiateAutoStart(g *Game) {
 func (s *Server) handleGameCommands(pl *Player, g *Game) {
 	s.Log("waiting first msg handle game commands")
 	for e := range pl.In {
-		if e.Command() != CommandUpdateMatrix || g.LogLevel >= LogVerbose {
+		c := e.Command()
+		if (c != CommandPing && c != CommandPong && c != CommandUpdateMatrix) || g.LogLevel >= LogVerbose {
 			s.Log("REMOTE handle game command ", e.Command(), " from ", e.Source(), e)
 		}
 
 		g.Lock()
 
-		switch e.Command() {
+		switch c {
 		case CommandMessage:
 			if p, ok := e.(*GameCommandMessage); ok {
 				if player, ok := g.Players[p.SourcePlayer]; ok {

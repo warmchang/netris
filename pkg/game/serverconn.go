@@ -27,6 +27,8 @@ type ServerConn struct {
 	out        chan GameCommandInterface
 	ForwardOut chan GameCommandInterface
 
+	LastTransfer time.Time
+
 	Terminated bool
 
 	*sync.WaitGroup
@@ -39,6 +41,8 @@ func NewServerConn(conn net.Conn, forwardOut chan GameCommandInterface) *ServerC
 	s.out = make(chan GameCommandInterface, CommandQueueSize)
 	s.ForwardOut = forwardOut
 
+	s.LastTransfer = time.Now()
+
 	if conn == nil {
 		// Local instance
 
@@ -46,6 +50,7 @@ func NewServerConn(conn net.Conn, forwardOut chan GameCommandInterface) *ServerC
 	} else {
 		go s.handleRead()
 		go s.handleWrite()
+		go s.handleSendKeepAlive()
 	}
 
 	return &s
@@ -78,6 +83,21 @@ func Connect(address string) *ServerConn {
 		}
 
 		return NewServerConn(conn, nil)
+	}
+}
+
+func (s *ServerConn) handleSendKeepAlive() {
+	t := time.NewTicker(7 * time.Second)
+	for {
+		<-t.C
+
+		if s.Terminated {
+			t.Stop()
+			return
+		}
+
+		// TODO: Only send when necessary
+		s.Write(&GameCommandPing{})
 	}
 }
 
@@ -116,17 +136,40 @@ func (s *ServerConn) handleRead() {
 	}
 
 	var (
-		msg GameCommandTransport
-		gc  GameCommandInterface
+		msg       GameCommandTransport
+		gc        GameCommandInterface
+		processed bool
 	)
 	scanner := bufio.NewScanner(s.Conn)
 	for scanner.Scan() {
+		processed = false
+
 		err := json.Unmarshal(scanner.Bytes(), &msg)
 		if err != nil {
 			panic(err)
 		}
 
-		if msg.Command == CommandMessage {
+		s.LastTransfer = time.Now()
+
+		if msg.Command == CommandPing {
+			var gameCommand GameCommandPing
+			err := json.Unmarshal(msg.Data, &gameCommand)
+			if err != nil {
+				panic(err)
+			}
+
+			s.Write(&GameCommandPong{Message: gameCommand.Message})
+			processed = true
+		} else if msg.Command == CommandPong {
+			var gameCommand GameCommandPong
+			err := json.Unmarshal(msg.Data, &gameCommand)
+			if err != nil {
+				panic(err)
+			}
+
+			// TODO: Verify
+			processed = true
+		} else if msg.Command == CommandMessage {
 			var gameCommand GameCommandMessage
 			err := json.Unmarshal(msg.Data, &gameCommand)
 			if err != nil {
@@ -203,8 +246,10 @@ func (s *ServerConn) handleRead() {
 			continue
 		}
 
-		s.addSourceID(gc)
-		s.In <- gc
+		if !processed {
+			s.addSourceID(gc)
+			s.In <- gc
+		}
 
 		err = s.Conn.SetReadDeadline(time.Now().Add(ConnTimeout))
 		if err != nil {
@@ -212,6 +257,8 @@ func (s *ServerConn) handleRead() {
 			return
 		}
 	}
+
+	s.Close()
 }
 
 func (s *ServerConn) handleWrite() {
@@ -234,7 +281,17 @@ func (s *ServerConn) handleWrite() {
 		}
 
 		msg = GameCommandTransport{Command: e.Command()}
-		if p, ok := e.(*GameCommandMessage); ok {
+		if p, ok := e.(*GameCommandPing); ok {
+			msg.Data, err = json.Marshal(p)
+			if err != nil {
+				panic(err)
+			}
+		} else if p, ok := e.(*GameCommandPong); ok {
+			msg.Data, err = json.Marshal(p)
+			if err != nil {
+				panic(err)
+			}
+		} else if p, ok := e.(*GameCommandMessage); ok {
 			msg.Data, err = json.Marshal(p)
 			if err != nil {
 				panic(err)
@@ -300,6 +357,8 @@ func (s *ServerConn) handleWrite() {
 			s.Close()
 		}
 
+		s.LastTransfer = time.Now()
+
 		err = s.Conn.SetWriteDeadline(time.Time{})
 
 		s.Done()
@@ -334,18 +393,19 @@ func (s *ServerConn) JoinGame(name string, gameID int, logger chan string, draw 
 		switch e.Command() {
 		case CommandMessage:
 			if p, ok := e.(*GameCommandMessage); ok {
-				if g != nil {
-					prefix := "* "
-					if p.Player > 0 {
-						name := "Anonymous"
-						if player, ok := g.Players[p.Player]; ok {
-							name = player.Name
-						}
-						prefix = "<" + name + "> "
+				prefix := "* "
+				if p.Player > 0 {
+					name := "Anonymous"
+					if player, ok := g.Players[p.Player]; ok {
+						name = player.Name
 					}
+					prefix = "<" + name + "> "
+				}
+
+				if g != nil {
 					g.Log(LogStandard, prefix+p.Message)
 				} else {
-					logger <- p.Message
+					logger <- prefix + p.Message
 					draw <- event.DrawMessages
 				}
 			}
@@ -366,22 +426,7 @@ func (s *ServerConn) JoinGame(name string, gameID int, logger chan string, draw 
 			}
 
 			if p, ok := e.(*GameCommandUpdateGame); ok {
-				// TODO Unify with JoinGame player update
-				g.Lock()
-				for playerID, playerName := range p.Players {
-					if existingPlayer, ok := g.Players[playerID]; ok {
-						existingPlayer.Name = playerName
-					} else {
-						pl := NewPlayer(playerName, nil)
-						pl.Player = playerID
-
-						g.AddPlayerL(pl)
-					}
-				}
-				g.Unlock()
-			} else {
-				log.Println(e.Command(), " - ", e)
-				panic("unknown payload")
+				g.processUpdateGame(p)
 			}
 		case CommandStartGame:
 			if p, ok := e.(*GameCommandStartGame); ok {
@@ -397,10 +442,6 @@ func (s *ServerConn) JoinGame(name string, gameID int, logger chan string, draw 
 					return g, nil
 				}
 			}
-		case CommandUpdateMatrix:
-			// Do nothing (missed join game command)
-		default:
-			log.Println("unnknown joingame command", e.Command(), e)
 		}
 	}
 

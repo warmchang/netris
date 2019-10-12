@@ -24,6 +24,10 @@ go get -u git.sr.ht/~tslocum/netris/cmd/netris
 go get -u git.sr.ht/~tslocum/netris/cmd/netris-server
 ```
 
+## Configure
+
+See [CONFIGURATION.md](https://man.sr.ht/~tslocum/netris/CONFIGURATION.md)
+
 ## Support
 
 Please share suggestions/issues [here](https://todo.sr.ht/~tslocum/netris).

@@ -20,7 +20,11 @@ var (
 	listenAddressSSH    string
 	netrisBinary        string
 	debugAddress        string
-	done                = make(chan bool)
+
+	logDebug   bool
+	logVerbose bool
+
+	done = make(chan bool)
 )
 
 const (
@@ -34,7 +38,9 @@ func init() {
 	flag.StringVar(&listenAddressSocket, "listen-socket", "", "host server on socket path")
 	flag.StringVar(&listenAddressSSH, "listen-ssh", "", "host SSH server on network address")
 	flag.StringVar(&netrisBinary, "netris", "", "path to netris client")
-	flag.StringVar(&debugAddress, "debug", "", "address to serve debug info")
+	flag.StringVar(&debugAddress, "debug-address", "", "address to serve debug info")
+	flag.BoolVar(&logDebug, "debug", false, "enable debug logging")
+	flag.BoolVar(&logVerbose, "verbose", false, "enable verbose logging")
 }
 
 func main() {

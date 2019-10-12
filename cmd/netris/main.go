@@ -53,16 +53,15 @@ func main() {
 	defer func() {
 		if r := recover(); r != nil {
 			closeGUI()
-
 			time.Sleep(time.Second)
 
 			log.Println()
 			log.Println()
-			log.Println()
-			log.Println()
 			debug.PrintStack()
+
+			log.Println()
+			log.Println()
 			log.Fatalf("panic: %+v", r)
-			os.Exit(0)
 		}
 	}()
 
@@ -80,7 +79,6 @@ func main() {
 		log.Fatal("failed to start netris: non-interactive terminals are not supported")
 	}
 
-	// TODO Document
 	if blockSize > 3 {
 		blockSize = 3
 	}
@@ -117,10 +115,7 @@ func main() {
 	logger := make(chan string, game.LogQueueSize)
 	go func() {
 		for msg := range logger {
-			logMutex.Lock()
-			logMessages = append(logMessages, time.Now().Format(LogTimeFormat)+" "+msg)
-			renderLogMessages = true
-			logMutex.Unlock()
+			logMessage(time.Now().Format(LogTimeFormat) + " " + msg)
 		}
 	}()
 
@@ -158,10 +153,7 @@ func main() {
 	if logDebug || logVerbose {
 		go func() {
 			for msg := range server.Logger {
-				logMutex.Lock()
-				logMessages = append(logMessages, time.Now().Format(LogTimeFormat)+" Local server: "+msg)
-				renderLogMessages = true
-				logMutex.Unlock()
+				logMessage(time.Now().Format(LogTimeFormat) + " Local server: " + msg)
 			}
 		}()
 	} else {

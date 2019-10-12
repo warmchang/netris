@@ -61,5 +61,3 @@ func BenchmarkRenderLargeMatrix(b *testing.B) {
 
 	blockSize = 1
 }
-
-// TODO Check cpu profile of testrendermatrix

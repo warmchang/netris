@@ -143,6 +143,8 @@ func (c Command) String() string {
 const (
 	CommandUnknown Command = iota
 	CommandDisconnect
+	CommandPing
+	CommandPong
 	CommandNickname
 	CommandMessage
 	CommandNewGame
@@ -180,6 +182,24 @@ type GameCommandInterface interface {
 	Command() Command
 	Source() int
 	SetSource(int)
+}
+
+type GameCommandPing struct {
+	GameCommand
+	Message string
+}
+
+func (gc GameCommandPing) Command() Command {
+	return CommandPing
+}
+
+type GameCommandPong struct {
+	GameCommand
+	Message string
+}
+
+func (gc GameCommandPong) Command() Command {
+	return CommandPong
 }
 
 type GameCommandMessage struct {

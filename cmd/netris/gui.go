@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -175,6 +176,9 @@ func handleResize(screen tcell.Screen) bool {
 
 		grid.SetRows(2+(20*blockSize), -1).SetColumns(1, 4+(10*blockSize), 10, -1)
 
+		logMutex.Lock()
+		renderLogMessages = true
+		logMutex.Unlock()
 		draw <- event.DrawAll
 		return true
 	}
@@ -254,15 +258,6 @@ func setInputStatus(active bool) {
 		inputView.SetText("")
 		lowerPages = lowerPages.SwitchToPage("input")
 	} else {
-		msg := inputView.GetText()
-		if msg != "" {
-			if activeGame != nil {
-				activeGame.Event <- &event.MessageEvent{Message: msg}
-			} else {
-				// TODO: Print warning
-			}
-		}
-
 		lowerPages = lowerPages.SwitchToPage("recent")
 	}
 }
@@ -299,7 +294,20 @@ func renderPreviewMatrix() {
 	side.Clear()
 	side.Write(renderMatrix(g.Players[g.LocalPlayer].Preview))
 	m.Lock()
-	fmt.Fprint(side, fmt.Sprintf("\n\nTime\n\n%.0f\n\nCombo\n\n%d\n\nPending\n\n%d\n\nSpeed\n\n%d", comboTime, combo, m.PendingGarbage, m.Speed))
+	renderLock.Lock()
+	renderBuffer.Reset()
+	if m.Speed < 100 {
+		renderBuffer.WriteRune(' ')
+	}
+	renderBuffer.WriteString(strconv.Itoa(m.Speed))
+
+	if blockSize > 1 {
+		fmt.Fprint(side, fmt.Sprintf("\n\n\n\n\n Combo\n\n   %d\n\n\n\n\n Timer\n\n   %.0f\n\n\n\n\nPending\n\n   %d\n\n\n\n\n Speed\n\n  %s", combo, comboTime, m.PendingGarbage, renderBuffer.Bytes()))
+	} else {
+		fmt.Fprint(side, fmt.Sprintf("\n\n Combo\n\n   %d\n\n Timer\n\n   %.0f\n\nPending\n\n   %d\n\n Speed\n\n  %s", combo, comboTime, m.PendingGarbage, renderBuffer.Bytes()))
+	}
+
+	renderLock.Unlock()
 	m.Unlock()
 }
 
@@ -371,17 +379,32 @@ func renderMatrix(m *mino.Matrix) []byte {
 
 	m.DrawPiecesL()
 
-	if m.Preview && blockSize > 2 {
-		blockSize = 2
+	// Draw preview matrix at block size 2 max
+	bs := blockSize
+	if m.Preview {
+		if bs > 2 {
+			bs = 2
+		}
+		if bs > 1 {
+			renderBuffer.WriteRune('\n')
+		}
 	}
 
 	for y := m.H - 1; y >= 0; y-- {
-		for j := 0; j < blockSize; j++ {
+		for j := 0; j < bs; j++ {
 			if !m.Preview {
 				renderBuffer.Write(renderVLine)
+			} else {
+				iPieceNext := m.Bag != nil && m.Bag.Next().String() == mino.TetrominoI
+				if bs == 1 {
+					renderBuffer.WriteRune(' ')
+					renderBuffer.WriteRune(' ')
+				} else if !iPieceNext {
+					renderBuffer.WriteRune(' ')
+				}
 			}
 			for x := 0; x < m.W; x++ {
-				for k := 0; k < blockSize; k++ {
+				for k := 0; k < bs; k++ {
 					renderBuffer.Write(renderBlock[m.Block(x, y)])
 				}
 			}
@@ -399,17 +422,17 @@ func renderMatrix(m *mino.Matrix) []byte {
 	}
 
 	renderBuffer.Write(renderLLCorner)
-	for x := 0; x < m.W*blockSize; x++ {
+	for x := 0; x < m.W*bs; x++ {
 		renderBuffer.Write(renderHLine)
 	}
 	renderBuffer.Write(renderLRCorner)
 
 	renderBuffer.WriteRune('\n')
 	name := m.PlayerName
-	if len(name) > m.W*blockSize {
-		name = name[:m.W*blockSize]
+	if len(name) > m.W*bs {
+		name = name[:m.W*bs]
 	}
-	padName := ((m.W*blockSize - len(name)) / 2) + 1
+	padName := ((m.W*bs - len(name)) / 2) + 1
 	for i := 0; i < padName; i++ {
 		renderBuffer.WriteRune(' ')
 	}
@@ -504,6 +527,13 @@ func renderMatrixes(mx []*mino.Matrix) []byte {
 	}
 
 	return renderBuffer.Bytes()
+}
+
+func logMessage(message string) {
+	logMutex.Lock()
+	logMessages = append(logMessages, message)
+	renderLogMessages = true
+	logMutex.Unlock()
 }
 
 func renderRecentMessages() {

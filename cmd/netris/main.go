@@ -39,7 +39,7 @@ var (
 	logMessages       []string
 	renderLogMessages bool
 	logMutex          = new(sync.Mutex)
-	showLogLines      = 7
+	showLogLines      = 7 // TODO Set in resize func?
 )
 
 const (
@@ -163,7 +163,7 @@ func main() {
 		}()
 	}
 
-	localListenAddress := "localhost:19840"
+	localListenAddress := fmt.Sprintf("localhost:%d", game.DefaultPort)
 
 	go server.Listen(localListenAddress)
 

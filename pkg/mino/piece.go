@@ -166,12 +166,6 @@ func (p *Piece) Rotate(rotations int, direction int) Mino {
 	newMino := make(Mino, len(p.Mino))
 	copy(newMino, p.Mino.Origin())
 
-	w, h := newMino.Size()
-	maxSize := w
-	if h > maxSize {
-		maxSize = h
-	}
-
 	var rotationPivot int
 	for j := 0; j < rotations; j++ {
 		if direction == 0 {

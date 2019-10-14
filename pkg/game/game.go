@@ -20,6 +20,8 @@ const (
 	LogVerbose
 )
 
+const DefaultPort = 1984
+
 type Game struct {
 	Rank     int
 	Minos    []mino.Mino

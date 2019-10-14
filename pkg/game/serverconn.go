@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"log"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
@@ -63,11 +62,7 @@ func Connect(address string) *ServerConn {
 		err     error
 		tries   int
 	)
-	if strings.ContainsRune(address, ':') {
-		network = "tcp"
-	} else {
-		network = "unix"
-	}
+	network, address = NetworkAndAddress(address)
 
 	for {
 		conn, err = net.DialTimeout(network, address, ConnTimeout)

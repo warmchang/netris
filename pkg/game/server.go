@@ -298,11 +298,7 @@ func (s *Server) handleGameCommands(pl *Player, g *Game) {
 
 func (s *Server) Listen(address string) {
 	var network string
-	if strings.ContainsRune(address, ':') {
-		network = "tcp"
-	} else {
-		network = "unix"
-	}
+	network, address = NetworkAndAddress(address)
 
 	listener, err := net.Listen(network, address)
 	if err != nil {
@@ -341,4 +337,19 @@ func (s *Server) Logf(format string, a ...interface{}) {
 	}
 
 	s.Logger <- fmt.Sprintf(format, a...)
+}
+
+func NetworkAndAddress(address string) (string, string) {
+	var network string
+	if strings.ContainsAny(address, `\/`) {
+		network = "unix"
+	} else {
+		network = "tcp"
+
+		if !strings.Contains(address, `:`) {
+			address = fmt.Sprintf("%s:%d", address, DefaultPort)
+		}
+	}
+
+	return network, address
 }

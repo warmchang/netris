@@ -253,7 +253,6 @@ func (m Mino) Flatten() Mino {
 		rotateFunc = Point.Rotate180
 	}
 	if right > flattest {
-		flattest = right
 		rotateFunc = Point.Rotate90
 	}
 	if rotateFunc != nil {

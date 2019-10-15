@@ -429,6 +429,9 @@ func (g *Game) handleDistributeMatrixes() {
 
 		matrixes = make(map[int]*mino.Matrix)
 		for playerID, player := range g.Players {
+			player.Matrix.GarbageSent = player.totalGarbageSent
+			player.Matrix.GarbageReceived = player.totalGarbageReceived
+
 			matrixes[playerID] = player.Matrix
 		}
 		g.WriteAllL(&GameCommandUpdateMatrix{Matrixes: matrixes})

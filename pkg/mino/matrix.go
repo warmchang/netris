@@ -36,7 +36,11 @@ type Matrix struct {
 	ComboEnd           time.Time `json:"-"`
 	PendingGarbage     int       `json:"-"`
 	PendingGarbageTime time.Time `json:"-"`
-	Speed              int
+
+	LinesCleared    int
+	GarbageSent     int
+	GarbageReceived int
+	Speed           int
 
 	GameOver bool
 

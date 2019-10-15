@@ -7,6 +7,8 @@ import (
 )
 
 func TestRenderMatrix(t *testing.T) {
+	blockSize = 1
+
 	m, err := mino.NewTestMatrix()
 	if err != nil {
 		t.Error(err)
@@ -21,6 +23,8 @@ func TestRenderMatrix(t *testing.T) {
 }
 
 func BenchmarkRenderStandardMatrix(b *testing.B) {
+	blockSize = 1
+
 	m, err := mino.NewTestMatrix()
 	if err != nil {
 		b.Error(err)

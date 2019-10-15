@@ -38,6 +38,8 @@ var (
 	renderLock   = new(sync.Mutex)
 	renderBuffer bytes.Buffer
 
+	multiplayerMatrixSize int
+
 	screenW, screenH       int
 	newScreenW, newScreenH int
 )
@@ -72,9 +74,7 @@ var (
 func initGUI() (*tview.Application, error) {
 	app = tview.NewApplication()
 
-	if blockSize == 0 {
-		app.SetBeforeDrawFunc(handleResize)
-	}
+	app.SetBeforeDrawFunc(handleResize)
 
 	inputView = tview.NewInputField().
 		SetLabel("").
@@ -165,15 +165,15 @@ func handleResize(screen tcell.Screen) bool {
 	if newScreenW != screenW || newScreenH != screenH {
 		screenW, screenH = newScreenW, newScreenH
 
-		oldBlockSize := blockSize
+		// TODO Obey initial set blocksize or auto
+
 		if screenW >= 80 && screenH >= 44 {
 			blockSize = 2
 		} else {
 			blockSize = 1
 		}
-		if blockSize == oldBlockSize {
-			return false
-		}
+
+		multiplayerMatrixSize = (screenW - ((10 * blockSize) + 16)) / ((10 * blockSize) + 4)
 
 		grid.SetRows(2+(20*blockSize), -1).SetColumns(1, 4+(10*blockSize), 10, -1)
 
@@ -359,13 +359,19 @@ func renderMultiplayerMatrix() {
 	}
 	sort.Ints(playerIDs)
 
+	i = 0
 	var matrixes []*mino.Matrix
 	for _, playerID := range playerIDs {
 		if g.Players[playerID] == nil {
 			continue
 		}
 
+		i++
 		matrixes = append(matrixes, g.Players[playerID].Matrix)
+
+		if i == multiplayerMatrixSize {
+			break
+		}
 	}
 
 	g.Unlock()
@@ -438,17 +444,21 @@ func renderMatrix(m *mino.Matrix) []byte {
 	renderBuffer.Write(renderLRCorner)
 
 	renderBuffer.WriteRune('\n')
-	renderPlayerDetails(renderBuffer, m, bs)
+	renderPlayerDetails(m, bs)
 
 	return renderBuffer.Bytes()
 }
 
-func renderPlayerDetails(b bytes.Buffer, m *mino.Matrix, bs int) {
+func renderPlayerDetails(m *mino.Matrix, bs int) {
 	var buf string
 	if !showDetails {
 		buf = m.PlayerName
 	} else {
-		buf = strconv.Itoa(m.Speed)
+		if blockSize == 1 {
+			buf = fmt.Sprintf("%d/%d @ %d", m.GarbageSent, m.GarbageReceived, m.Speed)
+		} else {
+			buf = fmt.Sprintf("%d / %d  @  %d", m.GarbageSent, m.GarbageReceived, m.Speed)
+		}
 	}
 	if len(buf) > m.W*bs {
 		buf = buf[:m.W*bs]
@@ -531,7 +541,7 @@ func renderMatrixes(mx []*mino.Matrix) []byte {
 			renderBuffer.WriteString(div)
 		}
 
-		renderPlayerDetails(renderBuffer, m, blockSize)
+		renderPlayerDetails(m, blockSize)
 	}
 
 	for i := range mx {

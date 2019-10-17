@@ -306,6 +306,11 @@ func (g *Game) ResetL() {
 	g.SentGameOverMatrix = false
 
 	for _, p := range g.Players {
+		p.totalGarbageSent = 0
+		p.totalGarbageReceived = 0
+		p.pendingGarbage = 0
+		p.Score = 0
+
 		p.Preview.Reset()
 		p.Matrix.Reset()
 	}

@@ -1,3 +1,6 @@
+This document covers command-line options available when launching netris. Some
+options (such as keybindings) are only available in-game.
+
 # Client
 
 ```

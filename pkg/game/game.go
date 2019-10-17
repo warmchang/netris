@@ -20,7 +20,10 @@ const (
 	LogVerbose
 )
 
-const DefaultPort = 1984
+const (
+	DefaultPort   = 1984
+	DefaultServer = "netris.rocketnine.space"
+)
 
 type Game struct {
 	Rank     int
@@ -127,10 +130,10 @@ func (g *Game) AddPlayerL(p *Player) {
 
 	g.Players[p.Player] = p
 
-	p.Preview = mino.NewMatrix(g.Rank, g.Rank-1, 0, 1, g.Event, g.draw, true)
+	p.Preview = mino.NewMatrix(g.Rank, g.Rank-1, 0, 1, g.Event, g.draw, mino.MatrixPreview)
 	p.Preview.PlayerName = p.Name
 
-	p.Matrix = mino.NewMatrix(10, 20, 20, 1, g.Event, g.draw, false)
+	p.Matrix = mino.NewMatrix(10, 20, 20, 1, g.Event, g.draw, mino.MatrixStandard)
 	p.Matrix.PlayerName = p.Name
 
 	if g.Started {
@@ -415,7 +418,7 @@ func (g *Game) handleDistributeMatrixes() {
 
 			go func() {
 				for {
-					time.Sleep(5 * time.Second)
+					time.Sleep(7 * time.Second)
 					if g.Terminated {
 						return
 					} else if len(g.Players) > 1 {
@@ -429,6 +432,7 @@ func (g *Game) handleDistributeMatrixes() {
 
 		matrixes = make(map[int]*mino.Matrix)
 		for playerID, player := range g.Players {
+			player.Matrix.PlayerName = player.Name
 			player.Matrix.GarbageSent = player.totalGarbageSent
 			player.Matrix.GarbageReceived = player.totalGarbageReceived
 
@@ -466,6 +470,23 @@ func (g *Game) HandleReadCommands(in chan GameCommandInterface) {
 				}
 				g.Log(LogStandard, prefix+p.Message)
 			}
+		case CommandNickname:
+			if p, ok := e.(*GameCommandNickname); ok {
+				if player, ok := g.Players[p.Player]; ok {
+					newNick := Nickname(p.Nickname)
+					if newNick != "" && newNick != player.Name {
+						oldNick := player.Name
+
+						player.Name = newNick
+
+						if p.Player == g.LocalPlayer {
+							g.Players[g.LocalPlayer].Matrix.PlayerName = newNick
+						}
+
+						g.Logf(LogStandard, "* %s is now known as %s", oldNick, newNick)
+					}
+				}
+			}
 		case CommandJoinGame:
 			g.ResetL()
 		case CommandQuitGame:
@@ -488,6 +509,9 @@ func (g *Game) HandleReadCommands(in chan GameCommandInterface) {
 			if p, ok := e.(*GameCommandUpdateMatrix); ok {
 				for player, m := range p.Matrixes {
 					if player == g.LocalPlayer {
+						g.Players[player].Matrix.GarbageSent = m.GarbageSent
+						g.Players[player].Matrix.GarbageReceived = m.GarbageReceived
+
 						continue
 					} else if _, ok := g.Players[player]; !ok {
 						continue
@@ -557,6 +581,8 @@ func (g *Game) handle() {
 			g.Players[g.LocalPlayer].Matrix.SetGameOver()
 
 			g.out(&GameCommandGameOver{})
+		} else if ev, ok := e.(*event.NicknameEvent); ok {
+			g.out(&GameCommandNickname{Nickname: ev.Nickname})
 		} else if ev, ok := e.(*event.SendGarbageEvent); ok {
 			g.out(&GameCommandSendGarbage{Lines: ev.Lines})
 		} else if ev, ok := e.(*event.ScoreEvent); ok {

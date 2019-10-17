@@ -15,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	"git.sr.ht/~tslocum/netris/pkg/event"
+
 	"git.sr.ht/~tslocum/netris/pkg/game"
 	"git.sr.ht/~tslocum/netris/pkg/mino"
 	"github.com/mattn/go-isatty"
@@ -28,10 +30,12 @@ var (
 
 	connectAddress string
 	debugAddress   string
-	nickname       string
 	startMatrix    string
 
-	blockSize = 0
+	nicknameFlag string
+
+	blockSize      = 0
+	fixedBlockSize bool
 
 	logDebug   bool
 	logVerbose bool
@@ -39,7 +43,7 @@ var (
 	logMessages       []string
 	renderLogMessages bool
 	logMutex          = new(sync.Mutex)
-	showLogLines      = 7 // TODO Set in resize func?
+	showLogLines      = 7
 )
 
 const (
@@ -66,7 +70,7 @@ func main() {
 	}()
 
 	flag.IntVar(&blockSize, "scale", 0, "UI scale")
-	flag.StringVar(&nickname, "nick", "Anonymous", "nickname")
+	flag.StringVar(&nicknameFlag, "nick", "", "nickname")
 	flag.StringVar(&startMatrix, "matrix", "", "pre-fill matrix with pieces")
 	flag.StringVar(&connectAddress, "connect", "", "connect to server address or socket path")
 	flag.StringVar(&debugAddress, "debug-address", "", "address to serve debug info")
@@ -79,8 +83,12 @@ func main() {
 		log.Fatal("failed to start netris: non-interactive terminals are not supported")
 	}
 
-	if blockSize > 3 {
-		blockSize = 3
+	if blockSize > 0 {
+		fixedBlockSize = true
+
+		if blockSize > 3 {
+			blockSize = 3
+		}
 	}
 
 	logLevel := game.LogStandard
@@ -88,6 +96,10 @@ func main() {
 		logLevel = game.LogVerbose
 	} else if logDebug {
 		logLevel = game.LogDebug
+	}
+
+	if game.Nickname(nicknameFlag) != "" {
+		nickname = game.Nickname(nicknameFlag)
 	}
 
 	if debugAddress != "" {
@@ -109,13 +121,10 @@ func main() {
 		done <- true
 	}()
 
-	inputActive = true
-	setInputStatus(false)
-
 	logger := make(chan string, game.LogQueueSize)
 	go func() {
 		for msg := range logger {
-			logMessage(time.Now().Format(LogTimeFormat) + " " + msg)
+			logMessage(msg)
 		}
 	}()
 
@@ -129,79 +138,109 @@ func main() {
 		done <- true
 	}()
 
-	// Connect to a game
+	// Connect automatically when an address or path is supplied
 	if connectAddress != "" {
-		s := game.Connect(connectAddress)
+		selectMode <- event.ModePlayOnline
+	}
 
-		activeGame, err = s.JoinGame(nickname, 0, logger, draw)
-		if err != nil {
-			panic(err)
-		}
+	var server *game.Server
 
-		activeGame.LogLevel = logLevel
-
+	go func(server *game.Server) {
 		<-done
+		if server != nil {
+			server.StopListening()
+		}
 
 		closeGUI()
-		return
-	}
 
-	// Host a game
-	server := game.NewServer(nil)
+		os.Exit(0)
+	}(server)
 
-	server.Logger = make(chan string, game.LogQueueSize)
-	if logDebug || logVerbose {
-		go func() {
-			for msg := range server.Logger {
-				logMessage(time.Now().Format(LogTimeFormat) + " Local server: " + msg)
+	for {
+		mode := <-selectMode
+		switch mode {
+		case event.ModePlayOnline:
+			joinedGame = true
+			setTitleVisible(false)
+
+			if connectAddress == "" {
+				connectAddress = game.DefaultServer
 			}
-		}()
-	} else {
-		go func() {
-			for range server.Logger {
+
+			connectNetwork, _ := game.NetworkAndAddress(connectAddress)
+
+			if connectNetwork != "unix" {
+				logMessage(fmt.Sprintf("* Connecting to %s...", connectAddress))
+				draw <- event.DrawMessages
 			}
-		}()
-	}
 
-	localListenAddress := fmt.Sprintf("localhost:%d", game.DefaultPort)
+			s := game.Connect(connectAddress)
 
-	go server.Listen(localListenAddress)
-
-	localServerConn := game.Connect(localListenAddress)
-
-	activeGame, err = localServerConn.JoinGame(nickname, -1, logger, draw)
-	if err != nil {
-		panic(err)
-	}
-
-	activeGame.LogLevel = logLevel
-
-	if startMatrix != "" {
-		activeGame.Players[activeGame.LocalPlayer].Matrix.Lock()
-		startMatrixSplit := strings.Split(startMatrix, ",")
-		startMatrix = ""
-		var (
-			token int
-			x     int
-			err   error
-		)
-		for i := range startMatrixSplit {
-			token, err = strconv.Atoi(startMatrixSplit[i])
+			activeGame, err = s.JoinGame(nickname, 0, logger, draw)
 			if err != nil {
-				panic(fmt.Sprintf("failed to parse initial matrix on token #%d", i))
+				log.Fatalf("failed to connect to %s: %s", connectAddress, err)
 			}
-			if i%2 == 1 {
-				activeGame.Players[activeGame.LocalPlayer].Matrix.SetBlock(x, token, mino.BlockGarbage, false)
+
+			if activeGame == nil {
+				log.Fatal("failed to connect to server")
+			}
+
+			activeGame.LogLevel = logLevel
+		case event.ModePractice:
+			joinedGame = true
+			setTitleVisible(false)
+
+			server = game.NewServer(nil)
+
+			server.Logger = make(chan string, game.LogQueueSize)
+			if logDebug || logVerbose {
+				go func() {
+					for msg := range server.Logger {
+						logMessage("Local server: " + msg)
+					}
+				}()
 			} else {
-				x = token
+				go func() {
+					for range server.Logger {
+					}
+				}()
+			}
+
+			localListenAddress := fmt.Sprintf("localhost:%d", game.DefaultPort)
+
+			go server.Listen(localListenAddress)
+
+			localServerConn := game.Connect(localListenAddress)
+
+			activeGame, err = localServerConn.JoinGame(nickname, -1, logger, draw)
+			if err != nil {
+				panic(err)
+			}
+
+			activeGame.LogLevel = logLevel
+
+			if startMatrix != "" {
+				activeGame.Players[activeGame.LocalPlayer].Matrix.Lock()
+				startMatrixSplit := strings.Split(startMatrix, ",")
+				startMatrix = ""
+				var (
+					token int
+					x     int
+					err   error
+				)
+				for i := range startMatrixSplit {
+					token, err = strconv.Atoi(startMatrixSplit[i])
+					if err != nil {
+						panic(fmt.Sprintf("failed to parse initial matrix on token #%d", i))
+					}
+					if i%2 == 1 {
+						activeGame.Players[activeGame.LocalPlayer].Matrix.SetBlock(x, token, mino.BlockGarbage, false)
+					} else {
+						x = token
+					}
+				}
+				activeGame.Players[activeGame.LocalPlayer].Matrix.Unlock()
 			}
 		}
-		activeGame.Players[activeGame.LocalPlayer].Matrix.Unlock()
 	}
-
-	<-done
-
-	server.StopListening()
-
-	closeGUI()
 }

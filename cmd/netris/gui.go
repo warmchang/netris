@@ -24,16 +24,29 @@ var (
 	inputActive bool
 	showDetails bool
 
-	app        *tview.Application
-	grid       *tview.Grid
-	inputView  *tview.InputField
-	mtx        *tview.TextView
-	side       *tview.TextView
-	buffer     *tview.TextView
-	recent     *tview.TextView
-	lowerPages *tview.Pages
+	app                         *tview.Application
+	titleGrid                   *tview.Grid
+	titleContainerGrid          *tview.Grid
+	playerSettingsForm          *tview.Form
+	playerSettingsGrid          *tview.Grid
+	playerSettingsContainerGrid *tview.Grid
+	gameSettingsForm            *tview.Form
+	gameSettingsGrid            *tview.Grid
+	gameSettingsContainerGrid   *tview.Grid
+	gameGrid                    *tview.Grid
+	titleName                   *tview.TextView
+	titleL                      *tview.TextView
+	titleR                      *tview.TextView
+	inputView                   *tview.InputField
+	mtx                         *tview.TextView
+	side                        *tview.TextView
+	buffer                      *tview.TextView
+	recent                      *tview.TextView
 
-	draw = make(chan event.DrawObject, game.CommandQueueSize)
+	joinedGame bool
+
+	draw       = make(chan event.DrawObject, game.CommandQueueSize)
+	selectMode = make(chan event.GameMode, game.CommandQueueSize)
 
 	renderLock   = new(sync.Mutex)
 	renderBuffer bytes.Buffer
@@ -42,7 +55,14 @@ var (
 
 	screenW, screenH       int
 	newScreenW, newScreenH int
+
+	nickname      = "Anonymous"
+	nicknameDraft string
+
+	inputHeight, mainHeight, newLogLines int
 )
+
+const DefaultStatusText = "Press Enter to chat, Z/X to rotate, arrow keys or HJKL to move/drop"
 
 // TODO: Darken ghost color?
 var renderBlock = map[mino.Block][]byte{
@@ -77,6 +97,7 @@ func initGUI() (*tview.Application, error) {
 	app.SetBeforeDrawFunc(handleResize)
 
 	inputView = tview.NewInputField().
+		SetText(DefaultStatusText).
 		SetLabel("").
 		SetFieldWidth(0).
 		SetFieldBackgroundColor(tcell.ColorDefault).
@@ -90,7 +111,7 @@ func initGUI() (*tview.Application, error) {
 		return event
 	})
 
-	grid = tview.NewGrid().
+	gameGrid = tview.NewGrid().
 		SetBorders(false).
 		SetRows(2+(20*blockSize), -1)
 
@@ -125,39 +146,212 @@ func initGUI() (*tview.Application, error) {
 		SetWrap(true).
 		SetWordWrap(true)
 
-	recent.SetDrawFunc(func(screen tcell.Screen, x, y, width, height int) (int, int, int, int) {
-		logMutex.Lock()
-		showLogLines = height
-		if showLogLines < 1 {
-			showLogLines = 1
-		}
-		logMutex.Unlock()
-
-		return recent.GetInnerRect()
-	})
-
-	lowerPages = tview.NewPages()
-	lowerPages = lowerPages.AddPage("input",
-		inputView,
-		true, false)
-	lowerPages = lowerPages.AddPage("recent",
-		recent,
-		true, true)
-
-	grid = grid.SetColumns(1, 4+(10*blockSize), 10, -1).
+	gameGrid.SetColumns(1, 4+(10*blockSize), 10, -1).
 		AddItem(spacer, 0, 0, 2, 1, 0, 0, false).
 		AddItem(mtx, 0, 1, 1, 1, 0, 0, false).
 		AddItem(side, 0, 2, 1, 1, 0, 0, false).
 		AddItem(buffer, 0, 3, 1, 1, 0, 0, false).
-		AddItem(lowerPages, 1, 1, 1, 3, 0, 0, true)
+		AddItem(inputView, 1, 1, 1, 3, 0, 0, true).
+		AddItem(recent, 2, 1, 1, 3, 0, 0, true)
+
+	// Set up title screen
+
+	titleVisible = true
+
+	minos, err := mino.Generate(4)
+	if err != nil {
+		log.Fatalf("failed to render title: failed to generate minos: %s", err)
+	}
+
+	var (
+		piece      *mino.Piece
+		addToRight bool
+		i          int
+	)
+	for y := 0; y < 6; y++ {
+		for x := 0; x < 4; x++ {
+			piece = mino.NewPiece(minos[i], mino.Point{x * 5, (y * 5)})
+
+			i++
+			if i == len(minos) {
+				i = 0
+			}
+
+			if addToRight {
+				titlePiecesR = append(titlePiecesR, piece)
+			} else {
+				titlePiecesL = append(titlePiecesL, piece)
+			}
+
+			addToRight = !addToRight
+		}
+	}
+
+	titleName = tview.NewTextView().
+		SetTextAlign(tview.AlignLeft).
+		SetWrap(false).
+		SetWordWrap(false).SetDynamicColors(true)
+
+	titleL = tview.NewTextView().
+		SetTextAlign(tview.AlignLeft).
+		SetWrap(false).
+		SetWordWrap(false).SetDynamicColors(true)
+
+	titleR = tview.NewTextView().
+		SetTextAlign(tview.AlignLeft).
+		SetWrap(false).
+		SetWordWrap(false).SetDynamicColors(true)
+
+	go handleTitle()
+
+	buttonA = tview.NewButton("A")
+	buttonLabelA = tview.NewTextView().SetTextAlign(tview.AlignCenter)
+
+	buttonB = tview.NewButton("B")
+	buttonLabelB = tview.NewTextView().SetTextAlign(tview.AlignCenter)
+
+	buttonC = tview.NewButton("C")
+	buttonLabelC = tview.NewTextView().SetTextAlign(tview.AlignCenter)
+
+	titleGrid = tview.NewGrid().
+		SetRows(7, 3, 3, 3, 3, 3, 2).
+		SetColumns(-1, 38, -1).
+		AddItem(titleL, 0, 0, 7, 1, 0, 0, false).
+		AddItem(titleName, 0, 1, 1, 1, 0, 0, false).
+		AddItem(titleR, 0, 2, 7, 1, 0, 0, false).
+		AddItem(buttonA, 1, 1, 1, 1, 0, 0, false).
+		AddItem(buttonLabelA, 2, 1, 1, 1, 0, 0, false).
+		AddItem(buttonB, 3, 1, 1, 1, 0, 0, false).
+		AddItem(buttonLabelB, 4, 1, 1, 1, 0, 0, false).
+		AddItem(buttonC, 5, 1, 1, 1, 0, 0, false).
+		AddItem(buttonLabelC, 6, 1, 1, 1, 0, 0, false)
+
+	playerSettingsTitle := tview.NewTextView().
+		SetTextAlign(tview.AlignCenter).
+		SetWrap(false).
+		SetWordWrap(false).SetText("\nPlayer Settings")
+
+	playerSettingsForm = tview.NewForm().SetButtonsAlign(tview.AlignCenter)
+
+	playerSettingsGrid = tview.NewGrid().
+		SetRows(7, 2, -1, 1).
+		SetColumns(-1, 38, -1).
+		AddItem(titleL, 0, 0, 3, 1, 0, 0, false).
+		AddItem(titleName, 0, 1, 1, 1, 0, 0, false).
+		AddItem(titleR, 0, 2, 3, 1, 0, 0, false).
+		AddItem(playerSettingsTitle, 1, 1, 1, 1, 0, 0, true).
+		AddItem(playerSettingsForm, 2, 1, 1, 1, 0, 0, true).
+		AddItem(tview.NewTextView().
+			SetTextAlign(tview.AlignCenter).
+			SetWrap(false).
+			SetWordWrap(false).SetText("Press Tab to move between fields"), 3, 1, 1, 1, 0, 0, true)
+
+	gameSettingsTitle := tview.NewTextView().
+		SetTextAlign(tview.AlignCenter).
+		SetWrap(false).
+		SetWordWrap(false).SetText("\nGame Settings")
+
+	gameSettingsForm = tview.NewForm().SetButtonsAlign(tview.AlignCenter)
+
+	gameSettingsGrid = tview.NewGrid().
+		SetRows(7, 2, -1, 1).
+		SetColumns(-1, 38, -1).
+		AddItem(titleL, 0, 0, 3, 1, 0, 0, false).
+		AddItem(titleName, 0, 1, 1, 1, 0, 0, false).
+		AddItem(titleR, 0, 2, 3, 1, 0, 0, false).
+		AddItem(gameSettingsTitle, 1, 1, 1, 1, 0, 0, true).
+		AddItem(gameSettingsForm, 2, 1, 1, 1, 0, 0, true).
+		AddItem(tview.NewTextView().
+			SetTextAlign(tview.AlignCenter).
+			SetWrap(false).
+			SetWordWrap(false).SetText("Press Tab to move between fields"), 3, 1, 1, 1, 0, 0, true)
+
+	titleContainerGrid = tview.NewGrid().SetColumns(-1, 80, -1).SetRows(-1, 24, -1).
+		AddItem(tview.NewTextView(), 0, 0, 1, 3, 0, 0, false).
+		AddItem(tview.NewTextView(), 1, 0, 1, 1, 0, 0, false).
+		AddItem(titleGrid, 1, 1, 1, 1, 0, 0, true).
+		AddItem(tview.NewTextView(), 1, 2, 1, 1, 0, 0, false).
+		AddItem(tview.NewTextView(), 0, 0, 1, 3, 0, 0, false)
+
+	playerSettingsContainerGrid = tview.NewGrid().SetColumns(-1, 80, -1).SetRows(-1, 24, -1).
+		AddItem(tview.NewTextView(), 0, 0, 1, 3, 0, 0, false).
+		AddItem(tview.NewTextView(), 1, 0, 1, 1, 0, 0, false).
+		AddItem(playerSettingsGrid, 1, 1, 1, 1, 0, 0, true).
+		AddItem(tview.NewTextView(), 1, 2, 1, 1, 0, 0, false).
+		AddItem(tview.NewTextView(), 0, 0, 1, 3, 0, 0, false)
+
+	gameSettingsContainerGrid = tview.NewGrid().SetColumns(-1, 80, -1).SetRows(-1, 24, -1).
+		AddItem(tview.NewTextView(), 0, 0, 1, 3, 0, 0, false).
+		AddItem(tview.NewTextView(), 1, 0, 1, 1, 0, 0, false).
+		AddItem(gameSettingsGrid, 1, 1, 1, 1, 0, 0, true).
+		AddItem(tview.NewTextView(), 1, 2, 1, 1, 0, 0, false).
+		AddItem(tview.NewTextView(), 0, 0, 1, 3, 0, 0, false)
 
 	app = app.SetInputCapture(handleKeypress)
 
-	app = app.SetRoot(grid, true)
+	app.SetRoot(titleContainerGrid, true)
+
+	updateTitle()
 
 	go handleDraw()
 
 	return app, nil
+}
+
+func resetPlayerSettingsForm() {
+	playerSettingsForm.Clear(true).AddInputField("Name", nickname, 0, nil, func(text string) {
+		nicknameDraft = text
+	}).AddButton("Cancel", func() {
+		titleScreen = 1
+		titleSelectedButton = 0
+
+		app.SetRoot(titleContainerGrid, true)
+		updateTitle()
+	}).AddButton("Save", func() {
+		if nicknameDraft != "" && game.Nickname(nicknameDraft) != nickname {
+			nickname = game.Nickname(nicknameDraft)
+
+			if activeGame != nil {
+				activeGame.Event <- &event.NicknameEvent{Nickname: nickname}
+			}
+		}
+
+		titleScreen = 1
+		titleSelectedButton = 0
+
+		app.SetRoot(titleContainerGrid, true)
+		updateTitle()
+	})
+}
+
+func resetGameSettingsForm() {
+	gameSettingsForm.Clear(true).
+		AddInputField("Custom", "", 0, nil, nil).
+		AddInputField("Keybindings", "", 0, nil, nil).
+		AddInputField("Are", "", 0, nil, nil).
+		AddInputField("Coming", "", 0, nil, nil).
+		AddInputField("Soon", "", 0, nil, nil).
+		AddButton("Cancel", func() {
+			titleScreen = 1
+			titleSelectedButton = 0
+
+			app.SetRoot(titleContainerGrid, true)
+			updateTitle()
+		}).AddButton("Save", func() {
+		if nicknameDraft != "" && game.Nickname(nicknameDraft) != nickname {
+			nickname = game.Nickname(nicknameDraft)
+
+			if activeGame != nil {
+				activeGame.Event <- &event.NicknameEvent{Nickname: nickname}
+			}
+		}
+
+		titleScreen = 1
+		titleSelectedButton = 0
+
+		app.SetRoot(titleContainerGrid, true)
+		updateTitle()
+	})
 }
 
 func handleResize(screen tcell.Screen) bool {
@@ -165,17 +359,33 @@ func handleResize(screen tcell.Screen) bool {
 	if newScreenW != screenW || newScreenH != screenH {
 		screenW, screenH = newScreenW, newScreenH
 
-		// TODO Obey initial set blocksize or auto
-
-		if screenW >= 80 && screenH >= 44 {
-			blockSize = 2
-		} else {
-			blockSize = 1
+		if !fixedBlockSize {
+			if screenW >= 80 && screenH >= 44 {
+				blockSize = 2
+			} else {
+				blockSize = 1
+			}
 		}
 
 		multiplayerMatrixSize = (screenW - ((10 * blockSize) + 16)) / ((10 * blockSize) + 4)
 
-		grid.SetRows(2+(20*blockSize), -1).SetColumns(1, 4+(10*blockSize), 10, -1)
+		inputHeight = 1
+		mainHeight = (20 * blockSize) + 2
+		if screenH > mainHeight+5 {
+			mainHeight += 2
+			inputHeight++
+		} else if screenH > mainHeight+2 {
+			mainHeight++
+		}
+
+		newLogLines = (screenH - mainHeight) - inputHeight
+		if newLogLines > 0 {
+			showLogLines = newLogLines
+		} else {
+			showLogLines = 1
+		}
+
+		gameGrid.SetRows(mainHeight, inputHeight, -1).SetColumns(1, 4+(10*blockSize), 10, -1)
 
 		logMutex.Lock()
 		renderLogMessages = true
@@ -255,12 +465,17 @@ func setInputStatus(active bool) {
 
 	inputActive = active
 
-	if active {
+	if inputActive {
 		inputView.SetText("")
-		lowerPages = lowerPages.SwitchToPage("input")
+		inputView.SetLabel("> ")
+		app.SetFocus(inputView)
 	} else {
-		lowerPages = lowerPages.SwitchToPage("recent")
+		inputView.SetText(DefaultStatusText)
+		inputView.SetLabel("")
+		app.SetFocus(nil)
 	}
+
+	app.Draw()
 }
 
 func setShowDetails(active bool) {
@@ -395,20 +610,23 @@ func renderMatrix(m *mino.Matrix) []byte {
 
 	m.DrawPiecesL()
 
-	// Draw preview matrix at block size 2 max
 	bs := blockSize
-	if m.Preview {
+	if m.Type == mino.MatrixPreview {
+		// Draw preview matrix at block size 2 max
+
 		if bs > 2 {
 			bs = 2
 		}
 		if bs > 1 {
 			renderBuffer.WriteRune('\n')
 		}
+	} else if m.Type == mino.MatrixCustom {
+		bs = 1
 	}
 
 	for y := m.H - 1; y >= 0; y-- {
 		for j := 0; j < bs; j++ {
-			if !m.Preview {
+			if m.Type == mino.MatrixStandard {
 				renderBuffer.Write(renderVLine)
 			} else {
 				iPieceNext := m.Bag != nil && m.Bag.Next().String() == mino.TetrominoI
@@ -425,15 +643,17 @@ func renderMatrix(m *mino.Matrix) []byte {
 				}
 			}
 
-			if !m.Preview {
+			if m.Type == mino.MatrixStandard {
 				renderBuffer.Write(renderVLine)
 			}
 
-			renderBuffer.WriteRune('\n')
+			if y != 0 || m.Type == mino.MatrixStandard {
+				renderBuffer.WriteRune('\n')
+			}
 		}
 	}
 
-	if m.Preview {
+	if m.Type != mino.MatrixStandard {
 		return renderBuffer.Bytes()
 	}
 
@@ -503,7 +723,7 @@ func renderMatrixes(mx []*mino.Matrix) []byte {
 					renderBuffer.WriteString(div)
 				}
 
-				if !m.Preview {
+				if m.Type == mino.MatrixStandard {
 					renderBuffer.Write(renderVLine)
 				}
 
@@ -513,7 +733,7 @@ func renderMatrixes(mx []*mino.Matrix) []byte {
 					}
 				}
 
-				if !m.Preview {
+				if m.Type == mino.MatrixStandard {
 					renderBuffer.Write(renderVLine)
 				}
 			}
@@ -553,7 +773,7 @@ func renderMatrixes(mx []*mino.Matrix) []byte {
 
 func logMessage(message string) {
 	logMutex.Lock()
-	logMessages = append(logMessages, message)
+	logMessages = append(logMessages, time.Now().Format(LogTimeFormat)+" "+message)
 	renderLogMessages = true
 	logMutex.Unlock()
 }

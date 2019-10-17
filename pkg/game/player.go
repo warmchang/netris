@@ -223,6 +223,17 @@ func (gc GameCommandJoinGame) Command() Command {
 	return CommandJoinGame
 }
 
+type GameCommandNickname struct {
+	GameCommand
+
+	Player   int
+	Nickname string
+}
+
+func (gc GameCommandNickname) Command() Command {
+	return CommandNickname
+}
+
 type GameCommandQuitGame struct {
 	GameCommand
 	Player int

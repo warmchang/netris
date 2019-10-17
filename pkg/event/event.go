@@ -10,6 +10,11 @@ type MessageEvent struct {
 	Message string
 }
 
+type NicknameEvent struct {
+	Event
+	Nickname string
+}
+
 type GameOverEvent struct {
 	Event
 }

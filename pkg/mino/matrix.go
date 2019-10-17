@@ -13,6 +13,14 @@ import (
 
 const GarbageDelay = 1500 * time.Millisecond
 
+type MatrixType int
+
+const (
+	MatrixStandard MatrixType = iota
+	MatrixPreview
+	MatrixCustom
+)
+
 type Matrix struct {
 	W int `json:"-"` // Width
 	H int `json:"-"` // Height
@@ -25,7 +33,7 @@ type Matrix struct {
 	P          *Piece
 	PlayerName string
 
-	Preview bool
+	Type MatrixType
 
 	Event chan<- interface{}    `json:"-"`
 	Move  chan int              `json:"-"`
@@ -56,8 +64,8 @@ func I(x int, y int, w int) int {
 	return (y * w) + x
 }
 
-func NewMatrix(w int, h int, b int, players int, event chan<- interface{}, draw chan event.DrawObject, preview bool) *Matrix {
-	m := Matrix{W: w, H: h, B: b, M: make(map[int]Block), O: make(map[int]Block), Event: event, draw: draw, Preview: preview}
+func NewMatrix(w int, h int, b int, players int, event chan<- interface{}, draw chan event.DrawObject, t MatrixType) *Matrix {
+	m := Matrix{W: w, H: h, B: b, M: make(map[int]Block), O: make(map[int]Block), Event: event, draw: draw, Type: t}
 
 	m.Move = make(chan int, 10)
 
@@ -102,7 +110,7 @@ func (m *Matrix) AttachBag(bag *Bag) bool {
 }
 
 func (m *Matrix) takePiece() bool {
-	if m.Preview {
+	if m.Type != MatrixStandard {
 		return true
 	} else if m.GameOver || m.Bag == nil {
 		return false
@@ -410,6 +418,10 @@ func (m *Matrix) DrawPieces() {
 }
 
 func (m *Matrix) DrawPiecesL() {
+	if m.Type != MatrixStandard {
+		return
+	}
+
 	m.clearOverlay()
 
 	if m.GameOver {
@@ -505,6 +517,10 @@ func (m *Matrix) SetGameOver() {
 }
 
 func (m *Matrix) SetBlock(x int, y int, block Block, overlay bool) bool {
+	if x < 0 || x >= m.W || y < 0 || y >= m.H+m.B {
+		return false
+	}
+
 	index := I(x, y, m.W)
 
 	if overlay {
@@ -873,7 +889,10 @@ func (m *Matrix) Replace(newmtx *Matrix) {
 
 	m.M = newmtx.M
 	m.P = newmtx.P
-	m.Preview = newmtx.Preview
+
+	m.PlayerName = newmtx.PlayerName
+	m.GarbageSent = newmtx.GarbageSent
+	m.GarbageReceived = newmtx.GarbageReceived
 	m.Speed = newmtx.Speed
 }
 
@@ -902,7 +921,7 @@ func NewTestMatrix() (*Matrix, error) {
 		}
 	}()
 
-	m := NewMatrix(10, 20, 20, 1, ev, draw, false)
+	m := NewMatrix(10, 20, 20, 1, ev, draw, MatrixStandard)
 
 	bag, err := NewBag(1, minos, 10)
 	if err != nil {

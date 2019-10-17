@@ -131,18 +131,6 @@ func (s *Server) FindGame(p *Player, gameID int) *Game {
 	g.Lock()
 
 	g.AddPlayerL(p)
-	if len(g.Players) > 1 {
-		var players []string
-		for playerID, player := range g.Players {
-			if playerID == p.Player {
-				continue
-			}
-
-			players = append(players, player.Name)
-		}
-
-		p.Write(&GameCommandMessage{Message: "Joined game - Players: " + strings.Join(players, " ")})
-	}
 
 	if gameID == -1 {
 		go g.Start(0)
@@ -201,10 +189,6 @@ func (s *Server) handleJoinGame(pl *Player) {
 			if p, ok := e.(*GameCommandJoinGame); ok {
 				pl.Name = Nickname(p.Name)
 
-				s.Log("JOINING GAME", p)
-
-				pl.Write(&GameCommandMessage{Message: "Welcome to netris"})
-
 				g := s.FindGame(pl, p.GameID)
 
 				s.Log("New player added to game", *pl, p.GameID)
@@ -234,7 +218,6 @@ func (s *Server) initiateAutoStart(g *Game) {
 }
 
 func (s *Server) handleGameCommands(pl *Player, g *Game) {
-	s.Log("waiting first msg handle game commands")
 	for e := range pl.In {
 		c := e.Command()
 		if (c != CommandPing && c != CommandPong && c != CommandUpdateMatrix) || g.LogLevel >= LogVerbose {
@@ -252,6 +235,19 @@ func (s *Server) handleGameCommands(pl *Player, g *Game) {
 					msg := strings.ReplaceAll(strings.TrimSpace(p.Message), "\n", "")
 					if msg != "" {
 						g.WriteAllL(&GameCommandMessage{Player: p.SourcePlayer, Message: msg})
+					}
+				}
+			}
+		case CommandNickname:
+			if p, ok := e.(*GameCommandNickname); ok {
+				if player, ok := g.Players[p.SourcePlayer]; ok {
+					newNick := Nickname(p.Nickname)
+					if newNick != "" && newNick != player.Name {
+						oldNick := player.Name
+						player.Name = newNick
+
+						g.Logf(LogStandard, "* %s is now known as %s", oldNick, newNick)
+						g.WriteAllL(&GameCommandNickname{Player: p.SourcePlayer, Nickname: newNick})
 					}
 				}
 			}
@@ -310,7 +306,7 @@ func (s *Server) Listen(address string) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Fatal("Accept error: ", err)
+			continue
 		}
 
 		s.NewPlayers <- &IncomingPlayer{Name: "Anonymous", Conn: NewServerConn(conn, nil)}

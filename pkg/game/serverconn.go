@@ -68,7 +68,7 @@ func Connect(address string) *ServerConn {
 		conn, err = net.DialTimeout(network, address, ConnTimeout)
 		if err != nil {
 			if tries > 25 {
-				log.Fatal("Listen error: ", err)
+				log.Fatalf("failed to connect to %s: %s", address, err)
 			} else {
 				time.Sleep(250 * time.Millisecond)
 
@@ -166,6 +166,14 @@ func (s *ServerConn) handleRead() {
 			processed = true
 		} else if msg.Command == CommandMessage {
 			var gameCommand GameCommandMessage
+			err := json.Unmarshal(msg.Data, &gameCommand)
+			if err != nil {
+				panic(err)
+			}
+
+			gc = &gameCommand
+		} else if msg.Command == CommandNickname {
+			var gameCommand GameCommandNickname
 			err := json.Unmarshal(msg.Data, &gameCommand)
 			if err != nil {
 				panic(err)
@@ -287,6 +295,11 @@ func (s *ServerConn) handleWrite() {
 				panic(err)
 			}
 		} else if p, ok := e.(*GameCommandMessage); ok {
+			msg.Data, err = json.Marshal(p)
+			if err != nil {
+				panic(err)
+			}
+		} else if p, ok := e.(*GameCommandNickname); ok {
 			msg.Data, err = json.Marshal(p)
 			if err != nil {
 				panic(err)

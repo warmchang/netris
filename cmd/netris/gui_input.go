@@ -9,6 +9,103 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 	k := ev.Key()
 	r := ev.Rune()
 
+	if titleVisible {
+		// TODO: During keybind change, record key, rune and modifier
+		if titleScreen > 1 {
+			switch k {
+			case tcell.KeyEscape:
+				titleScreen = 1
+				titleSelectedButton = 0
+
+				app.SetRoot(titleContainerGrid, true)
+				updateTitle()
+				return nil
+			}
+
+			return ev
+		}
+
+		switch k {
+		case tcell.KeyEnter:
+			if titleScreen == 1 {
+				switch titleSelectedButton {
+				case 0:
+					resetPlayerSettingsForm()
+
+					titleScreen = 2
+					titleSelectedButton = 0
+
+					app.SetRoot(playerSettingsContainerGrid, true)
+					app.SetFocus(playerSettingsForm)
+					app.Draw()
+				case 1:
+					resetGameSettingsForm()
+
+					titleScreen = 3
+					titleSelectedButton = 0
+
+					app.SetRoot(gameSettingsContainerGrid, true)
+					app.SetFocus(gameSettingsForm)
+					app.Draw()
+				case 2:
+					titleScreen = 0
+
+					updateTitle()
+				}
+			} else {
+				if joinedGame {
+					switch titleSelectedButton {
+					case 0:
+						setTitleVisible(false)
+					case 1:
+						titleScreen = 1
+						titleSelectedButton = 0
+
+						updateTitle()
+					case 2:
+						done <- true
+					}
+				} else {
+					switch titleSelectedButton {
+					case 0:
+						selectMode <- event.ModePlayOnline
+					case 1:
+						selectMode <- event.ModePractice
+					case 2:
+						titleScreen = 1
+						titleSelectedButton = 0
+
+						updateTitle()
+					}
+				}
+			}
+		case tcell.KeyUp, tcell.KeyBacktab:
+			previousTitleButton()
+		case tcell.KeyDown, tcell.KeyTab:
+			nextTitleButton()
+		case tcell.KeyEscape:
+			if titleScreen == 1 {
+				titleScreen = 0
+				titleSelectedButton = 0
+			} else if joinedGame {
+				setTitleVisible(false)
+			} else {
+				done <- true
+			}
+		default:
+			switch r {
+			case 'k', 'K':
+				previousTitleButton()
+			case 'j', 'J':
+				nextTitleButton()
+			}
+		}
+
+		updateTitle()
+
+		return ev
+	}
+
 	if inputActive {
 		if k == tcell.KeyEnter {
 			msg := inputView.GetText()
@@ -74,7 +171,7 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 	case tcell.KeyTab:
 		setShowDetails(!showDetails)
 	case tcell.KeyEscape:
-		done <- true
+		setTitleVisible(true)
 	}
 
 	switch r {

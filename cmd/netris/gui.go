@@ -13,10 +13,9 @@ import (
 
 	"git.sr.ht/~tslocum/netris/pkg/event"
 	"git.sr.ht/~tslocum/netris/pkg/game"
-
 	"git.sr.ht/~tslocum/netris/pkg/mino"
 	"github.com/gdamore/tcell"
-	"github.com/rivo/tview"
+	"github.com/tslocum/tview"
 )
 
 var (
@@ -97,7 +96,7 @@ var (
 func initGUI() (*tview.Application, error) {
 	app = tview.NewApplication()
 
-	app.SetBeforeDrawFunc(handleResize)
+	app.SetAfterResizeFunc(handleResize)
 
 	inputView = tview.NewInputField().
 		SetText(DefaultStatusText).
@@ -361,47 +360,46 @@ func resetGameSettingsForm() {
 	})
 }
 
-func handleResize(screen tcell.Screen) bool {
+func handleResize(screen tcell.Screen) {
 	newScreenW, newScreenH = screen.Size()
-	if newScreenW != screenW || newScreenH != screenH {
-		screenW, screenH = newScreenW, newScreenH
-
-		if !fixedBlockSize {
-			if screenW >= 80 && screenH >= 44 {
-				blockSize = 2
-			} else {
-				blockSize = 1
-			}
-		}
-
-		multiplayerMatrixSize = (screenW - ((10 * blockSize) + 16)) / ((10 * blockSize) + 4)
-
-		inputHeight = 1
-		mainHeight = (20 * blockSize) + 2
-		if screenH > mainHeight+5 {
-			mainHeight += 2
-			inputHeight++
-		} else if screenH > mainHeight+2 {
-			mainHeight++
-		}
-
-		newLogLines = (screenH - mainHeight) - inputHeight
-		if newLogLines > 0 {
-			showLogLines = newLogLines
-		} else {
-			showLogLines = 1
-		}
-
-		gameGrid.SetRows(mainHeight, inputHeight, -1).SetColumns(1, 4+(10*blockSize), 10, -1)
-
-		logMutex.Lock()
-		renderLogMessages = true
-		logMutex.Unlock()
-		draw <- event.DrawAll
-		return true
+	if newScreenW == screenW && newScreenH == screenH {
+		return
 	}
 
-	return false
+	screenW, screenH = newScreenW, newScreenH
+
+	if !fixedBlockSize {
+		if screenW >= 80 && screenH >= 44 {
+			blockSize = 2
+		} else {
+			blockSize = 1
+		}
+	}
+
+	multiplayerMatrixSize = (screenW - ((10 * blockSize) + 16)) / ((10 * blockSize) + 4)
+
+	inputHeight = 1
+	mainHeight = (20 * blockSize) + 2
+	if screenH > mainHeight+5 {
+		mainHeight += 2
+		inputHeight++
+	} else if screenH > mainHeight+2 {
+		mainHeight++
+	}
+
+	newLogLines = (screenH - mainHeight) - inputHeight
+	if newLogLines > 0 {
+		showLogLines = newLogLines
+	} else {
+		showLogLines = 1
+	}
+
+	gameGrid.SetRows(mainHeight, inputHeight, -1).SetColumns(1, 4+(10*blockSize), 10, -1)
+
+	logMutex.Lock()
+	renderLogMessages = true
+	logMutex.Unlock()
+	draw <- event.DrawAll
 }
 
 func drawAll() {

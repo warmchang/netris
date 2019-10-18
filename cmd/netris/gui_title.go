@@ -8,7 +8,7 @@ import (
 	"git.sr.ht/~tslocum/netris/pkg/event"
 	"git.sr.ht/~tslocum/netris/pkg/game"
 	"git.sr.ht/~tslocum/netris/pkg/mino"
-	"github.com/rivo/tview"
+	"github.com/tslocum/tview"
 )
 
 var (

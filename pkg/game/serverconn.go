@@ -366,9 +366,7 @@ func (s *ServerConn) handleWrite() {
 		}
 
 		s.LastTransfer = time.Now()
-
-		err = s.Conn.SetWriteDeadline(time.Time{})
-
+		s.Conn.SetWriteDeadline(time.Time{})
 		s.Done()
 	}
 }

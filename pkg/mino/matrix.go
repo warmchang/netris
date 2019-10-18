@@ -27,7 +27,7 @@ type Matrix struct {
 	B int `json:"-"` // Buffer height
 
 	M map[int]Block // Matrix
-	O map[int]Block // Overlay
+	O map[int]Block `json:"-"` // Overlay
 
 	Bag        *Bag `json:"-"`
 	P          *Piece
@@ -35,9 +35,9 @@ type Matrix struct {
 
 	Type MatrixType
 
-	Event chan<- interface{}    `json:"-"`
-	Move  chan int              `json:"-"`
-	draw  chan event.DrawObject `json:"-"`
+	Event chan<- interface{} `json:"-"`
+	Move  chan int           `json:"-"`
+	draw  chan event.DrawObject
 
 	Combo              int
 	ComboStart         time.Time `json:"-"`
@@ -52,7 +52,7 @@ type Matrix struct {
 
 	GameOver bool
 
-	lands []time.Time `json:"-"`
+	lands []time.Time
 
 	sync.Mutex `json:"-"`
 }
@@ -630,11 +630,11 @@ func (m *Matrix) LowerPiece() {
 }
 
 func (m *Matrix) finishLandingPiece() {
-	if m.GameOver || m.P.Landed {
+	if m.GameOver || m.P.landed {
 		return
 	}
 
-	m.P.Landed = true
+	m.P.landed = true
 
 	dropped := false
 LANDPIECE:
@@ -738,7 +738,7 @@ func (m *Matrix) addToCombo(lines int) int {
 	baseTime := 2.4
 	bonusTime := baseTime / 2
 
-	if time.Now().Sub(m.ComboEnd) > 0 {
+	if time.Until(m.ComboEnd) <= 0 {
 		m.Combo = 0
 	}
 
@@ -787,32 +787,31 @@ func (m *Matrix) CalculateBonusGarbage() int {
 func (m *Matrix) landPiece() {
 	p := m.P
 	p.Lock()
-	if p.Landing || p.Landed || m.GameOver {
+	if p.landing || p.landed || m.GameOver {
 		p.Unlock()
 		return
 	}
 
-	p.Landing = true
+	p.landing = true
 	p.Unlock()
 
 	go func() {
 		landStart := time.Now()
 
-		var t *time.Ticker
-		t = time.NewTicker(100 * time.Millisecond)
+		t := time.NewTicker(100 * time.Millisecond)
 		for {
 			<-t.C
 
 			m.Lock()
 			p.Lock()
 
-			if p.Landed {
+			if p.landed {
 				p.Unlock()
 				m.Unlock()
 				return
 			}
 
-			if p.Resets > 0 && time.Since(p.LastReset) < 500*time.Millisecond {
+			if p.resets > 0 && time.Since(p.lastReset) < 500*time.Millisecond {
 				p.Unlock()
 				m.Unlock()
 				continue

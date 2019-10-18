@@ -9,9 +9,9 @@ require (
 	github.com/gdamore/tcell v1.3.0
 	github.com/gliderlabs/ssh v0.2.2
 	github.com/mattn/go-isatty v0.0.10
-	github.com/rivo/tview v0.0.0-20190829161255-f8bc69b90341
+	github.com/rivo/tview v0.0.0-20191017100741-c35e6b2b4c98
 	github.com/rivo/uniseg v0.1.0 // indirect
-	golang.org/x/crypto v0.0.0-20191011161858-a950601f39e6
+	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 	golang.org/x/sys v0.0.0-20191010194322-b09406accb47 // indirect
 	golang.org/x/text v0.3.2 // indirect
 )

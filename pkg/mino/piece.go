@@ -75,21 +75,17 @@ var AllRotationOffsets = map[PieceType][]RotationOffsets{
 type Piece struct {
 	Point
 	Mino
-	Original Mino
+	Ghost    Block
+	Solid    Block
+	Rotation int
 
-	Ghost Block
-	Solid Block
-
-	Rotation  int
-	PivotsCW  []Point
-	PivotsCCW []Point
-
-	Color int
-
-	Landing   bool
-	Resets    int
-	LastReset time.Time
-	Landed    bool
+	original  Mino
+	pivotsCW  []Point
+	pivotsCCW []Point
+	resets    int
+	lastReset time.Time
+	landing   bool
+	landed    bool
 
 	sync.Mutex `json:"-"`
 }
@@ -101,7 +97,7 @@ func (p *Piece) String() string {
 }
 
 func NewPiece(m Mino, loc Point) *Piece {
-	p := &Piece{Mino: m, Original: m, Point: loc, Color: 0}
+	p := &Piece{Mino: m, original: m, Point: loc}
 
 	var pieceType PieceType
 	switch m.Canonical().String() {
@@ -138,8 +134,8 @@ func NewPiece(m Mino, loc Point) *Piece {
 		p.Ghost = BlockGhostYellow
 	}
 
-	p.PivotsCW = AllRotationPivotsCW[pieceType]
-	p.PivotsCCW = AllRotationPivotsCCW[pieceType]
+	p.pivotsCW = AllRotationPivotsCW[pieceType]
+	p.pivotsCCW = AllRotationPivotsCCW[pieceType]
 
 	return p
 }
@@ -179,11 +175,11 @@ func (p *Piece) Rotate(rotations int, direction int) Mino {
 		}
 
 		if (rotationPivot == 3 && direction == 0) || (rotationPivot == 1 && direction == 1) {
-			newMino = p.Original
+			newMino = p.original
 		} else {
-			pp := p.PivotsCW[rotationPivot%RotationStates]
+			pp := p.pivotsCW[rotationPivot%RotationStates]
 			if direction == 1 {
-				pp = p.PivotsCCW[rotationPivot%RotationStates]
+				pp = p.pivotsCCW[rotationPivot%RotationStates]
 			}
 			px, py := pp.X, pp.Y
 
@@ -207,12 +203,12 @@ func (p *Piece) ApplyReset() {
 	p.Lock()
 	defer p.Unlock()
 
-	if !p.Landing || p.Resets >= 15 {
+	if !p.landing || p.resets >= 15 {
 		return
 	}
 
-	p.Resets++
-	p.LastReset = time.Now()
+	p.resets++
+	p.lastReset = time.Now()
 }
 
 func (p *Piece) ApplyRotation(rotations int, direction int) {

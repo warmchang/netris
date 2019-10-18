@@ -12,12 +12,16 @@ import (
 )
 
 var (
-	playerForm *tview.Form
-
 	titleVisible        bool
 	titleScreen         int
 	titleSelectedButton int
 	drawTitle           = make(chan struct{}, game.CommandQueueSize)
+
+	titleMatrixL = newTitleMatrixSide()
+	titleMatrix  = newTitleMatrixName()
+	titleMatrixR = newTitleMatrixSide()
+	titlePiecesL []*mino.Piece
+	titlePiecesR []*mino.Piece
 
 	buttonA *tview.Button
 	buttonB *tview.Button
@@ -26,12 +30,6 @@ var (
 	buttonLabelA *tview.TextView
 	buttonLabelB *tview.TextView
 	buttonLabelC *tview.TextView
-
-	titleMatrixL = newTitleMatrixSide()
-	titleMatrix  = newTitleMatrixName()
-	titleMatrixR = newTitleMatrixSide()
-	titlePiecesL []*mino.Piece
-	titlePiecesR []*mino.Piece
 )
 
 func previousTitleButton() {
@@ -205,14 +203,21 @@ func renderTitle() {
 		titleMatrix.M[i] = newBlock
 	}
 
+	renderLock.Lock()
+
+	renderMatrix(titleMatrix)
 	titleName.Clear()
-	titleName.Write(renderMatrix(titleMatrix))
+	titleName.Write(renderBuffer.Bytes())
 
+	renderMatrix(titleMatrixL)
 	titleL.Clear()
-	titleL.Write(renderMatrix(titleMatrixL))
+	titleL.Write(renderBuffer.Bytes())
 
+	renderMatrix(titleMatrixR)
 	titleR.Clear()
-	titleR.Write(renderMatrix(titleMatrixR))
+	titleR.Write(renderBuffer.Bytes())
+
+	renderLock.Unlock()
 }
 
 func newTitleMatrixSide() *mino.Matrix {

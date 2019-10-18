@@ -52,7 +52,7 @@ func (b *Bag) Next() Mino {
 
 func (b *Bag) shuffle() {
 	if b.Minos == nil {
-		b.Minos = make([]Mino, len(b.Original), len(b.Original))
+		b.Minos = make([]Mino, len(b.Original))
 	}
 	copy(b.Minos, b.Original)
 

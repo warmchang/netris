@@ -145,30 +145,6 @@ func (s *Server) FindGame(p *Player, gameID int) *Game {
 	return g
 }
 
-func (s *Server) joinGame(p *Player, g *Game) {
-	var notified bool
-	for {
-		if p.Terminated {
-			return
-		}
-
-		g.Lock()
-		if !g.Started {
-			break
-		} else if !notified {
-			p.Write(&GameCommandMessage{Message: "Game in progress, waiting to join next game.."})
-		}
-
-		g.Unlock()
-		time.Sleep(500 * time.Millisecond)
-	}
-
-	if !g.Starting {
-
-	}
-	g.Unlock()
-}
-
 func (s *Server) accept() {
 	for {
 		np := <-s.NewPlayers
@@ -182,16 +158,14 @@ func (s *Server) accept() {
 }
 
 func (s *Server) handleJoinGame(pl *Player) {
-	s.Log("waiting first msg handle join game ")
 	for e := range pl.In {
-		s.Log("handle join game ", e.Command(), e)
 		if e.Command() == CommandJoinGame {
 			if p, ok := e.(*GameCommandJoinGame); ok {
 				pl.Name = Nickname(p.Name)
 
 				g := s.FindGame(pl, p.GameID)
 
-				s.Log("New player added to game", *pl, p.GameID)
+				s.Logf("Adding %s to game %d", pl.Name, p.GameID)
 
 				go s.handleGameCommands(pl, g)
 				return
@@ -298,7 +272,7 @@ func (s *Server) Listen(address string) {
 
 	listener, err := net.Listen(network, address)
 	if err != nil {
-		log.Fatal("Listen error: ", err)
+		log.Fatalf("failed to listen on %s: %s", address, err)
 	}
 
 	s.listeners = append(s.listeners, listener)

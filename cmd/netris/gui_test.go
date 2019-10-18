@@ -7,6 +7,9 @@ import (
 )
 
 func TestRenderMatrix(t *testing.T) {
+	renderLock.Lock()
+	defer renderLock.Unlock()
+
 	blockSize = 1
 
 	m, err := mino.NewTestMatrix()
@@ -16,13 +19,13 @@ func TestRenderMatrix(t *testing.T) {
 
 	m.AddTestBlocks()
 
-	var renderedMatrix []byte
-	renderedMatrix = renderMatrix(m)
-
-	_ = renderedMatrix
+	renderMatrix(m)
 }
 
 func BenchmarkRenderStandardMatrix(b *testing.B) {
+	renderLock.Lock()
+	defer renderLock.Unlock()
+
 	blockSize = 1
 
 	m, err := mino.NewTestMatrix()
@@ -32,18 +35,18 @@ func BenchmarkRenderStandardMatrix(b *testing.B) {
 
 	m.AddTestBlocks()
 
-	var renderedMatrix []byte
 	b.ReportAllocs()
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		renderedMatrix = renderMatrix(m)
+		renderMatrix(m)
 	}
-
-	_ = renderedMatrix
 }
 
 func BenchmarkRenderLargeMatrix(b *testing.B) {
+	renderLock.Lock()
+	defer renderLock.Unlock()
+
 	blockSize = 2
 
 	m, err := mino.NewTestMatrix()
@@ -53,15 +56,12 @@ func BenchmarkRenderLargeMatrix(b *testing.B) {
 
 	m.AddTestBlocks()
 
-	var renderedMatrix []byte
 	b.ReportAllocs()
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		renderedMatrix = renderMatrix(m)
+		renderMatrix(m)
 	}
-
-	_ = renderedMatrix
 
 	blockSize = 1
 }

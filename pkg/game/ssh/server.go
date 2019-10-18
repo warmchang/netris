@@ -46,37 +46,38 @@ func (s *SSHServer) Host(newPlayers chan<- *game.IncomingPlayer) {
 		Addr:        s.ListenAddress,
 		IdleTimeout: ServerIdleTimeout,
 		Handler: func(sshSession ssh.Session) {
-			ctx := sshSession.Context()
-
-			cmdCtx, cancelCmd := context.WithCancel(ctx)
-			cmd := exec.CommandContext(cmdCtx, s.NetrisBinary, "--nick", game.Nickname(sshSession.User()), "--connect", s.NetrisAddress)
 			ptyReq, winCh, isPty := sshSession.Pty()
-			if isPty {
-				cmd.Env = append(cmd.Env, fmt.Sprintf("TERM=%s", ptyReq.Term))
+			if !isPty {
+				io.WriteString(sshSession, "failed to start netris: non-interactive terminals are not supported\n")
 
-				f, err := pty.Start(cmd)
-				if err != nil {
-					panic(err)
-				}
-				defer f.Close()
-
-				go func() {
-					for win := range winCh {
-						setWinsize(f, win.Width, win.Height)
-					}
-				}()
-
-				go func() {
-					io.Copy(f, sshSession)
-				}()
-				io.Copy(sshSession, f)
-
-				cancelCmd()
-				cmd.Wait()
-			} else {
-				io.WriteString(sshSession, "No PTY requested.\n")
 				sshSession.Exit(1)
+				return
 			}
+
+			cmdCtx, cancelCmd := context.WithCancel(sshSession.Context())
+
+			cmd := exec.CommandContext(cmdCtx, s.NetrisBinary, "--nick", game.Nickname(sshSession.User()), "--connect", s.NetrisAddress)
+			cmd.Env = append(cmd.Env, fmt.Sprintf("TERM=%s", ptyReq.Term))
+
+			f, err := pty.Start(cmd)
+			if err != nil {
+				panic(err)
+			}
+			defer f.Close()
+
+			go func() {
+				for win := range winCh {
+					setWinsize(f, win.Width, win.Height)
+				}
+			}()
+
+			go func() {
+				io.Copy(f, sshSession)
+			}()
+			io.Copy(sshSession, f)
+
+			cancelCmd()
+			cmd.Wait()
 		},
 		PtyCallback: func(ctx ssh.Context, pty ssh.Pty) bool {
 			// TODO: Compare public key

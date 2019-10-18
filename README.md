@@ -5,8 +5,6 @@
 
 Multiplayer Tetris clone
 
-This project is not yet stable.  Feedback is welcome.
-
 ![](https://netris.rocketnine.space/static/screenshot2.png)
 
 ## Demo
@@ -29,22 +27,6 @@ go get -u git.sr.ht/~tslocum/netris/cmd/netris-server
 ## Configure
 
 See [CONFIGURATION.md](https://man.sr.ht/~tslocum/netris/CONFIGURATION.md)
-
-## Play
-
-A single player game may be played by launching without any options.
-
-To play online, connect to the official server:
-
-```netris --nick <name> --connect netris.rocketnine.space```
-
-To host a private game, start a dedicated server:
-
-```netris-server --listen-tcp :1984```
-
-Then, connect with:
-
-```netris --nick <name> --connect ip.or.dns.address:1984```
 
 ## Support
 

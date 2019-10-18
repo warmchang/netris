@@ -59,7 +59,7 @@ func TestMatrix(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		ok := m.movePiece(1, 0)
 		if !ok {
-			t.Errorf("failed to move piece on iteration %d", i)
+			t.Errorf("failed to Move piece on iteration %d", i)
 		}
 	}
 
@@ -71,7 +71,7 @@ func TestMatrix(t *testing.T) {
 	for i := 0; i < 7; i++ {
 		ok := m.movePiece(-1, 0)
 		if !ok {
-			t.Errorf("failed to move piece on iteration %d", i)
+			t.Errorf("failed to Move piece on iteration %d", i)
 		}
 	}
 }

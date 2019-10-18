@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -60,6 +61,8 @@ var (
 	nicknameDraft string
 
 	inputHeight, mainHeight, newLogLines int
+
+	profileCPU *os.File
 )
 
 const DefaultStatusText = "Press Enter to chat, Z/X to rotate, arrow keys or HJKL to move/drop"
@@ -132,6 +135,7 @@ func initGUI() (*tview.Application, error) {
 	side.SetDynamicColors(true)
 
 	buffer = tview.NewTextView().
+		SetScrollable(false).
 		SetTextAlign(tview.AlignLeft).
 		SetWrap(false).
 		SetWordWrap(false)
@@ -188,16 +192,19 @@ func initGUI() (*tview.Application, error) {
 	}
 
 	titleName = tview.NewTextView().
+		SetScrollable(false).
 		SetTextAlign(tview.AlignLeft).
 		SetWrap(false).
 		SetWordWrap(false).SetDynamicColors(true)
 
 	titleL = tview.NewTextView().
+		SetScrollable(false).
 		SetTextAlign(tview.AlignLeft).
 		SetWrap(false).
 		SetWordWrap(false).SetDynamicColors(true)
 
 	titleR = tview.NewTextView().
+		SetScrollable(false).
 		SetTextAlign(tview.AlignLeft).
 		SetWrap(false).
 		SetWordWrap(false).SetDynamicColors(true)
@@ -435,15 +442,6 @@ func handleDraw() {
 		case event.DrawMessages:
 			app.QueueUpdateDraw(renderRecentMessages)
 		default:
-		DRAW:
-			for {
-				select {
-				case <-draw:
-				default:
-					break DRAW
-				}
-			}
-
 			app.QueueUpdateDraw(drawAll)
 		}
 	}
@@ -510,27 +508,27 @@ func renderPreviewMatrix() {
 		comboTime float64
 		combo     int
 	)
-	if m.Combo > 0 && time.Since(m.ComboEnd) < 0 {
-		comboTime = 1.0 + (float64(m.ComboEnd.Sub(time.Now())) / 1000000000)
+	if m.Combo > 0 && time.Until(m.ComboEnd) > 0 {
+		comboTime = 1.0 + (float64(time.Until(m.ComboEnd)) / 1000000000)
 		combo = m.Combo
 	}
-	m.Unlock()
 
-	side.Clear()
-	side.Write(renderMatrix(g.Players[g.LocalPlayer].Preview))
-	m.Lock()
-	renderLock.Lock()
-	renderBuffer.Reset()
+	var speed = strconv.Itoa(m.Speed)
 	if m.Speed < 100 {
-		renderBuffer.WriteRune(' ')
+		speed = " " + speed
 	}
-	renderBuffer.WriteString(strconv.Itoa(m.Speed))
+
+	renderLock.Lock()
+	renderMatrix(g.Players[g.LocalPlayer].Preview)
 
 	if blockSize > 1 {
-		fmt.Fprint(side, fmt.Sprintf("\n\n\n\n\n Combo\n\n   %d\n\n\n\n\n Timer\n\n   %.0f\n\n\n\n\nPending\n\n   %d\n\n\n\n\n Speed\n\n  %s", combo, comboTime, m.PendingGarbage, renderBuffer.Bytes()))
+		renderBuffer.WriteString(fmt.Sprintf("\n\n\n\n\n Combo\n\n   %d\n\n\n\n\n Timer\n\n   %.0f\n\n\n\n\nPending\n\n   %d\n\n\n\n\n Speed\n\n  %s", combo, comboTime, m.PendingGarbage, speed))
 	} else {
-		fmt.Fprint(side, fmt.Sprintf("\n\n Combo\n\n   %d\n\n Timer\n\n   %.0f\n\nPending\n\n   %d\n\n Speed\n\n  %s", combo, comboTime, m.PendingGarbage, renderBuffer.Bytes()))
+		renderBuffer.WriteString(fmt.Sprintf("\n\n Combo\n\n   %d\n\n Timer\n\n   %.0f\n\nPending\n\n   %d\n\n Speed\n\n  %s", combo, comboTime, m.PendingGarbage, speed))
 	}
+
+	side.Clear()
+	side.Write(renderBuffer.Bytes())
 
 	renderLock.Unlock()
 	m.Unlock()
@@ -542,8 +540,11 @@ func renderPlayerMatrix() {
 		return
 	}
 
+	renderLock.Lock()
+	renderMatrix(g.Players[g.LocalPlayer].Matrix)
 	mtx.Clear()
-	mtx.Write(renderMatrix(g.Players[g.LocalPlayer].Matrix))
+	mtx.Write(renderBuffer.Bytes())
+	renderLock.Unlock()
 }
 
 func renderMultiplayerMatrix() {
@@ -591,22 +592,22 @@ func renderMultiplayerMatrix() {
 
 	g.Unlock()
 
+	renderLock.Lock()
+	renderMatrixes(matrixes)
 	buffer.Clear()
-	buffer.Write(renderMatrixes(matrixes))
+	buffer.Write(renderBuffer.Bytes())
+	renderLock.Unlock()
 }
 
-func renderMatrix(m *mino.Matrix) []byte {
-	if m == nil {
-		return nil
-	}
+func renderMatrix(m *mino.Matrix) {
+	renderBuffer.Reset()
 
-	renderLock.Lock()
-	defer renderLock.Unlock()
+	if m == nil {
+		return
+	}
 
 	m.Lock()
 	defer m.Unlock()
-
-	renderBuffer.Reset()
 
 	m.DrawPiecesL()
 
@@ -647,14 +648,14 @@ func renderMatrix(m *mino.Matrix) []byte {
 				renderBuffer.Write(renderVLine)
 			}
 
-			if y != 0 || m.Type == mino.MatrixStandard {
+			if y != 0 || m.Type != mino.MatrixCustom {
 				renderBuffer.WriteRune('\n')
 			}
 		}
 	}
 
 	if m.Type != mino.MatrixStandard {
-		return renderBuffer.Bytes()
+		return
 	}
 
 	renderBuffer.Write(renderLLCorner)
@@ -665,8 +666,6 @@ func renderMatrix(m *mino.Matrix) []byte {
 
 	renderBuffer.WriteRune('\n')
 	renderPlayerDetails(m, bs)
-
-	return renderBuffer.Bytes()
 }
 
 func renderPlayerDetails(m *mino.Matrix, bs int) {
@@ -695,20 +694,17 @@ func renderPlayerDetails(m *mino.Matrix, bs int) {
 	}
 }
 
-func renderMatrixes(mx []*mino.Matrix) []byte {
-	if mx == nil {
-		return nil
-	}
+func renderMatrixes(mx []*mino.Matrix) {
+	renderBuffer.Reset()
 
-	renderLock.Lock()
-	defer renderLock.Unlock()
+	if mx == nil {
+		return
+	}
 
 	for i := range mx {
 		mx[i].Lock()
 		mx[i].DrawPiecesL()
 	}
-
-	renderBuffer.Reset()
 
 	div := "  "
 
@@ -767,8 +763,6 @@ func renderMatrixes(mx []*mino.Matrix) []byte {
 	for i := range mx {
 		mx[i].Unlock()
 	}
-
-	return renderBuffer.Bytes()
 }
 
 func logMessage(message string) {

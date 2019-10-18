@@ -23,8 +23,7 @@ import (
 )
 
 var (
-	ready = make(chan bool)
-	done  = make(chan bool)
+	done = make(chan bool)
 
 	activeGame *game.Game
 

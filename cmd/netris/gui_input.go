@@ -1,6 +1,12 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"os"
+	"runtime/pprof"
+	"strings"
+
 	"git.sr.ht/~tslocum/netris/pkg/event"
 	"github.com/gdamore/tcell"
 )
@@ -110,10 +116,39 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 		if k == tcell.KeyEnter {
 			msg := inputView.GetText()
 			if msg != "" {
-				if activeGame != nil {
-					activeGame.Event <- &event.MessageEvent{Message: msg}
+				if strings.HasPrefix(msg, "/cpu") {
+					if profileCPU == nil {
+						if len(msg) < 5 {
+							logMessage("Profile name must be specified")
+						} else {
+							profileName := strings.TrimSpace(msg[5:])
+
+							var err error
+							profileCPU, err = os.Create(profileName)
+							if err != nil {
+								log.Fatal(err)
+							}
+
+							err = pprof.StartCPUProfile(profileCPU)
+							if err != nil {
+								log.Fatal(err)
+							}
+
+							logMessage(fmt.Sprintf("Started profiling CPU usage as %s", profileName))
+						}
+					} else {
+						pprof.StopCPUProfile()
+						profileCPU.Close()
+						profileCPU = nil
+
+						logMessage("Stopped profiling CPU usage")
+					}
 				} else {
-					logMessage("Message not sent - not currently connected to any game")
+					if activeGame != nil {
+						activeGame.Event <- &event.MessageEvent{Message: msg}
+					} else {
+						logMessage("Message not sent - not currently connected to any game")
+					}
 				}
 			}
 
@@ -172,66 +207,66 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 		setShowDetails(!showDetails)
 	case tcell.KeyEscape:
 		setTitleVisible(true)
-	}
+	default:
+		switch r {
+		case 'z', 'Z':
+			if activeGame == nil {
+				return ev
+			}
 
-	switch r {
-	case 'z', 'Z':
-		if activeGame == nil {
-			return ev
+			activeGame.Lock()
+			activeGame.Players[activeGame.LocalPlayer].Matrix.RotatePiece(1, 1)
+			activeGame.Unlock()
+
+			return nil
+		case 'x', 'X':
+
+			activeGame.Lock()
+			activeGame.Players[activeGame.LocalPlayer].Matrix.RotatePiece(1, 0)
+			activeGame.Unlock()
+
+			return nil
+		case 'h', 'H':
+			if activeGame == nil {
+				return ev
+			}
+
+			activeGame.Lock()
+			activeGame.Players[activeGame.LocalPlayer].Matrix.MovePiece(-1, 0)
+			activeGame.Unlock()
+
+			return nil
+		case 'j', 'J':
+			if activeGame == nil {
+				return ev
+			}
+
+			activeGame.Lock()
+			activeGame.Players[activeGame.LocalPlayer].Matrix.MovePiece(0, -1)
+			activeGame.Unlock()
+
+			return nil
+		case 'k', 'K':
+			if activeGame == nil {
+				return ev
+			}
+
+			activeGame.Lock()
+			activeGame.Players[activeGame.LocalPlayer].Matrix.HardDropPiece()
+			activeGame.Unlock()
+
+			return nil
+		case 'l', 'L':
+			if activeGame == nil {
+				return ev
+			}
+
+			activeGame.Lock()
+			activeGame.Players[activeGame.LocalPlayer].Matrix.MovePiece(1, 0)
+			activeGame.Unlock()
+
+			return nil
 		}
-
-		activeGame.Lock()
-		activeGame.Players[activeGame.LocalPlayer].Matrix.RotatePiece(1, 1)
-		activeGame.Unlock()
-
-		return nil
-	case 'x', 'X':
-
-		activeGame.Lock()
-		activeGame.Players[activeGame.LocalPlayer].Matrix.RotatePiece(1, 0)
-		activeGame.Unlock()
-
-		return nil
-	case 'h', 'H':
-		if activeGame == nil {
-			return ev
-		}
-
-		activeGame.Lock()
-		activeGame.Players[activeGame.LocalPlayer].Matrix.MovePiece(-1, 0)
-		activeGame.Unlock()
-
-		return nil
-	case 'j', 'J':
-		if activeGame == nil {
-			return ev
-		}
-
-		activeGame.Lock()
-		activeGame.Players[activeGame.LocalPlayer].Matrix.MovePiece(0, -1)
-		activeGame.Unlock()
-
-		return nil
-	case 'k', 'K':
-		if activeGame == nil {
-			return ev
-		}
-
-		activeGame.Lock()
-		activeGame.Players[activeGame.LocalPlayer].Matrix.HardDropPiece()
-		activeGame.Unlock()
-
-		return nil
-	case 'l', 'L':
-		if activeGame == nil {
-			return ev
-		}
-
-		activeGame.Lock()
-		activeGame.Players[activeGame.LocalPlayer].Matrix.MovePiece(1, 0)
-		activeGame.Unlock()
-
-		return nil
 	}
 
 	return ev

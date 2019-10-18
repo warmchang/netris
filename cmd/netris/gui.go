@@ -24,24 +24,12 @@ var (
 	inputActive bool
 	showDetails bool
 
-	app                         *tview.Application
-	titleGrid                   *tview.Grid
-	titleContainerGrid          *tview.Grid
-	playerSettingsForm          *tview.Form
-	playerSettingsGrid          *tview.Grid
-	playerSettingsContainerGrid *tview.Grid
-	gameSettingsForm            *tview.Form
-	gameSettingsGrid            *tview.Grid
-	gameSettingsContainerGrid   *tview.Grid
-	gameGrid                    *tview.Grid
-	titleName                   *tview.TextView
-	titleL                      *tview.TextView
-	titleR                      *tview.TextView
-	inputView                   *tview.InputField
-	mtx                         *tview.TextView
-	side                        *tview.TextView
-	buffer                      *tview.TextView
-	recent                      *tview.TextView
+	app       *tview.Application
+	inputView *tview.InputField
+	mtx       *tview.TextView
+	side      *tview.TextView
+	buffer    *tview.TextView
+	recent    *tview.TextView
 
 	joinedGame bool
 
@@ -52,6 +40,7 @@ var (
 	renderBuffer bytes.Buffer
 
 	multiplayerMatrixSize int
+	extraScreenPadding    int
 
 	screenW, screenH       int
 	newScreenW, newScreenH int
@@ -89,6 +78,8 @@ var renderBlock = map[mino.Block][]byte{
 var (
 	renderHLine    = []byte(string(tcell.RuneHLine))
 	renderVLine    = []byte(string(tcell.RuneVLine))
+	renderULCorner = []byte(string(tcell.RuneULCorner))
+	renderURCorner = []byte(string(tcell.RuneURCorner))
 	renderLLCorner = []byte(string(tcell.RuneLLCorner))
 	renderLRCorner = []byte(string(tcell.RuneLRCorner))
 )
@@ -115,7 +106,7 @@ func initGUI() (*tview.Application, error) {
 
 	gameGrid = tview.NewGrid().
 		SetBorders(false).
-		SetRows(2+(20*blockSize), -1)
+		SetRows(2+(20*blockSize)+extraScreenPadding, -1)
 
 	mtx = tview.NewTextView().
 		SetScrollable(false).
@@ -376,25 +367,38 @@ func handleResize(screen tcell.Screen) {
 		}
 	}
 
-	multiplayerMatrixSize = (screenW - ((10 * blockSize) + 16)) / ((10 * blockSize) + 4)
-
-	inputHeight = 1
 	mainHeight = (20 * blockSize) + 2
-	if screenH > mainHeight+5 {
-		mainHeight += 2
-		inputHeight++
-	} else if screenH > mainHeight+2 {
+	if screenH > mainHeight+9 {
+		extraScreenPadding = 3
 		mainHeight++
+		inputHeight = 2
+	} else if screenH > mainHeight+7 {
+		extraScreenPadding = 2
+		mainHeight++
+		inputHeight = 2
+	} else if screenH > mainHeight+5 {
+		extraScreenPadding = 1
+		mainHeight++
+		inputHeight = 1
+	} else if screenH > mainHeight+2 {
+		extraScreenPadding = 0
+		mainHeight++
+		inputHeight = 1
+	} else {
+		extraScreenPadding = 0
+		inputHeight = 1
 	}
 
-	newLogLines = (screenH - mainHeight) - inputHeight
+	multiplayerMatrixSize = ((screenW - extraScreenPadding) - ((10 * blockSize) + 16)) / ((10 * blockSize) + 4)
+
+	newLogLines = ((screenH - mainHeight) - inputHeight) - extraScreenPadding
 	if newLogLines > 0 {
 		showLogLines = newLogLines
 	} else {
 		showLogLines = 1
 	}
 
-	gameGrid.SetRows(mainHeight, inputHeight, -1).SetColumns(1, 4+(10*blockSize), 10, -1)
+	gameGrid.SetRows(mainHeight+extraScreenPadding, inputHeight, -1).SetColumns(1+extraScreenPadding, 4+(10*blockSize), 10, -1)
 
 	logMutex.Lock()
 	renderLogMessages = true
@@ -623,6 +627,18 @@ func renderMatrix(m *mino.Matrix) {
 		bs = 1
 	}
 
+	for i := 0; i < extraScreenPadding; i++ {
+		if m.Type == mino.MatrixStandard && i == extraScreenPadding-1 {
+			renderBuffer.Write(renderULCorner)
+			for x := 0; x < m.W*bs; x++ {
+				renderBuffer.Write(renderHLine)
+			}
+			renderBuffer.Write(renderURCorner)
+		}
+
+		renderBuffer.WriteRune('\n')
+	}
+
 	for y := m.H - 1; y >= 0; y-- {
 		for j := 0; j < bs; j++ {
 			if m.Type == mino.MatrixStandard {
@@ -707,6 +723,24 @@ func renderMatrixes(mx []*mino.Matrix) {
 	div := "  "
 
 	height := mx[0].H
+
+	for i := 0; i < extraScreenPadding; i++ {
+		if i == extraScreenPadding-1 {
+			for i := range mx {
+				if i > 0 {
+					renderBuffer.WriteString(div)
+				}
+
+				renderBuffer.Write(renderULCorner)
+				for x := 0; x < mx[i].W*blockSize; x++ {
+					renderBuffer.Write(renderHLine)
+				}
+				renderBuffer.Write(renderURCorner)
+			}
+		}
+
+		renderBuffer.WriteRune('\n')
+	}
 
 	for y := height - 1; y >= 0; y-- {
 		for j := 0; j < blockSize; j++ {

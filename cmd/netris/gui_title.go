@@ -17,6 +17,22 @@ var (
 	titleSelectedButton int
 	drawTitle           = make(chan struct{}, game.CommandQueueSize)
 
+	titleGrid          *tview.Grid
+	titleContainerGrid *tview.Grid
+
+	playerSettingsForm          *tview.Form
+	playerSettingsGrid          *tview.Grid
+	playerSettingsContainerGrid *tview.Grid
+
+	gameSettingsForm          *tview.Form
+	gameSettingsGrid          *tview.Grid
+	gameSettingsContainerGrid *tview.Grid
+	gameGrid                  *tview.Grid
+
+	titleName *tview.TextView
+	titleL    *tview.TextView
+	titleR    *tview.TextView
+
 	titleMatrixL = newTitleMatrixSide()
 	titleMatrix  = newTitleMatrixName()
 	titleMatrixR = newTitleMatrixSide()

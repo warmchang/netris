@@ -51,6 +51,7 @@ type Game struct {
 
 	Local bool
 
+	sentPing time.Time
 	*sync.Mutex
 }
 
@@ -463,6 +464,18 @@ func (g *Game) HandleReadCommands(in chan GameCommandInterface) {
 		g.Log(logLevel, "LOCAL handle ", e.Command(), " from ", e.Source(), " ", e)
 
 		switch e.Command() {
+		case CommandPong:
+			if p, ok := e.(*GameCommandPong); ok {
+				if len(p.Message) > 1 && p.Message[0] == 'm' {
+					if i, err := strconv.ParseInt(p.Message[1:], 10, 64); err == nil {
+						if i == g.sentPing.UnixNano() {
+							g.Logf(LogStandard, "Server latency is %dms", time.Since(g.sentPing).Milliseconds())
+
+							g.sentPing = time.Time{}
+						}
+					}
+				}
+			}
 		case CommandMessage:
 			if p, ok := e.(*GameCommandMessage); ok {
 				prefix := "* "
@@ -687,6 +700,9 @@ func (g *Game) ProcessAction(a event.GameAction) {
 			p.Matrix.MovePiece(0, -1)
 		case event.ActionHardDrop:
 			p.Matrix.HardDropPiece()
+		case event.ActionPing:
+			g.sentPing = time.Now()
+			g.out(&GameCommandPing{Message: fmt.Sprintf("m%d", g.sentPing.UnixNano())})
 		}
 	}
 }

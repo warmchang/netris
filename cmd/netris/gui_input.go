@@ -298,6 +298,10 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 
 						logMessage("Stopped profiling CPU usage")
 					}
+				} else if strings.HasPrefix(msg, "/ping") {
+					if activeGame != nil {
+						activeGame.ProcessAction(event.ActionPing)
+					}
 				} else {
 					if activeGame != nil {
 						activeGame.Event <- &event.MessageEvent{Message: msg}

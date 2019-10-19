@@ -3,6 +3,7 @@ package game
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net"
 	"sync"
@@ -92,7 +93,7 @@ func (s *ServerConn) handleSendKeepAlive() {
 		}
 
 		// TODO: Only send when necessary
-		s.Write(&GameCommandPing{})
+		s.Write(&GameCommandPing{Message: fmt.Sprintf("a%d", time.Now().UnixNano())})
 	}
 }
 
@@ -162,8 +163,7 @@ func (s *ServerConn) handleRead() {
 				panic(err)
 			}
 
-			// TODO: Verify
-			processed = true
+			gc = &gameCommand
 		} else if msg.Command == CommandMessage {
 			var gameCommand GameCommandMessage
 			err := json.Unmarshal(msg.Data, &gameCommand)

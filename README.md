@@ -5,7 +5,7 @@
 
 Multiplayer Tetris clone
 
-![](https://netris.rocketnine.space/static/screenshot2.png)
+![](https://netris.rocketnine.space/static/screenshot4.png)
 
 ## Demo
 
@@ -15,7 +15,15 @@ To play netris without installing:
 
 ## Install
 
-To install netris and netris-server:
+Choose one of the following methods:
+
+### Download
+
+[**Download netris**](https://netris.rocketnine.space/download/?sort=name&order=desc)
+
+Windows and Linux binaries are available.
+
+### Compile
 
 ```
 GO111MODULE=on

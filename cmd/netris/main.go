@@ -54,6 +54,13 @@ const (
 func init() {
 	log.SetFlags(0)
 }
+
+func fibonacci(value int) int {
+	if value == 0 || value == 1 {
+		return value
+	}
+	return fibonacci(value-2) + fibonacci(value-1)
+}
 func main() {
 	defer func() {
 		if r := recover(); r != nil {
@@ -110,7 +117,7 @@ func main() {
 		}()
 	}
 
-	app, err := initGUI()
+	app, err := initGUI(connectAddress != "")
 	if err != nil {
 		log.Fatalf("failed to initialize GUI: %s", err)
 	}

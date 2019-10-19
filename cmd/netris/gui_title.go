@@ -12,10 +12,11 @@ import (
 )
 
 var (
-	titleVisible        bool
-	titleScreen         int
-	titleSelectedButton int
-	drawTitle           = make(chan struct{}, game.CommandQueueSize)
+	titleVisible               bool
+	titleScreen                int
+	titleSelectedButton        int
+	gameSettingsSelectedButton int
+	drawTitle                  = make(chan struct{}, game.CommandQueueSize)
 
 	titleGrid          *tview.Grid
 	titleContainerGrid *tview.Grid
@@ -24,7 +25,6 @@ var (
 	playerSettingsGrid          *tview.Grid
 	playerSettingsContainerGrid *tview.Grid
 
-	gameSettingsForm          *tview.Form
 	gameSettingsGrid          *tview.Grid
 	gameSettingsContainerGrid *tview.Grid
 	gameGrid                  *tview.Grid
@@ -62,6 +62,27 @@ func nextTitleButton() {
 	}
 
 	titleSelectedButton++
+}
+
+func updateGameSettings() {
+	switch gameSettingsSelectedButton {
+	case 0:
+		app.SetFocus(buttonKeybindRotateCCW)
+	case 1:
+		app.SetFocus(buttonKeybindRotateCW)
+	case 2:
+		app.SetFocus(buttonKeybindMoveLeft)
+	case 3:
+		app.SetFocus(buttonKeybindMoveRight)
+	case 4:
+		app.SetFocus(buttonKeybindSoftDrop)
+	case 5:
+		app.SetFocus(buttonKeybindHardDrop)
+	case 6:
+		app.SetFocus(buttonKeybindCancel)
+	case 7:
+		app.SetFocus(buttonKeybindSave)
+	}
 }
 
 func setTitleVisible(visible bool) {

@@ -28,6 +28,10 @@ go get -u git.sr.ht/~tslocum/netris/cmd/netris-server
 
 See [CONFIGURATION.md](https://man.sr.ht/~tslocum/netris/CONFIGURATION.md)
 
+## How to Play
+
+See [GAMEPLAY.md](https://man.sr.ht/~tslocum/netris/GAMEPLAY.md)
+
 ## Support
 
 Please share suggestions/issues [here](https://todo.sr.ht/~tslocum/netris).

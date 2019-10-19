@@ -133,7 +133,7 @@ func (g *Game) AddPlayerL(p *Player) {
 	p.Preview = mino.NewMatrix(g.Rank, g.Rank-1, 0, 1, g.Event, g.draw, mino.MatrixPreview)
 	p.Preview.PlayerName = p.Name
 
-	p.Matrix = mino.NewMatrix(10, 20, 20, 1, g.Event, g.draw, mino.MatrixStandard)
+	p.Matrix = mino.NewMatrix(10, 20, 4, 1, g.Event, g.draw, mino.MatrixStandard)
 	p.Matrix.PlayerName = p.Name
 
 	if g.Started {
@@ -663,4 +663,30 @@ func (g *Game) processUpdateGameL(gc *GameCommandUpdateGame) {
 	}
 
 	g.draw <- event.DrawMultiplayerMatrixes
+}
+
+func (g *Game) ProcessAction(a event.GameAction) {
+	g.Lock()
+	defer g.Unlock()
+
+	if p, ok := g.Players[g.LocalPlayer]; ok {
+		if p.Matrix == nil {
+			return
+		}
+
+		switch a {
+		case event.ActionRotateCCW:
+			p.Matrix.RotatePiece(1, 1)
+		case event.ActionRotateCW:
+			p.Matrix.RotatePiece(1, 0)
+		case event.ActionMoveLeft:
+			p.Matrix.MovePiece(-1, 0)
+		case event.ActionMoveRight:
+			p.Matrix.MovePiece(1, 0)
+		case event.ActionSoftDrop:
+			p.Matrix.MovePiece(0, -1)
+		case event.ActionHardDrop:
+			p.Matrix.HardDropPiece()
+		}
+	}
 }

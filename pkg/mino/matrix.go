@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"strings"
 	"sync"
 	"time"
@@ -11,7 +12,10 @@ import (
 	"git.sr.ht/~tslocum/netris/pkg/event"
 )
 
-const GarbageDelay = 1500 * time.Millisecond
+const (
+	GarbageDelay  = 1500 * time.Millisecond
+	ComboBaseTime = 2.4 // Seconds
+)
 
 type MatrixType int
 
@@ -735,26 +739,23 @@ func (m *Matrix) addToCombo(lines int) int {
 		return 0
 	}
 
-	baseTime := 2.4
+	baseTime := ComboBaseTime
 	bonusTime := baseTime / 2
 
-	if time.Until(m.ComboEnd) <= 0 {
+	if m.Combo == 0 || time.Until(m.ComboEnd) <= 0 {
 		m.Combo = 0
-	}
-
-	if m.Combo == 0 {
 		m.ComboStart = time.Now()
 		m.ComboEnd = m.ComboStart
 	}
 
 	m.Combo++
 
-	for i := 1; i < m.Combo; i++ {
-		baseTime /= 2
-		bonusTime /= 2
+	if m.Combo > 1 {
+		baseTime /= math.Pow(2, float64(m.Combo-1))
+		bonusTime /= math.Pow(2, float64(m.Combo-1))
 	}
 
-	m.ComboEnd = m.ComboEnd.Add(time.Duration(baseTime*float64(time.Second)) + time.Duration(bonusTime*float64(lines)*float64(time.Second)))
+	m.ComboEnd = m.ComboEnd.Add(time.Duration((baseTime * float64(time.Second)) + (bonusTime * float64(lines) * float64(time.Second))))
 
 	baseGarbage := 0
 	if lines > 1 {
@@ -920,7 +921,7 @@ func NewTestMatrix() (*Matrix, error) {
 		}
 	}()
 
-	m := NewMatrix(10, 20, 20, 1, ev, draw, MatrixStandard)
+	m := NewMatrix(10, 20, 4, 1, ev, draw, MatrixStandard)
 
 	bag, err := NewBag(1, minos, 10)
 	if err != nil {

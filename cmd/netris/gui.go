@@ -20,8 +20,9 @@ import (
 var (
 	closedGUI bool
 
-	inputActive bool
-	showDetails bool
+	inputActive      bool
+	capturingKeybind bool
+	showDetails      bool
 
 	app       *tview.Application
 	inputView *tview.InputField
@@ -50,6 +51,15 @@ var (
 	inputHeight, mainHeight, newLogLines int
 
 	profileCPU *os.File
+
+	buttonKeybindRotateCCW *tview.Button
+	buttonKeybindRotateCW  *tview.Button
+	buttonKeybindMoveLeft  *tview.Button
+	buttonKeybindMoveRight *tview.Button
+	buttonKeybindSoftDrop  *tview.Button
+	buttonKeybindHardDrop  *tview.Button
+	buttonKeybindCancel    *tview.Button
+	buttonKeybindSave      *tview.Button
 )
 
 const DefaultStatusText = "Press Enter to chat, Z/X to rotate, arrow keys or HJKL to move/drop"
@@ -83,7 +93,7 @@ var (
 	renderLRCorner = []byte(string(tcell.RuneLRCorner))
 )
 
-func initGUI() (*tview.Application, error) {
+func initGUI(skipTitle bool) (*tview.Application, error) {
 	app = tview.NewApplication()
 
 	app.SetAfterResizeFunc(handleResize)
@@ -149,7 +159,7 @@ func initGUI() (*tview.Application, error) {
 
 	// Set up title screen
 
-	titleVisible = true
+	titleVisible = !skipTitle
 
 	minos, err := mino.Generate(4)
 	if err != nil {
@@ -225,7 +235,7 @@ func initGUI() (*tview.Application, error) {
 	playerSettingsTitle := tview.NewTextView().
 		SetTextAlign(tview.AlignCenter).
 		SetWrap(false).
-		SetWordWrap(false).SetText("\nPlayer Settings")
+		SetWordWrap(false).SetText("Player Settings")
 
 	playerSettingsForm = tview.NewForm().SetButtonsAlign(tview.AlignCenter)
 
@@ -245,22 +255,73 @@ func initGUI() (*tview.Application, error) {
 	gameSettingsTitle := tview.NewTextView().
 		SetTextAlign(tview.AlignCenter).
 		SetWrap(false).
-		SetWordWrap(false).SetText("\nGame Settings")
+		SetWordWrap(false).SetText("Game Settings")
 
-	gameSettingsForm = tview.NewForm().SetButtonsAlign(tview.AlignCenter)
+	buttonKeybindRotateCCW = tview.NewButton("Set")
+	buttonKeybindRotateCW = tview.NewButton("Set")
+	buttonKeybindMoveLeft = tview.NewButton("Set")
+	buttonKeybindMoveRight = tview.NewButton("Set")
+	buttonKeybindSoftDrop = tview.NewButton("Set")
+	buttonKeybindHardDrop = tview.NewButton("Set")
+	buttonKeybindCancel = tview.NewButton("Cancel")
+	buttonKeybindSave = tview.NewButton("Save")
+
+	rotateCCWGrid := tview.NewGrid().
+		AddItem(tview.NewTextView().SetText("Rotate CCW"), 0, 0, 1, 1, 0, 0, false).
+		AddItem(buttonKeybindRotateCCW, 0, 1, 1, 1, 0, 0, false)
+
+	rotateCWGrid := tview.NewGrid().
+		AddItem(tview.NewTextView().SetText("Rotate CW"), 0, 0, 1, 1, 0, 0, false).
+		AddItem(buttonKeybindRotateCW, 0, 1, 1, 1, 0, 0, false)
+
+	moveLeftGrid := tview.NewGrid().
+		AddItem(tview.NewTextView().SetText("Move Left"), 0, 0, 1, 1, 0, 0, false).
+		AddItem(buttonKeybindMoveLeft, 0, 1, 1, 1, 0, 0, false)
+
+	moveRightGrid := tview.NewGrid().
+		AddItem(tview.NewTextView().SetText("Move Right"), 0, 0, 1, 1, 0, 0, false).
+		AddItem(buttonKeybindMoveRight, 0, 1, 1, 1, 0, 0, false)
+
+	softDropGrid := tview.NewGrid().
+		AddItem(tview.NewTextView().SetText("Soft Drop"), 0, 0, 1, 1, 0, 0, false).
+		AddItem(buttonKeybindSoftDrop, 0, 1, 1, 1, 0, 0, false)
+
+	hardDropGrid := tview.NewGrid().
+		AddItem(tview.NewTextView().SetText("Hard Drop"), 0, 0, 1, 1, 0, 0, false).
+		AddItem(buttonKeybindHardDrop, 0, 1, 1, 1, 0, 0, false)
+
+	gameSettingsSubmitGrid := tview.NewGrid().
+		SetColumns(-1, 10, 1, 10, -1).
+		AddItem(tview.NewTextView(), 0, 0, 1, 1, 0, 0, false).
+		AddItem(buttonKeybindCancel, 0, 1, 1, 1, 0, 0, false).
+		AddItem(tview.NewTextView(), 0, 2, 1, 1, 0, 0, false).
+		AddItem(buttonKeybindSave, 0, 3, 1, 1, 0, 0, false).
+		AddItem(tview.NewTextView(), 0, 4, 1, 1, 0, 0, false)
 
 	gameSettingsGrid = tview.NewGrid().
-		SetRows(7, 2, -1, 1).
+		SetRows(7, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).
 		SetColumns(-1, 38, -1).
-		AddItem(titleL, 0, 0, 3, 1, 0, 0, false).
+		AddItem(titleL, 0, 0, 16, 1, 0, 0, false).
 		AddItem(titleName, 0, 1, 1, 1, 0, 0, false).
-		AddItem(titleR, 0, 2, 3, 1, 0, 0, false).
-		AddItem(gameSettingsTitle, 1, 1, 1, 1, 0, 0, true).
-		AddItem(gameSettingsForm, 2, 1, 1, 1, 0, 0, true).
+		AddItem(titleR, 0, 2, 16, 1, 0, 0, false).
+		AddItem(gameSettingsTitle, 1, 1, 1, 1, 0, 0, false).
+		AddItem(rotateCCWGrid, 2, 1, 1, 1, 0, 0, false).
+		AddItem(tview.NewTextView(), 3, 1, 1, 1, 0, 0, false).
+		AddItem(rotateCWGrid, 4, 1, 1, 1, 0, 0, false).
+		AddItem(tview.NewTextView(), 5, 1, 1, 1, 0, 0, false).
+		AddItem(moveLeftGrid, 6, 1, 1, 1, 0, 0, false).
+		AddItem(tview.NewTextView(), 7, 1, 1, 1, 0, 0, false).
+		AddItem(moveRightGrid, 8, 1, 1, 1, 0, 0, false).
+		AddItem(tview.NewTextView(), 9, 1, 1, 1, 0, 0, false).
+		AddItem(softDropGrid, 10, 1, 1, 1, 0, 0, false).
+		AddItem(tview.NewTextView(), 11, 1, 1, 1, 0, 0, false).
+		AddItem(hardDropGrid, 12, 1, 1, 1, 0, 0, false).
+		AddItem(tview.NewTextView(), 13, 1, 1, 1, 0, 0, false).
+		AddItem(gameSettingsSubmitGrid, 14, 1, 1, 1, 0, 0, false).
 		AddItem(tview.NewTextView().
 			SetTextAlign(tview.AlignCenter).
 			SetWrap(false).
-			SetWordWrap(false).SetText("Press Tab to move between fields"), 3, 1, 1, 1, 0, 0, true)
+			SetWordWrap(false).SetText("\nPress Tab to move between fields"), 15, 1, 1, 1, 0, 0, false)
 
 	titleContainerGrid = tview.NewGrid().SetColumns(-1, 80, -1).SetRows(-1, 24, -1).
 		AddItem(tview.NewTextView(), 0, 0, 1, 3, 0, 0, false).
@@ -279,15 +340,21 @@ func initGUI() (*tview.Application, error) {
 	gameSettingsContainerGrid = tview.NewGrid().SetColumns(-1, 80, -1).SetRows(-1, 24, -1).
 		AddItem(tview.NewTextView(), 0, 0, 1, 3, 0, 0, false).
 		AddItem(tview.NewTextView(), 1, 0, 1, 1, 0, 0, false).
-		AddItem(gameSettingsGrid, 1, 1, 1, 1, 0, 0, true).
+		AddItem(gameSettingsGrid, 1, 1, 1, 1, 0, 0, false).
 		AddItem(tview.NewTextView(), 1, 2, 1, 1, 0, 0, false).
 		AddItem(tview.NewTextView(), 0, 0, 1, 3, 0, 0, false)
 
 	app = app.SetInputCapture(handleKeypress)
 
-	app.SetRoot(titleContainerGrid, true)
+	if !skipTitle {
+		app.SetRoot(titleContainerGrid, true)
 
-	updateTitle()
+		updateTitle()
+	} else {
+		app.SetRoot(gameGrid, true)
+
+		app.SetFocus(nil)
+	}
 
 	go handleDraw()
 
@@ -304,36 +371,6 @@ func resetPlayerSettingsForm() {
 		app.SetRoot(titleContainerGrid, true)
 		updateTitle()
 	}).AddButton("Save", func() {
-		if nicknameDraft != "" && game.Nickname(nicknameDraft) != nickname {
-			nickname = game.Nickname(nicknameDraft)
-
-			if activeGame != nil {
-				activeGame.Event <- &event.NicknameEvent{Nickname: nickname}
-			}
-		}
-
-		titleScreen = 1
-		titleSelectedButton = 0
-
-		app.SetRoot(titleContainerGrid, true)
-		updateTitle()
-	})
-}
-
-func resetGameSettingsForm() {
-	gameSettingsForm.Clear(true).
-		AddInputField("Custom", "", 0, nil, nil).
-		AddInputField("Keybindings", "", 0, nil, nil).
-		AddInputField("Are", "", 0, nil, nil).
-		AddInputField("Coming", "", 0, nil, nil).
-		AddInputField("Soon", "", 0, nil, nil).
-		AddButton("Cancel", func() {
-			titleScreen = 1
-			titleSelectedButton = 0
-
-			app.SetRoot(titleContainerGrid, true)
-			updateTitle()
-		}).AddButton("Save", func() {
 		if nicknameDraft != "" && game.Nickname(nicknameDraft) != nickname {
 			nickname = game.Nickname(nicknameDraft)
 

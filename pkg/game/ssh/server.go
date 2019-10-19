@@ -58,7 +58,7 @@ func (s *SSHServer) Host(newPlayers chan<- *game.IncomingPlayer) {
 
 			cmdCtx, cancelCmd := context.WithCancel(sshSession.Context())
 
-			cmd := exec.CommandContext(cmdCtx, s.NetrisBinary, "--nick", game.Nickname(sshSession.User()), "--connect", s.NetrisAddress)
+			cmd := exec.CommandContext(cmdCtx, s.NetrisBinary, "--nick", game.Nickname(sshSession.User()), "--server", s.NetrisAddress)
 			cmd.Env = append(cmd.Env, fmt.Sprintf("TERM=%s", ptyReq.Term))
 
 			f, err := pty.Start(cmd)

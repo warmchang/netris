@@ -3,11 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"path"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -28,6 +30,7 @@ var (
 	activeGame *game.Game
 
 	connectAddress string
+	serverAddress  string
 	debugAddress   string
 	startMatrix    string
 
@@ -39,10 +42,9 @@ var (
 	logDebug   bool
 	logVerbose bool
 
-	logMessages       []string
-	renderLogMessages bool
-	logMutex          = new(sync.Mutex)
-	showLogLines      = 7
+	logMutex             = new(sync.Mutex)
+	wroteFirstLogMessage bool
+	showLogLines         = 7
 )
 
 const (
@@ -72,6 +74,7 @@ func main() {
 	flag.StringVar(&nicknameFlag, "nick", "", "nickname")
 	flag.StringVar(&startMatrix, "matrix", "", "pre-fill matrix with pieces")
 	flag.StringVar(&connectAddress, "connect", "", "connect to server address or socket path")
+	flag.StringVar(&serverAddress, "server", game.DefaultServer, "server address or socket path")
 	flag.StringVar(&debugAddress, "debug-address", "", "address to serve debug info")
 	flag.BoolVar(&logDebug, "debug", false, "enable debug logging")
 	flag.BoolVar(&logVerbose, "verbose", false, "enable verbose logging")
@@ -142,12 +145,18 @@ func main() {
 		selectMode <- event.ModePlayOnline
 	}
 
-	var server *game.Server
+	var (
+		server         *game.Server
+		localListenDir string
+	)
 
 	go func(server *game.Server) {
 		<-done
 		if server != nil {
 			server.StopListening()
+		}
+		if localListenDir != "" {
+			os.RemoveAll(localListenDir)
 		}
 
 		closeGUI()
@@ -163,7 +172,7 @@ func main() {
 			setTitleVisible(false)
 
 			if connectAddress == "" {
-				connectAddress = game.DefaultServer
+				connectAddress = serverAddress
 			}
 
 			connectNetwork, _ := game.NetworkAndAddress(connectAddress)
@@ -205,7 +214,12 @@ func main() {
 				}()
 			}
 
-			localListenAddress := fmt.Sprintf("localhost:%d", game.DefaultPort)
+			localListenDir, err = ioutil.TempDir("", "netris")
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			localListenAddress := path.Join(localListenDir, "netris.sock")
 
 			go server.Listen(localListenAddress)
 

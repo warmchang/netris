@@ -11,6 +11,24 @@ import (
 	"github.com/gdamore/tcell"
 )
 
+func scrollMessages(direction int) {
+	var scroll int
+	if showLogLines > 3 {
+		scroll = (showLogLines - 2) * direction
+	} else {
+		scroll = showLogLines * direction
+	}
+
+	r, _ := recent.GetScrollOffset()
+	r += scroll
+	if r < 0 {
+		r = 0
+	}
+	recent.ScrollTo(r, 0)
+
+	draw <- event.DrawMessages
+}
+
 func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 	k := ev.Key()
 	r := ev.Rune()
@@ -113,7 +131,8 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 	}
 
 	if inputActive {
-		if k == tcell.KeyEnter {
+		switch k {
+		case tcell.KeyEnter:
 			msg := inputView.GetText()
 			if msg != "" {
 				if strings.HasPrefix(msg, "/cpu") {
@@ -153,7 +172,11 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 			}
 
 			setInputStatus(false)
-		} else if k == tcell.KeyEscape {
+		case tcell.KeyPgUp:
+			scrollMessages(-1)
+		case tcell.KeyPgDn:
+			scrollMessages(1)
+		case tcell.KeyEscape:
 			setInputStatus(false)
 		}
 
@@ -205,6 +228,10 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 		setInputStatus(!inputActive)
 	case tcell.KeyTab:
 		setShowDetails(!showDetails)
+	case tcell.KeyPgUp:
+		scrollMessages(-1)
+	case tcell.KeyPgDn:
+		scrollMessages(1)
 	case tcell.KeyEscape:
 		setTitleVisible(true)
 	default:

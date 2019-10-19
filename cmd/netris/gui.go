@@ -7,7 +7,6 @@ import (
 	"os"
 	"sort"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -91,10 +90,10 @@ func initGUI() (*tview.Application, error) {
 
 	inputView = tview.NewInputField().
 		SetText(DefaultStatusText).
-		SetLabel("").
+		SetLabel("> ").
 		SetFieldWidth(0).
 		SetFieldBackgroundColor(tcell.ColorDefault).
-		SetFieldTextColor(tcell.ColorDefault)
+		SetFieldTextColor(tcell.ColorWhite)
 
 	inputView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if !inputActive {
@@ -135,7 +134,7 @@ func initGUI() (*tview.Application, error) {
 	spacer := tview.NewBox()
 
 	recent = tview.NewTextView().
-		SetScrollable(false).
+		SetScrollable(true).
 		SetTextAlign(tview.AlignLeft).
 		SetWrap(true).
 		SetWordWrap(true)
@@ -400,37 +399,26 @@ func handleResize(screen tcell.Screen) {
 
 	gameGrid.SetRows(mainHeight+extraScreenPadding, inputHeight, -1).SetColumns(1+extraScreenPadding, 4+(10*blockSize), 10, -1)
 
-	logMutex.Lock()
-	renderLogMessages = true
-	logMutex.Unlock()
 	draw <- event.DrawAll
 }
 
 func drawAll() {
 	if activeGame == nil {
-		renderRecentMessages()
-
 		return
 	}
 
 	renderPlayerMatrix()
 	renderPreviewMatrix()
 	renderMultiplayerMatrix()
-
-	renderRecentMessages()
 }
 
 func drawPlayerMatrix() {
 	renderPlayerMatrix()
 	renderPreviewMatrix()
-
-	renderRecentMessages()
 }
 
 func drawMultiplayerMatrixes() {
 	renderMultiplayerMatrix()
-
-	renderRecentMessages()
 }
 
 func handleDraw() {
@@ -441,8 +429,6 @@ func handleDraw() {
 			app.QueueUpdateDraw(drawPlayerMatrix)
 		case event.DrawMultiplayerMatrixes:
 			app.QueueUpdateDraw(drawMultiplayerMatrixes)
-		case event.DrawMessages:
-			app.QueueUpdateDraw(renderRecentMessages)
 		default:
 			app.QueueUpdateDraw(drawAll)
 		}
@@ -465,13 +451,10 @@ func setInputStatus(active bool) {
 
 	inputActive = active
 
+	inputView.SetText("")
 	if inputActive {
-		inputView.SetText("")
-		inputView.SetLabel("> ")
 		app.SetFocus(inputView)
 	} else {
-		inputView.SetText(DefaultStatusText)
-		inputView.SetLabel("")
 		app.SetFocus(nil)
 	}
 
@@ -799,25 +782,21 @@ func renderMatrixes(mx []*mino.Matrix) {
 
 func logMessage(message string) {
 	logMutex.Lock()
-	logMessages = append(logMessages, time.Now().Format(LogTimeFormat)+" "+message)
-	renderLogMessages = true
-	logMutex.Unlock()
-}
 
-func renderRecentMessages() {
-	logMutex.Lock()
-	if !renderLogMessages {
-		logMutex.Unlock()
-		return
+	var prefix string
+	if !wroteFirstLogMessage {
+		wroteFirstLogMessage = true
+	} else {
+		prefix = "\n"
 	}
 
-	l := len(logMessages)
-	ls := l - showLogLines
-	if ls < 0 {
-		ls = 0
-	}
-	recent.SetText(strings.Join(logMessages[ls:l], "\n"))
+	recent.Write([]byte(prefix + time.Now().Format(LogTimeFormat) + " " + message))
 
-	renderLogMessages = false
+	if prefix == "" {
+		// Fix for small windows not auto-scrolling
+
+		recent.ScrollToEnd()
+	}
+
 	logMutex.Unlock()
 }

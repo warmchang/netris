@@ -86,28 +86,6 @@ func (m Mino) Less(i, j int) bool {
 	return m[i].Y < m[j].Y || (m[i].Y == m[j].Y && m[i].X < m[j].X)
 }
 
-func (m Mino) Width() int {
-	var x int
-	for _, p := range m {
-		if p.X > x {
-			x = p.X
-		}
-	}
-
-	return x + 1
-}
-
-func (m Mino) Height() int {
-	var y int
-	for _, p := range m {
-		if p.Y > y {
-			y = p.Y
-		}
-	}
-
-	return y + 1
-}
-
 func (m Mino) Size() (int, int) {
 	var x, y int
 	for _, p := range m {
@@ -123,24 +101,26 @@ func (m Mino) Size() (int, int) {
 }
 
 func (m Mino) Render() string {
-	var b strings.Builder
-
-	w, h := m.Size()
-
-	c := Point{0, h - 1}
+	var (
+		w, h = m.Size()
+		c    = Point{0, h - 1}
+		b    strings.Builder
+	)
 	for y := h - 1; y >= 0; y-- {
 		c.X = 0
 		c.Y = y
+
 		for x := 0; x < w; x++ {
-			if m.HasPoint(Point{x, y}) {
-				for i := x - c.X; i > 0; i-- {
-					b.WriteRune(' ')
-				}
-
-				b.WriteRune('X')
-
-				c.X = x + 1
+			if !m.HasPoint(Point{x, y}) {
+				continue
 			}
+
+			for i := x - c.X; i > 0; i-- {
+				b.WriteRune(' ')
+			}
+
+			b.WriteRune('X')
+			c.X = x + 1
 		}
 
 		b.WriteRune('\n')
@@ -162,14 +142,16 @@ func (m Mino) HasPoint(p Point) bool {
 func (m Mino) minCoords() (int, int) {
 	minx := m[0].X
 	miny := m[0].Y
-	for i := 1; i < len(m); i++ {
-		if m[i].X < minx {
-			minx = m[i].X
+
+	for _, p := range m[1:] {
+		if p.X < minx {
+			minx = p.X
 		}
-		if m[i].Y < miny {
-			miny = m[i].Y
+		if p.Y < miny {
+			miny = p.Y
 		}
 	}
+
 	return minx, miny
 }
 
@@ -177,10 +159,9 @@ func (m Mino) Origin() Mino {
 	minx, miny := m.minCoords()
 
 	newMino := make(Mino, len(m))
-	copy(newMino, m)
-
-	for i := 0; i < len(m); i++ {
-		newMino[i] = Point{newMino[i].X - minx, newMino[i].Y - miny}
+	for i, p := range m {
+		newMino[i].X = p.X - minx
+		newMino[i].Y = p.Y - miny
 	}
 
 	return newMino
@@ -225,56 +206,61 @@ func (m Mino) Canonical() Mino {
 }
 
 func (m Mino) Flatten() Mino {
-	w, h := m.Size()
-
-	var top, right, bottom, left int
+	var (
+		w, h  = m.Size()
+		sides [4]int // Left Top Right Bottom
+	)
 	for i := 0; i < len(m); i++ {
 		if m[i].Y == 0 {
-			bottom++
+			sides[3]++
 		} else if m[i].Y == (h - 1) {
-			top++
+			sides[1]++
 		}
 
 		if m[i].X == 0 {
-			left++
+			sides[0]++
 		} else if m[i].X == (w - 1) {
-			right++
+			sides[2]++
 		}
 	}
 
-	flattest := bottom
+	var (
+		largestSide   = 3
+		largestLength = sides[3]
+	)
+	for i, s := range sides[:2] {
+		if s > largestLength {
+			largestSide = i
+			largestLength = s
+		}
+	}
+
 	var rotateFunc func(Point) Point
-	if left > flattest {
-		flattest = left
+	switch largestSide {
+	case 0: // Left
 		rotateFunc = Point.Rotate270
-	}
-	if top > flattest {
-		flattest = top
+	case 1: // Top
 		rotateFunc = Point.Rotate180
-	}
-	if right > flattest {
+	case 2: // Right
 		rotateFunc = Point.Rotate90
-	}
-	if rotateFunc != nil {
-		newMino := make(Mino, len(m))
-		copy(newMino, m)
-
-		for i := 0; i < len(m); i++ {
-			newMino[i] = rotateFunc(newMino[i])
-		}
-
-		return newMino
+	default: // Bottom
+		return m
 	}
 
-	return m
+	newMino := make(Mino, len(m))
+	copy(newMino, m)
+	for i := 0; i < len(m); i++ {
+		newMino[i] = rotateFunc(newMino[i])
+	}
+
+	return newMino
 }
 
 func (m Mino) newPoints() Mino {
 	var newMino Mino
 
 	for _, p := range m {
-		n := p.Neighborhood()
-		for _, np := range n {
+		for _, np := range p.Neighborhood() {
 			if !m.HasPoint(np) {
 				newMino = append(newMino, np)
 			}
@@ -285,14 +271,11 @@ func (m Mino) newPoints() Mino {
 }
 
 func (m Mino) newMinos() []Mino {
-	mino := make(Mino, len(m))
-	copy(mino, m)
-
 	points := m.newPoints()
-	minos := make([]Mino, len(points))
 
+	minos := make([]Mino, len(points))
 	for i, p := range points {
-		minos[i] = append(mino, p).Canonical()
+		minos[i] = append(m, p).Canonical()
 	}
 
 	return minos

@@ -31,17 +31,19 @@ builds:
     goarch:
       - 386
       - amd64
-archive:
-  replacements:
-    386: i386
-  format_overrides:
-    - goos: windows
-      format: zip
-  files:
-    - CHANGELOG.md
-    - CONFIGURATION.md
-    - GAMEPLAY.md
-    - LICENSE
-    - README.md
+archives:
+  -
+    id: netris
+    builds:
+      - netris
+      - netris-server
+    replacements:
+      386: i386
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - ./*.md
+      - LICENSE
 checksum:
   name_template: 'checksums.txt'

@@ -24,7 +24,7 @@ const (
 	LogVerbose
 )
 
-var Version string
+var Version = "0.0.0"
 
 type Game struct {
 	ID int

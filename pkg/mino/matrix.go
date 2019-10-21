@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	GarbageDelay  = 1500 * time.Millisecond
-	ComboBaseTime = 2.4 // Seconds
+	GarbageDelay  = 1500 * time.Millisecond // 1.5 seconds
+	ComboBaseTime = 2.4                     // Seconds
 )
 
 type MatrixType int
@@ -61,9 +61,6 @@ type Matrix struct {
 	sync.Mutex `json:"-"`
 }
 
-// Type alias used during marshalling
-type LockedMatrix *Matrix
-
 func I(x int, y int, w int) int {
 	return (y * w) + x
 }
@@ -89,12 +86,6 @@ func (m *Matrix) Unlock() {
 }
 */
 
-func (m *Matrix) MarshalJSON() ([]byte, error) {
-	m.Lock()
-	defer m.Unlock()
-
-	return json.Marshal(*LockedMatrix(m))
-}
 func (m *Matrix) HandleReceiveGarbage() {
 	t := time.NewTicker(500 * time.Millisecond)
 	for {
@@ -960,4 +951,14 @@ func (m *Matrix) AddTestBlocks() {
 			m.M[I(x, y, m.W)] = block
 		}
 	}
+}
+
+// Type alias used during marshalling
+type LockedMatrix *Matrix
+
+func (m *Matrix) MarshalJSON() ([]byte, error) {
+	m.Lock()
+	defer m.Unlock()
+
+	return json.Marshal(*LockedMatrix(m))
 }

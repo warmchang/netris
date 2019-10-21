@@ -44,6 +44,16 @@ See [GAMEPLAY.md](https://man.sr.ht/~tslocum/netris/GAMEPLAY.md)
 
 Please share suggestions/issues [here](https://todo.sr.ht/~tslocum/netris).
 
+## Libraries
+
+The following libraries are used to build netris:
+
+* [tcell](https://github.com/gdamore/tcell) - User interface
+* [tview](https://github.com/rivo/tview) - User interface
+* [ssh](github.com/gliderlabs/ssh) - SSH server
+* [pty](github.com/creack/pty) - Pseudo-terminal interface
+* [go-isatty](github.com/mattn/go-isatty) - Terminal detection
+
 ## Disclaimer
 
 Tetris is a registered trademark of the Tetris Holding, LLC.

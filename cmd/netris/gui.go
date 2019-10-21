@@ -219,11 +219,15 @@ func initGUI(skipTitle bool) (*tview.Application, error) {
 	buttonC = tview.NewButton("C")
 	buttonLabelC = tview.NewTextView().SetTextAlign(tview.AlignCenter)
 
+	titleNameGrid := tview.NewGrid().SetRows(5).
+		AddItem(titleName, 0, 0, 1, 1, 0, 0, false).
+		AddItem(tview.NewTextView().SetText(SubTitle+game.Version), 1, 0, 1, 1, 0, 0, false)
+
 	titleGrid = tview.NewGrid().
 		SetRows(7, 3, 3, 3, 3, 3, 2).
 		SetColumns(-1, 38, -1).
 		AddItem(titleL, 0, 0, 7, 1, 0, 0, false).
-		AddItem(titleName, 0, 1, 1, 1, 0, 0, false).
+		AddItem(titleNameGrid, 0, 1, 1, 1, 0, 0, false).
 		AddItem(titleR, 0, 2, 7, 1, 0, 0, false).
 		AddItem(buttonA, 1, 1, 1, 1, 0, 0, false).
 		AddItem(buttonLabelA, 2, 1, 1, 1, 0, 0, false).
@@ -243,7 +247,7 @@ func initGUI(skipTitle bool) (*tview.Application, error) {
 		SetRows(7, 2, -1, 1).
 		SetColumns(-1, 38, -1).
 		AddItem(titleL, 0, 0, 3, 1, 0, 0, false).
-		AddItem(titleName, 0, 1, 1, 1, 0, 0, false).
+		AddItem(titleNameGrid, 0, 1, 1, 1, 0, 0, false).
 		AddItem(titleR, 0, 2, 3, 1, 0, 0, false).
 		AddItem(playerSettingsTitle, 1, 1, 1, 1, 0, 0, true).
 		AddItem(playerSettingsForm, 2, 1, 1, 1, 0, 0, true).
@@ -302,7 +306,7 @@ func initGUI(skipTitle bool) (*tview.Application, error) {
 		SetRows(7, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1).
 		SetColumns(-1, 38, -1).
 		AddItem(titleL, 0, 0, 16, 1, 0, 0, false).
-		AddItem(titleName, 0, 1, 1, 1, 0, 0, false).
+		AddItem(titleNameGrid, 0, 1, 1, 1, 0, 0, false).
 		AddItem(titleR, 0, 2, 16, 1, 0, 0, false).
 		AddItem(gameSettingsTitle, 1, 1, 1, 1, 0, 0, false).
 		AddItem(rotateCCWGrid, 2, 1, 1, 1, 0, 0, false).

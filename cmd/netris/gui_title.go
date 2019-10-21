@@ -11,6 +11,10 @@ import (
 	"github.com/tslocum/tview"
 )
 
+const (
+	SubTitle = "   .rocketnine.space         v"
+)
+
 var (
 	titleVisible               bool
 	titleScreen                int
@@ -290,7 +294,6 @@ func newTitleMatrixName() *mino.Matrix {
 
 	m := mino.NewMatrix(36, 7, 0, 1, ev, draw, mino.MatrixCustom)
 
-	baseStart := 1
 	centerStart := (m.W / 2) - 17
 
 	var titleBlocks = []struct {
@@ -371,7 +374,7 @@ func newTitleMatrixName() *mino.Matrix {
 	}
 
 	for _, titleBlock := range titleBlocks {
-		if !m.SetBlock(centerStart+titleBlock.X, baseStart+titleBlock.Y, titleBlock.Block, false) {
+		if !m.SetBlock(centerStart+titleBlock.X, titleBlock.Y, titleBlock.Block, false) {
 			log.Fatalf("failed to set title block %s", titleBlock.Point)
 		}
 	}

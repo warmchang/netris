@@ -1,5 +1,9 @@
 package event
 
+const (
+	LogFormat = "2006-01-02 15:04:05"
+)
+
 type Event struct {
 	Player  int
 	Message string

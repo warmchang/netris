@@ -46,10 +46,6 @@ var (
 	showLogLines         = 7
 )
 
-const (
-	LogTimeFormat = "3:04:05"
-)
-
 func init() {
 	log.SetFlags(0)
 }
@@ -185,7 +181,6 @@ func main() {
 
 			if connectNetwork != "unix" {
 				logMessage(fmt.Sprintf("* Connecting to %s...", connectAddress))
-				draw <- event.DrawMessages
 			}
 
 			s := game.Connect(connectAddress)

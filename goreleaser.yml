@@ -7,8 +7,8 @@ builds:
     main: ./cmd/netris
     env:
       - CGO_ENABLED=0
-#    ldflags:
-#      - -s -w -X git.sr.ht/~tslocum/netris/pkg/netris.Version={{.Version}}
+    ldflags:
+      - -s -w -X git.sr.ht/~tslocum/netris/pkg/game.Version={{.Version}}
     goos:
       - darwin
       - freebsd
@@ -21,8 +21,8 @@ builds:
     id: netris-server
     binary: netris-server
     main: ./cmd/netris-server
-#    ldflags:
-#      - -s -w -X git.sr.ht/~tslocum/netris/pkg/netris.Version={{.Version}}
+    ldflags:
+      - -s -w -X git.sr.ht/~tslocum/netris/pkg/game.Version={{.Version}}
     goos:
       - darwin
       - freebsd
@@ -38,7 +38,9 @@ archive:
     - goos: windows
       format: zip
   files:
+    - CHANGELOG.md
     - CONFIGURATION.md
+    - GAMEPLAY.md
     - LICENSE
     - README.md
 checksum:

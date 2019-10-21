@@ -11,25 +11,32 @@ import (
 	"git.sr.ht/~tslocum/netris/pkg/event"
 )
 
+const (
+	DefaultPort   = 1984
+	DefaultServer = "netris.rocketnine.space"
+)
+
 type Server struct {
 	I []ServerInterface
 
 	In  chan GameCommandInterface
 	Out chan GameCommandInterface
 
-	NewPlayers chan *IncomingPlayer
-
 	Games map[int]*Game
 
 	Logger chan string
 
-	listeners []net.Listener
+	listeners  []net.Listener
+	NewPlayers chan *IncomingPlayer
+
+	created time.Time
+
 	sync.RWMutex
 }
 
 type IncomingPlayer struct {
 	Name string
-	Conn *ServerConn
+	Conn *Conn
 }
 
 type ServerInterface interface {
@@ -42,12 +49,12 @@ func NewServer(si []ServerInterface) *Server {
 	in := make(chan GameCommandInterface, CommandQueueSize)
 	out := make(chan GameCommandInterface, CommandQueueSize)
 
-	s := &Server{I: si, In: in, Out: out, Games: make(map[int]*Game)}
+	s := &Server{I: si, In: in, Out: out, Games: make(map[int]*Game), created: time.Now()}
 
 	s.NewPlayers = make(chan *IncomingPlayer, CommandQueueSize)
 
 	go s.accept()
-
+	go s.handle()
 	for _, serverInterface := range si {
 		serverInterface.Host(s.NewPlayers)
 	}
@@ -83,9 +90,32 @@ func (s *Server) NewGame() (*Game, error) {
 		return nil, err
 	}
 
+	g.ID = gameID
+
 	s.Games[gameID] = g
 
 	return g, nil
+}
+
+func (s *Server) handle() {
+	for {
+		time.Sleep(1 * time.Minute)
+
+		s.Lock()
+		s.removeTerminatedGames()
+		s.Unlock()
+	}
+}
+
+func (s *Server) removeTerminatedGames() {
+	for gameID, g := range s.Games {
+		if g != nil && !g.Terminated {
+			continue
+		}
+
+		delete(s.Games, gameID)
+		g = nil
+	}
 }
 
 func (s *Server) FindGame(p *Player, gameID int) *Game {
@@ -97,26 +127,24 @@ func (s *Server) FindGame(p *Player, gameID int) *Game {
 		err error
 	)
 
-	if gm, ok := s.Games[gameID]; ok {
-		g = gm
+	// Join a game by its ID
+	if gameID > 0 {
+		if gm, ok := s.Games[gameID]; ok && !gm.Terminated {
+			g = gm
+		}
 	}
 
+	// Join any game
 	if g == nil {
-		for gameID, g = range s.Games {
-			if g != nil {
-				if g.Terminated {
-					delete(s.Games, gameID)
-					g = nil
-
-					s.Log("Cleaned up game ", gameID)
-					continue
-				}
-
+		for _, gm := range s.Games {
+			if gm != nil && !gm.Terminated {
+				g = gm
 				break
 			}
 		}
 	}
 
+	// Create a new game
 	if g == nil {
 		g, err = s.NewGame()
 		if err != nil {
@@ -165,7 +193,7 @@ func (s *Server) handleJoinGame(pl *Player) {
 
 				g := s.FindGame(pl, p.GameID)
 
-				s.Logf("Adding %s to game %d", pl.Name, p.GameID)
+				s.Logf("Adding %s to game %d", pl.Name, g.ID)
 
 				go s.handleGameCommands(pl, g)
 				return
@@ -227,8 +255,17 @@ func (s *Server) handleGameCommands(pl *Player, g *Game) {
 			}
 		case CommandUpdateMatrix:
 			if p, ok := e.(*GameCommandUpdateMatrix); ok {
-				for _, m := range p.Matrixes {
-					g.Players[p.SourcePlayer].Matrix.Replace(m)
+				if pl, ok := g.Players[p.SourcePlayer]; ok {
+					for _, m := range p.Matrixes {
+						pl.Matrix.Replace(m)
+					}
+
+					m := pl.Matrix
+					spawn := m.SpawnLocation(m.P)
+					if m.P != nil && spawn.X >= 0 && spawn.Y >= 0 && m.P.X != spawn.X {
+						pl.Moved = time.Now()
+						pl.Idle = 0
+					}
 				}
 			}
 		case CommandGameOver:
@@ -259,6 +296,18 @@ func (s *Server) handleGameCommands(pl *Player, g *Game) {
 
 					g.Players[p.SourcePlayer].totalGarbageSent += p.Lines
 				}
+			}
+		case CommandStats:
+			if p, ok := e.(*GameCommandStats); ok {
+				players := 0
+				games := 0
+
+				for _, g := range s.Games {
+					players += len(g.Players)
+					games++
+				}
+
+				g.Players[p.SourcePlayer].Write(&GameCommandStats{Created: s.created, Players: players, Games: games})
 			}
 		}
 

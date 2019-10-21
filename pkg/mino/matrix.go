@@ -122,12 +122,12 @@ func (m *Matrix) takePiece() bool {
 
 	p := NewPiece(m.Bag.Take(), Point{0, 0})
 
-	pieceStart := m.pieceStart(p)
-	if pieceStart.X < 0 || pieceStart.Y < 0 {
+	spawn := m.SpawnLocation(p)
+	if spawn.X < 0 || spawn.Y < 0 {
 		return false
 	}
 
-	p.Point = pieceStart
+	p.Point = spawn
 
 	m.P = p
 
@@ -583,7 +583,11 @@ func (m *Matrix) RotatePiece(rotations int, direction int) bool {
 	return false
 }
 
-func (m *Matrix) pieceStart(p *Piece) Point {
+func (m *Matrix) SpawnLocation(p *Piece) Point {
+	if p == nil {
+		return Point{-1, -1}
+	}
+
 	w, _ := p.Size()
 	x := (m.W / 2) - (w / 2)
 
@@ -886,6 +890,10 @@ func (m *Matrix) HardDropPiece() {
 func (m *Matrix) Replace(newmtx *Matrix) {
 	m.Lock()
 	defer m.Unlock()
+
+	if m.GameOver && !newmtx.GameOver {
+		return
+	}
 
 	m.M = newmtx.M
 	m.P = newmtx.P

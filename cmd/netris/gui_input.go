@@ -7,10 +7,10 @@ import (
 	"runtime/pprof"
 	"strings"
 
-	"github.com/tslocum/tview"
-
 	"git.sr.ht/~tslocum/netris/pkg/event"
+	"git.sr.ht/~tslocum/netris/pkg/game"
 	"github.com/gdamore/tcell"
+	"github.com/tslocum/tview"
 )
 
 type Keybinding struct {
@@ -57,7 +57,7 @@ func scrollMessages(direction int) {
 	}
 	recent.ScrollTo(r, 0)
 
-	draw <- event.DrawMessages
+	draw <- event.DrawAll
 }
 
 func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
@@ -298,9 +298,20 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 
 						logMessage("Stopped profiling CPU usage")
 					}
+				} else if strings.HasPrefix(msg, "/version") {
+					v := game.Version
+					if v == "" {
+						v = "unknown"
+					}
+
+					logMessage(fmt.Sprintf("netris version %s", v))
 				} else if strings.HasPrefix(msg, "/ping") {
 					if activeGame != nil {
 						activeGame.ProcessAction(event.ActionPing)
+					}
+				} else if strings.HasPrefix(msg, "/stats") {
+					if activeGame != nil {
+						activeGame.ProcessAction(event.ActionStats)
 					}
 				} else {
 					if activeGame != nil {

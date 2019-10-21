@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"git.sr.ht/~tslocum/netris/pkg/event"
 	"git.sr.ht/~tslocum/netris/pkg/game"
 	"git.sr.ht/~tslocum/netris/pkg/game/ssh"
 )
@@ -25,10 +26,6 @@ var (
 	logVerbose bool
 
 	done = make(chan bool)
-)
-
-const (
-	LogTimeFormat = "2006-01-02 15:04:05"
 )
 
 func init() {
@@ -68,7 +65,7 @@ func main() {
 	logger := make(chan string, game.LogQueueSize)
 	go func() {
 		for msg := range logger {
-			log.Println(time.Now().Format(LogTimeFormat) + " " + msg)
+			log.Println(time.Now().Format(event.LogFormat) + " " + msg)
 		}
 	}()
 

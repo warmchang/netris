@@ -12,7 +12,11 @@ import (
 	"git.sr.ht/~tslocum/netris/pkg/mino"
 )
 
-const UpdateDuration = 850 * time.Millisecond
+const (
+	UpdateDuration = 850 * time.Millisecond
+	IdleStart      = 5 * time.Second
+	IdleTimeout    = 1 * time.Minute
+)
 
 const (
 	LogStandard = iota
@@ -20,36 +24,34 @@ const (
 	LogVerbose
 )
 
-const (
-	DefaultPort   = 1984
-	DefaultServer = "netris.rocketnine.space"
-)
+var Version string
 
 type Game struct {
-	Rank     int
-	Minos    []mino.Mino
-	Seed     int64
-	Players  map[int]*Player
-	FallTime time.Duration
+	ID int
 
-	Event chan interface{}
-
-	out func(GameCommandInterface)
-
-	Started            bool
 	Starting           bool
-	GameOver           bool
-	SentGameOverMatrix bool
+	Started            bool
+	TimeStarted        time.Time
+	gameOver           bool
+	sentGameOverMatrix bool
 	Terminated         bool
 
+	Local       bool
 	LocalPlayer int
-	NextPlayer  int
+	nextPlayer  int
+	Players     map[int]*Player
+
+	Event chan interface{}
+	out   func(GameCommandInterface)
 
 	draw     chan event.DrawObject
 	logger   chan string
 	LogLevel int
 
-	Local bool
+	Rank     int
+	Minos    []mino.Mino
+	Seed     int64
+	FallTime time.Duration
 
 	sentPing time.Time
 	*sync.Mutex
@@ -77,8 +79,8 @@ func NewGame(rank int, out func(GameCommandInterface), logger chan string, draw 
 	g := &Game{
 		Rank:       rank,
 		Minos:      minos,
+		nextPlayer: 1,
 		Players:    make(map[int]*Player),
-		NextPlayer: 1,
 		Event:      make(chan interface{}, CommandQueueSize),
 		draw:       draw,
 		logger:     logger,
@@ -104,7 +106,6 @@ func (g *Game) Log(level int, a ...interface{}) {
 	}
 
 	g.logger <- fmt.Sprint(a...)
-	g.draw <- event.DrawMessages
 }
 
 func (g *Game) Logf(level int, format string, a ...interface{}) {
@@ -124,9 +125,12 @@ func (g *Game) AddPlayer(p *Player) {
 
 func (g *Game) AddPlayerL(p *Player) {
 	if p.Player == PlayerUnknown {
-		p.Player = g.NextPlayer
+		if g.LocalPlayer != PlayerHost {
+			return
+		}
 
-		g.NextPlayer++
+		p.Player = g.nextPlayer
+		g.nextPlayer++
 	}
 
 	g.Players[p.Player] = p
@@ -171,11 +175,14 @@ func (g *Game) RemovePlayer(playerID int) {
 func (g *Game) RemovePlayerL(playerID int) {
 	if playerID < 0 {
 		return
-	} else if _, ok := g.Players[playerID]; !ok {
+	}
+
+	p, ok := g.Players[playerID]
+	if !ok || p == nil {
 		return
 	}
 
-	playerName := g.Players[playerID].Name
+	playerName := p.Name
 
 	delete(g.Players, playerID)
 
@@ -230,11 +237,12 @@ func (g *Game) Start(seed int64) int64 {
 func (g *Game) StartL(seed int64) int64 {
 	restarting := g.Seed != 0
 
-	if g.GameOver || g.Started {
+	if g.gameOver || g.Started {
 		return g.Seed
 	}
 
 	g.Started = true
+	g.TimeStarted = time.Now()
 
 	if g.LocalPlayer == PlayerUnknown {
 		panic("Player unknown")
@@ -303,8 +311,9 @@ func (g *Game) ResetL() {
 
 	g.Starting = false
 	g.Started = false
-	g.GameOver = false
-	g.SentGameOverMatrix = false
+	g.TimeStarted = time.Time{}
+	g.setGameOverL(false)
+	g.sentGameOverMatrix = false
 
 	for _, p := range g.Players {
 		p.totalGarbageSent = 0
@@ -328,11 +337,11 @@ func (g *Game) StopL() {
 		return
 	}
 
+	g.Terminated = true
+
 	for playerID := range g.Players {
 		g.RemovePlayerL(playerID)
 	}
-
-	g.Terminated = true
 }
 
 func (g *Game) handleSendMatrix() {
@@ -346,7 +355,7 @@ func (g *Game) handleSendMatrix() {
 
 		g.Lock()
 
-		if !g.Started || (g.SentGameOverMatrix && m.GameOver) {
+		if !g.Started || (g.sentGameOverMatrix && m.GameOver) {
 			g.Unlock()
 			continue
 		}
@@ -356,7 +365,7 @@ func (g *Game) handleSendMatrix() {
 		g.out(&GameCommandUpdateMatrix{Matrixes: matrixes})
 
 		if m.GameOver {
-			g.SentGameOverMatrix = true
+			g.sentGameOverMatrix = true
 		}
 
 		g.Unlock()
@@ -379,20 +388,35 @@ func (g *Game) handleDistributeMatrixes() {
 		remainingPlayer := -1
 		remainingPlayers := 0
 
-		for playerID := range g.Players {
-			if g.Players[playerID].Terminated {
+		for playerID, p := range g.Players {
+			if p.Terminated {
 				g.RemovePlayerL(playerID)
 				continue
 			}
 
-			if !g.GameOver && !g.Players[playerID].Matrix.GameOver {
+			if !g.gameOver && !p.Matrix.GameOver && !g.Local && time.Since(p.Moved) >= IdleStart && time.Since(g.TimeStarted) >= IdleStart {
+				p.Idle += UpdateDuration
+				if p.Idle >= IdleTimeout {
+					// Disconnect idle player
+					p.Write(&GameCommandDisconnect{Player: playerID, Message: "Idling is not allowed"})
+					g.RemovePlayerL(playerID)
+
+					p := p
+					go func(p *Player) {
+						time.Sleep(time.Second)
+						p.Close()
+					}(p)
+				}
+			}
+
+			if !g.gameOver && !p.Matrix.GameOver {
 				remainingPlayer = playerID
 				remainingPlayers++
 			}
 		}
 
-		if !g.GameOver && !g.Local && remainingPlayers <= 1 {
-			g.GameOver = true
+		if !g.gameOver && !g.Local && remainingPlayers <= 1 {
+			g.setGameOverL(true)
 
 			winner := "Tie!"
 			if remainingPlayer != -1 {
@@ -464,12 +488,24 @@ func (g *Game) HandleReadCommands(in chan GameCommandInterface) {
 		g.Log(logLevel, "LOCAL handle ", e.Command(), " from ", e.Source(), " ", e)
 
 		switch e.Command() {
+		case CommandDisconnect:
+			if p, ok := e.(*GameCommandDisconnect); ok {
+				if p.Player == g.LocalPlayer {
+					if p.Message != "" {
+						g.Logf(LogStandard, "* Disconnected - Reason: %s", p.Message)
+					} else {
+						g.Logf(LogStandard, "* Disconnected")
+					}
+
+					g.setGameOverL(true)
+				}
+			}
 		case CommandPong:
 			if p, ok := e.(*GameCommandPong); ok {
 				if len(p.Message) > 1 && p.Message[0] == 'm' {
 					if i, err := strconv.ParseInt(p.Message[1:], 10, 64); err == nil {
 						if i == g.sentPing.UnixNano() {
-							g.Logf(LogStandard, "Server latency is %dms", time.Since(g.sentPing).Milliseconds())
+							g.Logf(LogStandard, "* Server latency is %dms", time.Since(g.sentPing).Milliseconds())
 
 							g.sentPing = time.Time{}
 						}
@@ -547,24 +583,39 @@ func (g *Game) HandleReadCommands(in chan GameCommandInterface) {
 		case CommandGameOver:
 			if p, ok := e.(*GameCommandGameOver); ok {
 				if p.Winner != "" {
-					g.GameOver = true
-
-					for _, p := range g.Players {
-						p.Matrix.SetGameOver()
-					}
-
-					g.draw <- event.DrawAll
+					g.setGameOverL(true)
 				} else {
 					g.Players[p.Player].Matrix.SetGameOver()
 
 					g.draw <- event.DrawMultiplayerMatrixes
 				}
 			}
+		case CommandStats:
+			if p, ok := e.(*GameCommandStats); ok {
+				g.Logf(LogStandard, "* %d players in %d games - uptime: %s", p.Players, p.Games, time.Since(p.Created.Local()).Truncate(time.Minute))
+
+			}
 		default:
 			g.Log(LogStandard, "unknown handle read command", e.Command(), e)
 		}
 
 		g.Unlock()
+	}
+}
+
+func (g *Game) setGameOverL(gameOver bool) {
+	if g.gameOver == gameOver {
+		return
+	}
+
+	g.gameOver = gameOver
+
+	if g.gameOver {
+		for _, p := range g.Players {
+			p.Matrix.SetGameOver()
+		}
+
+		g.draw <- event.DrawAll
 	}
 }
 
@@ -703,6 +754,8 @@ func (g *Game) ProcessAction(a event.GameAction) {
 		case event.ActionPing:
 			g.sentPing = time.Now()
 			g.out(&GameCommandPing{Message: fmt.Sprintf("m%d", g.sentPing.UnixNano())})
+		case event.ActionStats:
+			g.out(&GameCommandStats{})
 		}
 	}
 }

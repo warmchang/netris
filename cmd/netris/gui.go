@@ -449,6 +449,10 @@ func drawAll() {
 	renderMultiplayerMatrix()
 }
 
+func drawMessages() {
+	recent.ScrollToEnd()
+}
+
 func drawPlayerMatrix() {
 	renderPlayerMatrix()
 	renderPreviewMatrix()
@@ -462,6 +466,8 @@ func handleDraw() {
 	var o event.DrawObject
 	for o = range draw {
 		switch o {
+		case event.DrawMessages:
+			app.QueueUpdateDraw(drawMessages)
 		case event.DrawPlayerMatrix:
 			app.QueueUpdateDraw(drawPlayerMatrix)
 		case event.DrawMultiplayerMatrixes:
@@ -827,13 +833,9 @@ func logMessage(message string) {
 		prefix = "\n"
 	}
 
-	recent.Write([]byte(prefix + time.Now().Format(LogTimeFormat) + " " + message))
+	recent.Write([]byte(prefix + time.Now().Format(event.LogFormat) + " " + message))
 
-	if prefix == "" {
-		// Fix for small windows not auto-scrolling
-
-		recent.ScrollToEnd()
-	}
+	draw <- event.DrawMessages
 
 	logMutex.Unlock()
 }

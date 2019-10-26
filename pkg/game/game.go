@@ -3,7 +3,9 @@ package game
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,20 +28,26 @@ const (
 
 var Version = "0.0.0"
 
+var gameNameRegexp = regexp.MustCompile(`[^a-zA-Z0-9_\-!@#$%^&*+=,./?()\[\]{};:<>'" ]+`)
+
 type Game struct {
-	ID int
+	ID   int
+	Name string
 
 	Starting           bool
 	Started            bool
 	TimeStarted        time.Time
 	gameOver           bool
 	sentGameOverMatrix bool
-	Terminated         bool
+
+	Eternal    bool
+	Terminated bool
 
 	Local       bool
 	LocalPlayer int
 	nextPlayer  int
 	Players     map[int]*Player
+	MaxPlayers  int
 
 	Event chan interface{}
 	out   func(GameCommandInterface)
@@ -48,10 +56,12 @@ type Game struct {
 	logger   chan string
 	LogLevel int
 
-	Rank     int
-	Minos    []mino.Mino
-	Seed     int64
-	FallTime time.Duration
+	Rank  int
+	Minos []mino.Mino
+	Seed  int64
+
+	FallTime   time.Duration
+	SpeedLimit int
 
 	sentPing time.Time
 	*sync.Mutex
@@ -77,6 +87,7 @@ func NewGame(rank int, out func(GameCommandInterface), logger chan string, draw 
 	}
 
 	g := &Game{
+		Name:       "netris",
 		Rank:       rank,
 		Minos:      minos,
 		nextPlayer: 1,
@@ -96,6 +107,8 @@ func NewGame(rank int, out func(GameCommandInterface), logger chan string, draw 
 	}
 
 	g.FallTime = 850 * time.Millisecond
+
+	go g.handleDropTerminatedPlayers()
 
 	return g, nil
 }
@@ -333,7 +346,7 @@ func (g *Game) ResetL() {
 }
 
 func (g *Game) StopL() {
-	if g.Terminated {
+	if g.Terminated || g.Eternal {
 		return
 	}
 
@@ -389,11 +402,6 @@ func (g *Game) handleDistributeMatrixes() {
 		remainingPlayers := 0
 
 		for playerID, p := range g.Players {
-			if p.Terminated {
-				g.RemovePlayerL(playerID)
-				continue
-			}
-
 			if !g.gameOver && !p.Matrix.GameOver && !g.Local && time.Since(p.Moved) >= IdleStart && time.Since(g.TimeStarted) >= IdleStart {
 				p.Idle += UpdateDuration
 				if p.Idle >= IdleTimeout {
@@ -758,4 +766,31 @@ func (g *Game) ProcessAction(a event.GameAction) {
 			g.out(&GameCommandStats{})
 		}
 	}
+}
+
+func (g *Game) handleDropTerminatedPlayers() {
+	for {
+		time.Sleep(15 * time.Second)
+
+		if g.Terminated {
+			return
+		}
+
+		for playerID, p := range g.Players {
+			if p.Terminated {
+				g.RemovePlayerL(playerID)
+			}
+		}
+	}
+}
+
+func GameName(name string) string {
+	name = gameNameRegexp.ReplaceAllString(strings.TrimSpace(name), "")
+	if len(name) > 28 {
+		name = name[:28]
+	} else if name == "" {
+		name = "netris"
+	}
+
+	return name
 }

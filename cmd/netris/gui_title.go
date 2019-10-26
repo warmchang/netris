@@ -1,11 +1,11 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"math/rand"
+	"strconv"
 	"time"
 
-	"git.sr.ht/~tslocum/netris/pkg/event"
 	"git.sr.ht/~tslocum/netris/pkg/game"
 	"git.sr.ht/~tslocum/netris/pkg/mino"
 	"github.com/tslocum/tview"
@@ -25,9 +25,23 @@ var (
 	titleGrid          *tview.Grid
 	titleContainerGrid *tview.Grid
 
+	gameListSelected int
+
+	newGameGrid            *tview.Grid
+	newGameNameInput       *tview.InputField
+	newGameMaxPlayersInput *tview.InputField
+	newGameSpeedLimitInput *tview.InputField
+
 	playerSettingsForm          *tview.Form
 	playerSettingsGrid          *tview.Grid
 	playerSettingsContainerGrid *tview.Grid
+
+	gameList              []*game.ListedGame
+	gameListHeader        *tview.TextView
+	gameListView          *tview.TextView
+	gameListGrid          *tview.Grid
+	gameListContainerGrid *tview.Grid
+	newGameContainerGrid  *tview.Grid
 
 	gameSettingsGrid          *tview.Grid
 	gameSettingsContainerGrid *tview.Grid
@@ -61,7 +75,13 @@ func previousTitleButton() {
 }
 
 func nextTitleButton() {
-	if titleSelectedButton == 2 {
+	maxButton := 2
+	if titleScreen == 4 {
+		maxButton = 3
+	} else if titleScreen == 5 {
+		maxButton = 4
+	}
+	if titleSelectedButton >= maxButton {
 		return
 	}
 
@@ -122,6 +142,12 @@ func updateTitle() {
 
 		buttonC.SetLabel("Return")
 		buttonLabelC.SetText("\nReturn to the last screen")
+	} else if titleScreen == 4 {
+		buttonA.SetLabel("New Game")
+
+		buttonB.SetLabel("Join by IP")
+
+		buttonC.SetLabel("Return")
 	} else {
 		if joinedGame {
 			buttonA.SetLabel("Resume")
@@ -144,7 +170,35 @@ func updateTitle() {
 		}
 	}
 
-	if titleScreen > 1 {
+	if titleScreen == 4 {
+		switch titleSelectedButton {
+		case 2:
+			app.SetFocus(buttonB)
+		case 3:
+			app.SetFocus(buttonC)
+		case 1:
+			app.SetFocus(buttonA)
+		default:
+			app.SetFocus(nil)
+		}
+
+		return
+	} else if titleScreen == 5 {
+		switch titleSelectedButton {
+		case 1:
+			app.SetFocus(newGameMaxPlayersInput)
+		case 2:
+			app.SetFocus(newGameSpeedLimitInput)
+		case 3:
+			app.SetFocus(buttonCancel)
+		case 4:
+			app.SetFocus(buttonStart)
+		default:
+			app.SetFocus(newGameNameInput)
+		}
+
+		return
+	} else if titleScreen > 1 {
 		return
 	}
 
@@ -261,123 +315,129 @@ func renderTitle() {
 	renderLock.Unlock()
 }
 
-func newTitleMatrixSide() *mino.Matrix {
-	ev := make(chan interface{})
-	go func() {
-		for range ev {
+func renderGameList() {
+	w := 36
+
+	gameListView.Clear()
+	gameListView.Write(renderULCorner)
+	for i := 0; i < w; i++ {
+		gameListView.Write(renderHLine)
+	}
+	gameListView.Write(renderURCorner)
+	gameListView.Write([]byte("\n"))
+
+	gameListView.Write(renderVLine)
+	gameListView.Write([]byte(fmt.Sprintf("%-29s%s", "Game", "Players")))
+	gameListView.Write(renderVLine)
+	gameListView.Write([]byte("\n"))
+
+	gameListView.Write(renderLTee)
+	for i := 0; i < w; i++ {
+		gameListView.Write(renderHLine)
+	}
+	gameListView.Write(renderRTee)
+	gameListView.Write([]byte("\n"))
+
+	h := 8
+
+	for i, g := range gameList {
+		p := strconv.Itoa(g.Players)
+		if g.MaxPlayers > 0 {
+			p += "/" + strconv.Itoa(g.MaxPlayers)
 		}
-	}()
 
-	draw := make(chan event.DrawObject)
-	go func() {
-		for range draw {
+		gameListView.Write(renderVLine)
+		if titleSelectedButton == 0 && gameListSelected == i {
+			gameListView.Write([]byte("[#000000:#FFFFFF]"))
 		}
-	}()
+		gameListView.Write([]byte(fmt.Sprintf("%-29s%7s", g.Name, p)))
+		if titleSelectedButton == 0 && gameListSelected == i {
+			gameListView.Write([]byte("[-:-]"))
+		}
+		gameListView.Write(renderVLine)
+		gameListView.Write([]byte("\n"))
 
-	m := mino.NewMatrix(21, 24, 0, 1, ev, draw, mino.MatrixCustom)
+		h--
+	}
 
-	return m
+	if h > 0 {
+		for i := 0; i < h; i++ {
+			gameListView.Write(renderVLine)
+			for i := 0; i < w; i++ {
+				gameListView.Write([]byte(" "))
+			}
+			gameListView.Write(renderVLine)
+		}
+	}
+
+	gameListView.Write(renderLLCorner)
+	for i := 0; i < w; i++ {
+		gameListView.Write(renderHLine)
+	}
+	gameListView.Write(renderLRCorner)
 }
 
-func newTitleMatrixName() *mino.Matrix {
-	ev := make(chan interface{})
+func refreshGameList() {
+	app.QueueUpdateDraw(func() {
+		gameListHeader.SetText("Finding games...")
+	})
+
 	go func() {
-		for range ev {
-		}
+		ok := fetchGameList()
+		app.QueueUpdateDraw(func() {
+			if !ok {
+				gameListHeader.SetText("Failed to connect to game server")
+				return
+			}
+
+			var plural string
+			if len(gameList) != 1 {
+				plural = "s"
+			}
+
+			gameListHeader.SetText(fmt.Sprintf("Found %d game%s", len(gameList), plural))
+		})
 	}()
+}
 
-	draw := make(chan event.DrawObject)
-	go func() {
-		for range draw {
-		}
-	}()
-
-	m := mino.NewMatrix(36, 7, 0, 1, ev, draw, mino.MatrixCustom)
-
-	centerStart := (m.W / 2) - 17
-
-	var titleBlocks = []struct {
-		mino.Point
-		mino.Block
-	}{
-		// N
-		{mino.Point{0, 0}, mino.BlockSolidRed},
-		{mino.Point{0, 1}, mino.BlockSolidRed},
-		{mino.Point{0, 2}, mino.BlockSolidRed},
-		{mino.Point{0, 3}, mino.BlockSolidRed},
-		{mino.Point{0, 4}, mino.BlockSolidRed},
-		{mino.Point{1, 3}, mino.BlockSolidRed},
-		{mino.Point{2, 2}, mino.BlockSolidRed},
-		{mino.Point{3, 1}, mino.BlockSolidRed},
-		{mino.Point{4, 0}, mino.BlockSolidRed},
-		{mino.Point{4, 1}, mino.BlockSolidRed},
-		{mino.Point{4, 2}, mino.BlockSolidRed},
-		{mino.Point{4, 3}, mino.BlockSolidRed},
-		{mino.Point{4, 4}, mino.BlockSolidRed},
-
-		// E
-		{mino.Point{7, 0}, mino.BlockSolidYellow},
-		{mino.Point{7, 1}, mino.BlockSolidYellow},
-		{mino.Point{7, 2}, mino.BlockSolidYellow},
-		{mino.Point{7, 3}, mino.BlockSolidYellow},
-		{mino.Point{7, 4}, mino.BlockSolidYellow},
-		{mino.Point{8, 0}, mino.BlockSolidYellow},
-		{mino.Point{9, 0}, mino.BlockSolidYellow},
-		{mino.Point{8, 2}, mino.BlockSolidYellow},
-		{mino.Point{9, 2}, mino.BlockSolidYellow},
-		{mino.Point{8, 4}, mino.BlockSolidYellow},
-		{mino.Point{9, 4}, mino.BlockSolidYellow},
-
-		// T
-		{mino.Point{12, 4}, mino.BlockSolidGreen},
-		{mino.Point{13, 4}, mino.BlockSolidGreen},
-		{mino.Point{14, 0}, mino.BlockSolidGreen},
-		{mino.Point{14, 1}, mino.BlockSolidGreen},
-		{mino.Point{14, 2}, mino.BlockSolidGreen},
-		{mino.Point{14, 3}, mino.BlockSolidGreen},
-		{mino.Point{14, 4}, mino.BlockSolidGreen},
-		{mino.Point{15, 4}, mino.BlockSolidGreen},
-		{mino.Point{16, 4}, mino.BlockSolidGreen},
-
-		// R
-		{mino.Point{19, 0}, mino.BlockSolidCyan},
-		{mino.Point{19, 1}, mino.BlockSolidCyan},
-		{mino.Point{19, 2}, mino.BlockSolidCyan},
-		{mino.Point{19, 3}, mino.BlockSolidCyan},
-		{mino.Point{19, 4}, mino.BlockSolidCyan},
-		{mino.Point{20, 2}, mino.BlockSolidCyan},
-		{mino.Point{20, 4}, mino.BlockSolidCyan},
-		{mino.Point{21, 2}, mino.BlockSolidCyan},
-		{mino.Point{21, 4}, mino.BlockSolidCyan},
-		{mino.Point{22, 0}, mino.BlockSolidCyan},
-		{mino.Point{22, 1}, mino.BlockSolidCyan},
-		{mino.Point{22, 3}, mino.BlockSolidCyan},
-
-		// I
-		{mino.Point{25, 0}, mino.BlockSolidBlue},
-		{mino.Point{25, 1}, mino.BlockSolidBlue},
-		{mino.Point{25, 2}, mino.BlockSolidBlue},
-		{mino.Point{25, 3}, mino.BlockSolidBlue},
-		{mino.Point{25, 4}, mino.BlockSolidBlue},
-
-		// S
-		{mino.Point{28, 0}, mino.BlockSolidMagenta},
-		{mino.Point{29, 0}, mino.BlockSolidMagenta},
-		{mino.Point{30, 0}, mino.BlockSolidMagenta},
-		{mino.Point{31, 1}, mino.BlockSolidMagenta},
-		{mino.Point{29, 2}, mino.BlockSolidMagenta},
-		{mino.Point{30, 2}, mino.BlockSolidMagenta},
-		{mino.Point{28, 3}, mino.BlockSolidMagenta},
-		{mino.Point{29, 4}, mino.BlockSolidMagenta},
-		{mino.Point{30, 4}, mino.BlockSolidMagenta},
-		{mino.Point{31, 4}, mino.BlockSolidMagenta},
+func fetchGameList() bool {
+	s, err := game.Connect(connectAddress)
+	if err != nil {
+		return false
 	}
 
-	for _, titleBlock := range titleBlocks {
-		if !m.SetBlock(centerStart+titleBlock.X, titleBlock.Y, titleBlock.Block, false) {
-			log.Fatalf("failed to set title block %s", titleBlock.Point)
+	s.Write(&game.GameCommandListGames{})
+
+	t := time.NewTimer(10 * time.Second)
+	for {
+		select {
+		case <-t.C:
+			return false
+		case e := <-s.In:
+			if e.Command() == game.CommandListGames {
+				if p, ok := e.(*game.GameCommandListGames); ok {
+					gameList = p.Games
+					if gameListSelected >= len(gameList) {
+						gameListSelected = len(gameList) - 1
+					}
+
+					app.QueueUpdateDraw(renderGameList)
+
+					s.Close()
+
+					if !t.Stop() {
+						<-t.C
+					}
+
+					return true
+				}
+			}
 		}
 	}
+}
 
-	return m
+func resetNewGameInputs() {
+	newGameNameInput.SetText("netris")
+	newGameMaxPlayersInput.SetText("0")
+	newGameSpeedLimitInput.SetText("0")
 }

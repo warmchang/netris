@@ -1,9 +1,11 @@
 package game
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -50,6 +52,36 @@ func NewServer(si []ServerInterface) *Server {
 	out := make(chan GameCommandInterface, CommandQueueSize)
 
 	s := &Server{I: si, In: in, Out: out, Games: make(map[int]*Game), created: time.Now()}
+
+	var (
+		g   *Game
+		err error
+	)
+	g, err = s.NewGame()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	g.Eternal = true
+	g.Name = "No speed limit"
+
+	g, err = s.NewGame()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	g.Eternal = true
+	g.Name = "Speed limit 100"
+	g.SpeedLimit = 100
+
+	g, err = s.NewGame()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	g.Eternal = true
+	g.Name = "Speed limit 40"
+	g.SpeedLimit = 40
 
 	s.NewPlayers = make(chan *IncomingPlayer, CommandQueueSize)
 
@@ -118,7 +150,7 @@ func (s *Server) removeTerminatedGames() {
 	}
 }
 
-func (s *Server) FindGame(p *Player, gameID int) *Game {
+func (s *Server) FindGame(p *Player, gameID int, newGame ListedGame) *Game {
 	s.Lock()
 	defer s.Unlock()
 
@@ -127,40 +159,68 @@ func (s *Server) FindGame(p *Player, gameID int) *Game {
 		err error
 	)
 
-	// Join a game by its ID
-	if gameID > 0 {
-		if gm, ok := s.Games[gameID]; ok && !gm.Terminated {
-			g = gm
-		}
-	}
-
-	// Join any game
-	if g == nil {
-		for _, gm := range s.Games {
-			if gm != nil && !gm.Terminated {
-				g = gm
-				break
-			}
-		}
-	}
-
-	// Create a new game
-	if g == nil {
+	if newGame.Name != "" {
+		// Create a custom game
 		g, err = s.NewGame()
 		if err != nil {
 			panic(err)
 		}
 
-		if gameID == -1 {
-			g.Local = true
+		g.Lock()
+
+		g.Name = GameName(newGame.Name)
+
+		g.MaxPlayers = newGame.MaxPlayers
+		if g.MaxPlayers < 0 {
+			g.MaxPlayers = 0
+		} else if g.MaxPlayers > 999 {
+			g.MaxPlayers = 999
 		}
+
+		g.SpeedLimit = newGame.SpeedLimit
+		if g.SpeedLimit < 0 {
+			g.SpeedLimit = 0
+		} else if g.SpeedLimit > 999 {
+			g.SpeedLimit = 999
+		}
+
+		g.Unlock()
+	} else if gameID > 0 {
+		// Join a game by its ID
+		if gm, ok := s.Games[gameID]; ok && !gm.Terminated && (gm.MaxPlayers == 0 || len(gm.Players) < gm.MaxPlayers) {
+			g = gm
+		} else {
+			p.Write(&GameCommandMessage{Message: "Failed to join game - Player limit reached"})
+			return nil
+		}
+	} else if gameID == 0 {
+		// Join any game
+		for _, gm := range s.Games {
+			if gm != nil && !gm.Terminated && (gm.MaxPlayers == 0 || len(gm.Players) < gm.MaxPlayers) {
+				g = gm
+				break
+			}
+		}
+	} else {
+		// Create a local game
+		g, err = s.NewGame()
+		if err != nil {
+			panic(err)
+		}
+
+		g.Local = true
+	}
+
+	if g == nil {
+		p.Write(&GameCommandMessage{Message: "Failed to join game"})
+		return nil
 	}
 
 	g.Lock()
 
 	g.AddPlayerL(p)
 
-	if gameID == -1 {
+	if gameID == event.GameIDNewLocal {
 		go g.Start(0)
 	} else if len(g.Players) > 1 {
 		go s.initiateAutoStart(g)
@@ -179,23 +239,61 @@ func (s *Server) accept() {
 
 		p := NewPlayer(np.Name, np.Conn)
 
-		s.Log("Incoming connection from ", np.Name)
-
-		go s.handleJoinGame(p)
+		go s.handleNewPlayer(p)
 	}
 }
 
-func (s *Server) handleJoinGame(pl *Player) {
+func (s *Server) handleNewPlayer(pl *Player) {
+	handled := false
+	go func() {
+		time.Sleep(10 * time.Second)
+		if !handled {
+			pl.Close()
+		}
+	}()
+
 	for e := range pl.In {
-		if e.Command() == CommandJoinGame {
+		switch e.Command() {
+		case CommandListGames:
+			if _, ok := e.(*GameCommandListGames); ok {
+				var gl []*ListedGame
+
+				for _, g := range s.Games {
+					if g.Terminated {
+						continue
+					}
+
+					gl = append(gl, &ListedGame{ID: g.ID, Name: g.Name, Players: len(g.Players), MaxPlayers: g.MaxPlayers, SpeedLimit: g.SpeedLimit})
+				}
+
+				sort.Slice(gl, func(i, j int) bool {
+					if gl[i].Players == gl[j].Players {
+						return gl[i].Name < gl[j].Name
+					}
+
+					return gl[i].Players > gl[j].Players
+				})
+
+				pl.Write(&GameCommandListGames{Games: gl})
+			}
+		case CommandJoinGame:
 			if p, ok := e.(*GameCommandJoinGame); ok {
 				pl.Name = Nickname(p.Name)
 
-				g := s.FindGame(pl, p.GameID)
+				g := s.FindGame(pl, p.GameID, p.Listing)
+				if g == nil {
+					return
+				}
 
-				s.Logf("Adding %s to game %d", pl.Name, g.ID)
+				if p.Listing.Name == "" {
+					g.Logf(LogStandard, "Player %s joined %s", pl.Name, g.Name)
+				} else {
+					g.Logf(LogStandard, "Player %s created new game %s", pl.Name, g.Name)
+				}
 
 				go s.handleGameCommands(pl, g)
+
+				handled = true
 				return
 			}
 		}
@@ -220,10 +318,19 @@ func (s *Server) initiateAutoStart(g *Game) {
 }
 
 func (s *Server) handleGameCommands(pl *Player, g *Game) {
+	var (
+		msgJSON []byte
+		err     error
+	)
 	for e := range pl.In {
 		c := e.Command()
 		if (c != CommandPing && c != CommandPong && c != CommandUpdateMatrix) || g.LogLevel >= LogVerbose {
-			s.Log("REMOTE handle game command ", e.Command(), " from ", e.Source(), e)
+			msgJSON, err = json.Marshal(e)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			g.Logf(LogStandard, "%d -> %s %s", e.Source(), e.Command(), msgJSON)
 		}
 
 		g.Lock()
@@ -232,7 +339,7 @@ func (s *Server) handleGameCommands(pl *Player, g *Game) {
 		case CommandMessage:
 			if p, ok := e.(*GameCommandMessage); ok {
 				if player, ok := g.Players[p.SourcePlayer]; ok {
-					s.Log("<" + player.Name + "> " + p.Message)
+					s.Logf("<%s> %s", player.Name, p.Message)
 
 					msg := strings.ReplaceAll(strings.TrimSpace(p.Message), "\n", "")
 					if msg != "" {
@@ -258,6 +365,13 @@ func (s *Server) handleGameCommands(pl *Player, g *Game) {
 				if pl, ok := g.Players[p.SourcePlayer]; ok {
 					for _, m := range p.Matrixes {
 						pl.Matrix.Replace(m)
+
+						if g.SpeedLimit > 0 && m.Speed > g.SpeedLimit+5 && time.Since(g.TimeStarted) > 7*time.Second {
+							pl.Matrix.SetGameOver()
+
+							g.WriteMessage(fmt.Sprintf("%s went too fast and crashed", pl.Name))
+							g.WriteAllL(&GameCommandGameOver{Player: p.SourcePlayer})
+						}
 					}
 
 					m := pl.Matrix

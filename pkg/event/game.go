@@ -1,9 +1,6 @@
 package event
 
-type GameMode int
-
 const (
-	ModeUnknown = iota
-	ModePractice
-	ModePlayOnline
+	GameIDNewCustom = -2
+	GameIDNewLocal  = -1
 )

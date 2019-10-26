@@ -73,11 +73,11 @@ var AllRotationOffsets = map[PieceType][]RotationOffsets{
 		{{0, 0}, {1, 2}, {0, 0}, {-1, 2}}}}
 */
 type Piece struct {
-	Point
-	Mino
-	Ghost    Block
-	Solid    Block
-	Rotation int
+	Point    `json:"pp,omitempty"`
+	Mino     `json:"pm,omitempty"`
+	Ghost    Block `json:"pg,omitempty"`
+	Solid    Block `json:"ps,omitempty"`
+	Rotation int   `json:"pr,omitempty"`
 
 	original  Mino
 	pivotsCW  []Point

@@ -5,13 +5,15 @@
 
 Multiplayer Tetris clone
 
-![](https://netris.rocketnine.space/static/screenshot4.png)
+## Play Without Installing
 
-## Demo
-
-To play netris without installing:
+To play netris without installing, connect via [SSH](https://en.wikipedia.org/wiki/Secure_Shell):
 
 ```ssh netris.rocketnine.space```
+
+## Screenshot
+
+![](https://netris.rocketnine.space/static/screenshot4.png)
 
 ## Install
 

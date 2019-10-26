@@ -35,26 +35,26 @@ type Matrix struct {
 
 	Bag        *Bag `json:"-"`
 	P          *Piece
-	PlayerName string
+	PlayerName string `json:"pn,omitempty"`
 
-	Type MatrixType
+	Type MatrixType `json:"ty,omitempty"`
 
 	Event chan<- interface{} `json:"-"`
 	Move  chan int           `json:"-"`
 	draw  chan event.DrawObject
 
-	Combo              int
+	Combo              int       `json:"mc,omitempty"`
 	ComboStart         time.Time `json:"-"`
 	ComboEnd           time.Time `json:"-"`
 	PendingGarbage     int       `json:"-"`
 	PendingGarbageTime time.Time `json:"-"`
 
-	LinesCleared    int
-	GarbageSent     int
-	GarbageReceived int
-	Speed           int
+	LinesCleared    int `json:"lc,omitempty"`
+	GarbageSent     int `json:"gs,omitempty"`
+	GarbageReceived int `json:"gr,omitempty"`
+	Speed           int `json:"sp,omitempty"`
 
-	GameOver bool
+	GameOver bool `json:"go,omitempty"`
 
 	lands []time.Time
 

@@ -14,7 +14,7 @@ const (
 	PlayerUnknown    = 0
 )
 
-var nickRegexp = regexp.MustCompile(`[^a-zA-Z0-9_\-!@#$%^&*+=,./]+`)
+var nickRegexp = regexp.MustCompile(`[^a-zA-Z0-9_\-!@#$%^&*+=,./?]+`)
 
 type ConnectingPlayer struct {
 	Name string

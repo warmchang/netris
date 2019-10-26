@@ -27,6 +27,7 @@ const (
 	CommandSendGarbage
 	CommandReceiveGarbage
 	CommandStats
+	CommandListGames
 )
 
 func (c Command) String() string {
@@ -63,6 +64,8 @@ func (c Command) String() string {
 		return "Garbage-IN"
 	case CommandStats:
 		return "Stats"
+	case CommandListGames:
+		return "ListGames"
 	default:
 		return strconv.Itoa(int(c))
 	}
@@ -75,7 +78,7 @@ type GameCommandInterface interface {
 }
 
 type GameCommand struct {
-	SourcePlayer int
+	SourcePlayer int `json:"sp,omitempty"`
 }
 
 func (gc *GameCommand) Source() int {
@@ -96,8 +99,8 @@ func (gc *GameCommand) SetSource(source int) {
 
 type GameCommandDisconnect struct {
 	GameCommand
-	Player  int
-	Message string
+	Player  int    `json:"p,omitempty"`
+	Message string `json:"m,omitempty"`
 }
 
 func (gc GameCommandDisconnect) Command() Command {
@@ -106,7 +109,7 @@ func (gc GameCommandDisconnect) Command() Command {
 
 type GameCommandPing struct {
 	GameCommand
-	Message string
+	Message string `json:"m,omitempty"`
 }
 
 func (gc GameCommandPing) Command() Command {
@@ -115,7 +118,7 @@ func (gc GameCommandPing) Command() Command {
 
 type GameCommandPong struct {
 	GameCommand
-	Message string
+	Message string `json:"m,omitempty"`
 }
 
 func (gc GameCommandPong) Command() Command {
@@ -124,8 +127,8 @@ func (gc GameCommandPong) Command() Command {
 
 type GameCommandNickname struct {
 	GameCommand
-	Player   int
-	Nickname string
+	Player   int    `json:"p,omitempty"`
+	Nickname string `json:"n,omitempty"`
 }
 
 func (gc GameCommandNickname) Command() Command {
@@ -134,8 +137,8 @@ func (gc GameCommandNickname) Command() Command {
 
 type GameCommandMessage struct {
 	GameCommand
-	Player  int
-	Message string
+	Player  int    `json:"p,omitempty"`
+	Message string `json:"m,omitempty"`
 }
 
 func (gc GameCommandMessage) Command() Command {
@@ -144,10 +147,12 @@ func (gc GameCommandMessage) Command() Command {
 
 type GameCommandJoinGame struct {
 	GameCommand
-	Version  int
-	Name     string
-	GameID   int
-	PlayerID int
+	Version  int    `json:"v,omitempty"`
+	Name     string `json:"n,omitempty"`
+	GameID   int    `json:"g,omitempty"`
+	PlayerID int    `json:"p,omitempty"`
+
+	Listing ListedGame `json:"l,omitempty"`
 }
 
 func (gc GameCommandJoinGame) Command() Command {
@@ -156,7 +161,7 @@ func (gc GameCommandJoinGame) Command() Command {
 
 type GameCommandQuitGame struct {
 	GameCommand
-	Player int
+	Player int `json:"p,omitempty"`
 }
 
 func (gc GameCommandQuitGame) Command() Command {
@@ -165,7 +170,7 @@ func (gc GameCommandQuitGame) Command() Command {
 
 type GameCommandUpdateGame struct {
 	GameCommand
-	Players map[int]string
+	Players map[int]string `json:"p,omitempty"`
 }
 
 func (gc GameCommandUpdateGame) Command() Command {
@@ -174,8 +179,8 @@ func (gc GameCommandUpdateGame) Command() Command {
 
 type GameCommandStartGame struct {
 	GameCommand
-	Seed    int64
-	Started bool
+	Seed    int64 `json:"s,omitempty"`
+	Started bool  `json:"st,omitempty"`
 }
 
 func (gc GameCommandStartGame) Command() Command {
@@ -184,7 +189,7 @@ func (gc GameCommandStartGame) Command() Command {
 
 type GameCommandUpdateMatrix struct {
 	GameCommand
-	Matrixes map[int]*mino.Matrix
+	Matrixes map[int]*mino.Matrix `json:"m,omitempty"`
 }
 
 func (gc GameCommandUpdateMatrix) Command() Command {
@@ -193,8 +198,8 @@ func (gc GameCommandUpdateMatrix) Command() Command {
 
 type GameCommandGameOver struct {
 	GameCommand
-	Player int
-	Winner string
+	Player int    `json:"p,omitempty"`
+	Winner string `json:"w,omitempty"`
 }
 
 func (gc GameCommandGameOver) Command() Command {
@@ -203,7 +208,7 @@ func (gc GameCommandGameOver) Command() Command {
 
 type GameCommandSendGarbage struct {
 	GameCommand
-	Lines int
+	Lines int `json:"l,omitempty"`
 }
 
 func (gc GameCommandSendGarbage) Command() Command {
@@ -212,7 +217,7 @@ func (gc GameCommandSendGarbage) Command() Command {
 
 type GameCommandReceiveGarbage struct {
 	GameCommand
-	Lines int
+	Lines int `json:"l,omitempty"`
 }
 
 func (gc GameCommandReceiveGarbage) Command() Command {
@@ -221,11 +226,28 @@ func (gc GameCommandReceiveGarbage) Command() Command {
 
 type GameCommandStats struct {
 	GameCommand
-	Created time.Time
-	Players int
-	Games   int
+	Created time.Time `json:"c,omitempty"`
+	Players int       `json:"p,omitempty"`
+	Games   int       `json:"g,omitempty"`
 }
 
 func (gc GameCommandStats) Command() Command {
 	return CommandStats
+}
+
+type ListedGame struct {
+	ID         int
+	Name       string `json:"n,omitempty"`
+	Players    int    `json:"p,omitempty"`
+	MaxPlayers int    `json:"pl,omitempty"`
+	SpeedLimit int    `json:"sl,omitempty"`
+}
+type GameCommandListGames struct {
+	GameCommand
+
+	Games []*ListedGame `json:"g,omitempty"`
+}
+
+func (gc GameCommandListGames) Command() Command {
+	return CommandListGames
 }

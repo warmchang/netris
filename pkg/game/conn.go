@@ -54,7 +54,7 @@ func NewServerConn(conn net.Conn, forwardOut chan GameCommandInterface) *Conn {
 	return &c
 }
 
-func Connect(address string) *Conn {
+func Connect(address string) (*Conn, error) {
 	var (
 		network string
 		conn    net.Conn
@@ -67,7 +67,7 @@ func Connect(address string) *Conn {
 		conn, err = net.DialTimeout(network, address, ConnTimeout)
 		if err != nil {
 			if tries > 25 {
-				log.Fatalf("failed to connect to %s: %s", address, err)
+				return nil, fmt.Errorf("failed to connect to %s: %s", address, err)
 			} else {
 				time.Sleep(250 * time.Millisecond)
 
@@ -76,7 +76,7 @@ func Connect(address string) *Conn {
 			}
 		}
 
-		return NewServerConn(conn, nil)
+		return NewServerConn(conn, nil), nil
 	}
 }
 
@@ -211,7 +211,12 @@ func (s *Conn) handleRead() {
 			var mgc GameCommandStats
 			um(&mgc)
 			gc = &mgc
+		case CommandListGames:
+			var mgc GameCommandListGames
+			um(&mgc)
+			gc = &mgc
 		default:
+			// TODO Place beind debug log level
 			log.Println("unknown serverconn command", scanner.Text())
 			continue
 		}
@@ -295,8 +300,16 @@ func (s *Conn) Close() {
 	}()
 }
 
-func (s *Conn) JoinGame(name string, gameID int, logger chan string, draw chan event.DrawObject) (*Game, error) {
-	s.Write(&GameCommandJoinGame{Name: name, GameID: gameID})
+// When newGame is set to a ListedGame and gameID is 0, a new custom game is created
+func (s *Conn) JoinGame(name string, gameID int, newGame *ListedGame, logger chan string, draw chan event.DrawObject) (*Game, error) {
+	joinGameCommand := GameCommandJoinGame{Name: name, GameID: gameID}
+	if newGame != nil {
+		joinGameCommand.Listing.Name = newGame.Name
+		joinGameCommand.Listing.MaxPlayers = newGame.MaxPlayers
+		joinGameCommand.Listing.SpeedLimit = newGame.SpeedLimit
+	}
+	s.Write(&joinGameCommand)
+
 	var (
 		g   *Game
 		err error

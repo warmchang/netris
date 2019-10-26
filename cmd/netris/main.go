@@ -136,9 +136,11 @@ func main() {
 		done <- true
 	}()
 
-	// Connect automatically when an address or path is supplied
+	// TODO Connect automatically when an address or path is supplied
 	if connectAddress != "" {
-		selectMode <- event.ModePlayOnline
+		serverAddress = connectAddress
+	} else {
+		connectAddress = serverAddress
 	}
 
 	var (
@@ -161,15 +163,20 @@ func main() {
 	}(server)
 
 	for {
-		mode := <-selectMode
-		switch mode {
-		case event.ModePlayOnline:
+		gameID := <-joinGame
+
+		if server != nil {
+			server.StopListening()
+			server = nil
+		}
+		if localListenDir != "" {
+			os.RemoveAll(localListenDir)
+			localListenDir = ""
+		}
+
+		if gameID == event.GameIDNewCustom || gameID >= 0 {
 			joinedGame = true
 			setTitleVisible(false)
-
-			if connectAddress == "" {
-				connectAddress = serverAddress
-			}
 
 			connectNetwork, _ := game.NetworkAndAddress(connectAddress)
 
@@ -177,9 +184,29 @@ func main() {
 				logMessage(fmt.Sprintf("* Connecting to %s...", connectAddress))
 			}
 
-			s := game.Connect(connectAddress)
+			s, err := game.Connect(connectAddress)
+			if err != nil {
+				log.Fatal(err)
+			}
 
-			activeGame, err = s.JoinGame(nickname, 0, logger, draw)
+			var newGame *game.ListedGame
+			if gameID == event.GameIDNewCustom {
+				gameID = 0
+
+				maxPlayers, err := strconv.Atoi(newGameMaxPlayersInput.GetText())
+				if err != nil {
+					maxPlayers = 0
+				}
+
+				speedLimit, err := strconv.Atoi(newGameSpeedLimitInput.GetText())
+				if err != nil {
+					speedLimit = 0
+				}
+
+				newGame = &game.ListedGame{Name: game.GameName(newGameNameInput.GetText()), MaxPlayers: maxPlayers, SpeedLimit: speedLimit}
+			}
+
+			activeGame, err = s.JoinGame(nickname, gameID, newGame, logger, draw)
 			if err != nil {
 				log.Fatalf("failed to connect to %s: %s", connectAddress, err)
 			}
@@ -189,66 +216,70 @@ func main() {
 			}
 
 			activeGame.LogLevel = logLevel
-		case event.ModePractice:
-			joinedGame = true
-			setTitleVisible(false)
+			continue
+		}
 
-			server = game.NewServer(nil)
+		joinedGame = true
+		setTitleVisible(false)
 
-			server.Logger = make(chan string, game.LogQueueSize)
-			if logDebug || logVerbose {
-				go func() {
-					for msg := range server.Logger {
-						logMessage("Local server: " + msg)
-					}
-				}()
-			} else {
-				go func() {
-					for range server.Logger {
-					}
-				}()
-			}
+		server = game.NewServer(nil)
 
-			localListenDir, err = ioutil.TempDir("", "netris")
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			localListenAddress := path.Join(localListenDir, "netris.sock")
-
-			go server.Listen(localListenAddress)
-
-			localServerConn := game.Connect(localListenAddress)
-
-			activeGame, err = localServerConn.JoinGame(nickname, -1, logger, draw)
-			if err != nil {
-				panic(err)
-			}
-
-			activeGame.LogLevel = logLevel
-
-			if startMatrix != "" {
-				activeGame.Players[activeGame.LocalPlayer].Matrix.Lock()
-				startMatrixSplit := strings.Split(startMatrix, ",")
-				startMatrix = ""
-				var (
-					token int
-					x     int
-					err   error
-				)
-				for i := range startMatrixSplit {
-					token, err = strconv.Atoi(startMatrixSplit[i])
-					if err != nil {
-						panic(fmt.Sprintf("failed to parse initial matrix on token #%d", i))
-					}
-					if i%2 == 1 {
-						activeGame.Players[activeGame.LocalPlayer].Matrix.SetBlock(x, token, mino.BlockGarbage, false)
-					} else {
-						x = token
-					}
+		server.Logger = make(chan string, game.LogQueueSize)
+		if logDebug || logVerbose {
+			go func() {
+				for msg := range server.Logger {
+					logMessage("Local server: " + msg)
 				}
-				activeGame.Players[activeGame.LocalPlayer].Matrix.Unlock()
+			}()
+		} else {
+			go func() {
+				for range server.Logger {
+				}
+			}()
+		}
+
+		localListenDir, err = ioutil.TempDir("", "netris")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		localListenAddress := path.Join(localListenDir, "netris.sock")
+
+		go server.Listen(localListenAddress)
+
+		localServerConn, err := game.Connect(localListenAddress)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		activeGame, err = localServerConn.JoinGame(nickname, event.GameIDNewLocal, nil, logger, draw)
+		if err != nil {
+			panic(err)
+		}
+
+		activeGame.LogLevel = logLevel
+
+		if startMatrix != "" {
+			activeGame.Players[activeGame.LocalPlayer].Matrix.Lock()
+			startMatrixSplit := strings.Split(startMatrix, ",")
+			startMatrix = ""
+			var (
+				token int
+				x     int
+				err   error
+			)
+			for i := range startMatrixSplit {
+				token, err = strconv.Atoi(startMatrixSplit[i])
+				if err != nil {
+					panic(fmt.Sprintf("failed to parse initial matrix on token #%d", i))
+				}
+				if i%2 == 1 {
+					activeGame.Players[activeGame.LocalPlayer].Matrix.SetBlock(x, token, mino.BlockGarbage, false)
+				} else {
+					x = token
+				}
 			}
+			activeGame.Players[activeGame.LocalPlayer].Matrix.Unlock()
 		}
 	}
 }

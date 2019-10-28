@@ -40,7 +40,7 @@ var (
 	renderBuffer bytes.Buffer
 
 	multiplayerMatrixSize int
-	extraScreenPadding    int
+	screenPadding         int
 
 	screenW, screenH       int
 	newScreenW, newScreenH int
@@ -48,7 +48,7 @@ var (
 	nickname      = "Anonymous"
 	nicknameDraft string
 
-	inputHeight, mainHeight, newLogLines int
+	inputHeight, mainHeight, previewWidth, newLogLines int
 
 	profileCPU *os.File
 
@@ -66,26 +66,6 @@ var (
 )
 
 const DefaultStatusText = "Press Enter to chat, Z/X to rotate, arrow keys or HJKL to move/drop"
-
-// TODO: Darken ghost color?
-var renderBlock = map[mino.Block][]byte{
-	mino.BlockNone:         []byte(" "),
-	mino.BlockGhostBlue:    []byte("[#2864ff]▓[#ffffff]"), // 1a53ff
-	mino.BlockSolidBlue:    []byte("[#2864ff]█[#ffffff]"),
-	mino.BlockGhostCyan:    []byte("[#00eeee]▓[#ffffff]"),
-	mino.BlockSolidCyan:    []byte("[#00eeee]█[#ffffff]"),
-	mino.BlockGhostRed:     []byte("[#ee0000]▓[#ffffff]"),
-	mino.BlockSolidRed:     []byte("[#ee0000]█[#ffffff]"),
-	mino.BlockGhostYellow:  []byte("[#dddd00]▓[#ffffff]"),
-	mino.BlockSolidYellow:  []byte("[#dddd00]█[#ffffff]"),
-	mino.BlockGhostMagenta: []byte("[#c000cc]▓[#ffffff]"),
-	mino.BlockSolidMagenta: []byte("[#c000cc]█[#ffffff]"),
-	mino.BlockGhostGreen:   []byte("[#00e900]▓[#ffffff]"),
-	mino.BlockSolidGreen:   []byte("[#00e900]█[#ffffff]"),
-	mino.BlockGhostOrange:  []byte("[#ff7308]▓[#ffffff]"),
-	mino.BlockSolidOrange:  []byte("[#ff7308]█[#ffffff]"),
-	mino.BlockGarbage:      []byte("[#bbbbbb]█[#ffffff]"),
-}
 
 var (
 	renderHLine    = []byte(string(tcell.RuneHLine))
@@ -124,6 +104,9 @@ func resetPlayerSettingsForm() {
 	})
 }
 
+// BS 1: 10x10
+// BS 2: 20x20
+// BS 3: 30x40
 func handleResize(screen tcell.Screen) {
 	newScreenW, newScreenH = screen.Size()
 	if newScreenW == screenW && newScreenH == screenH {
@@ -133,45 +116,68 @@ func handleResize(screen tcell.Screen) {
 	screenW, screenH = newScreenW, newScreenH
 
 	if !fixedBlockSize {
-		if screenW >= 80 && screenH >= 44 {
+		if screenW >= 80 && screenH >= 46 {
+			blockSize = 3
+		} else if screenW >= 80 && screenH >= 24 {
 			blockSize = 2
 		} else {
 			blockSize = 1
 		}
 	}
 
-	mainHeight = (20 * blockSize) + 2
+	xMultiplier := 1
+	if blockSize == 2 {
+		xMultiplier = 2
+	} else if blockSize == 3 {
+		xMultiplier = 3
+	}
+
+	if blockSize == 1 {
+		mainHeight = 10 + 3
+	} else if blockSize == 2 {
+		mainHeight = 20 + 3
+	} else {
+		mainHeight = 40 + 3
+	}
+
 	if screenH > mainHeight+9 {
-		extraScreenPadding = 3
+		screenPadding = 2
 		mainHeight++
 		inputHeight = 2
 	} else if screenH > mainHeight+7 {
-		extraScreenPadding = 2
-		mainHeight++
-		inputHeight = 2
-	} else if screenH > mainHeight+5 {
-		extraScreenPadding = 1
+		screenPadding = 2
 		mainHeight++
 		inputHeight = 1
-	} else if screenH > mainHeight+2 {
-		extraScreenPadding = 0
+	} else if screenH > mainHeight+5 {
+		screenPadding = 1
 		mainHeight++
+		inputHeight = 1
+	} else if screenH > mainHeight+3 {
+		screenPadding = 1
 		inputHeight = 1
 	} else {
-		extraScreenPadding = 0
-		inputHeight = 1
+		screenPadding = 0
+		inputHeight = 0
 	}
 
-	multiplayerMatrixSize = ((screenW - extraScreenPadding) - ((10 * blockSize) + 16)) / ((10 * blockSize) + 4)
+	if blockSize == 1 {
+		previewWidth = 9
+	} else if blockSize == 2 {
+		previewWidth = 10
+	} else {
+		previewWidth = 14
+	}
 
-	newLogLines = ((screenH - mainHeight) - inputHeight) - extraScreenPadding
+	multiplayerMatrixSize = ((screenW - screenPadding) - ((10 * xMultiplier) + previewWidth + 6)) / ((10 * xMultiplier) + 4)
+
+	newLogLines = ((screenH - mainHeight) - inputHeight) - screenPadding
 	if newLogLines > 0 {
 		showLogLines = newLogLines
 	} else {
 		showLogLines = 1
 	}
 
-	gameGrid.SetRows(mainHeight+extraScreenPadding, inputHeight, -1).SetColumns(1+extraScreenPadding, 4+(10*blockSize), 10, -1)
+	gameGrid.SetRows(screenPadding, mainHeight, inputHeight, -1).SetColumns(screenPadding+1, 4+(10*xMultiplier), previewWidth, -1)
 
 	draw <- event.DrawAll
 }
@@ -181,9 +187,8 @@ func drawAll() {
 		return
 	}
 
-	renderPlayerMatrix()
-	renderPreviewMatrix()
-	renderMultiplayerMatrix()
+	renderPlayerGUI()
+	renderMultiplayerGUI()
 }
 
 func drawMessages() {
@@ -191,12 +196,11 @@ func drawMessages() {
 }
 
 func drawPlayerMatrix() {
-	renderPlayerMatrix()
-	renderPreviewMatrix()
+	renderPlayerGUI()
 }
 
 func drawMultiplayerMatrixes() {
-	renderMultiplayerMatrix()
+	renderMultiplayerGUI()
 }
 
 func handleDraw() {
@@ -250,11 +254,17 @@ func setShowDetails(active bool) {
 	draw <- event.DrawAll
 }
 
-func renderPreviewMatrix() {
+func renderPlayerGUI() {
 	g := activeGame
-	if g == nil || len(g.Players) == 0 || g.Players[g.LocalPlayer].Matrix.Bag == nil {
+	if g == nil || len(g.Players) == 0 {
 		return
 	}
+
+	renderLock.Lock()
+	renderMatrixes([]*mino.Matrix{g.Players[g.LocalPlayer].Matrix})
+	mtx.Clear()
+	mtx.Write(renderBuffer.Bytes())
+	renderLock.Unlock()
 
 	player := g.Players[g.LocalPlayer]
 	m := g.Players[g.LocalPlayer].Matrix
@@ -284,12 +294,14 @@ func renderPreviewMatrix() {
 	}
 
 	renderLock.Lock()
-	renderMatrix(g.Players[g.LocalPlayer].Preview)
+	renderMatrixes([]*mino.Matrix{g.Players[g.LocalPlayer].Preview})
 
-	if blockSize > 1 {
-		renderBuffer.WriteString(fmt.Sprintf("\n\n\n\n\n Combo\n\n   %d\n\n\n\n\n Timer\n\n   %.0f\n\n\n\n\nPending\n\n   %d\n\n\n\n\n Speed\n\n  %s", combo, comboTime, m.PendingGarbage, speed))
-	} else {
-		renderBuffer.WriteString(fmt.Sprintf("\n\n Combo\n\n   %d\n\n Timer\n\n   %.0f\n\nPending\n\n   %d\n\n Speed\n\n  %s", combo, comboTime, m.PendingGarbage, speed))
+	if blockSize == 1 {
+		renderBuffer.WriteString(fmt.Sprintf(" Combo\n   %d\n\n Timer\n   %.0f\n\nPending\n   %d\n\n Speed\n  %s", combo, comboTime, m.PendingGarbage, speed))
+	} else if blockSize == 2 {
+		renderBuffer.WriteString(fmt.Sprintf("\n Combo\n\n   %d\n\n\n Timer\n\n   %.0f\n\n\nPending\n\n   %d\n\n\n Speed\n\n  %s", combo, comboTime, m.PendingGarbage, speed))
+	} else if blockSize == 3 {
+		renderBuffer.WriteString(fmt.Sprintf("\n\n\n\n\n   Combo\n\n     %d\n\n\n\n\n\n   Timer\n\n     %.0f\n\n\n\n\n\n  Pending\n\n     %d\n\n\n\n\n\n   Speed\n\n    %s", combo, comboTime, m.PendingGarbage, speed))
 	}
 
 	side.Clear()
@@ -299,20 +311,7 @@ func renderPreviewMatrix() {
 	m.Unlock()
 }
 
-func renderPlayerMatrix() {
-	g := activeGame
-	if g == nil || len(g.Players) == 0 {
-		return
-	}
-
-	renderLock.Lock()
-	renderMatrix(g.Players[g.LocalPlayer].Matrix)
-	mtx.Clear()
-	mtx.Write(renderBuffer.Bytes())
-	renderLock.Unlock()
-}
-
-func renderMultiplayerMatrix() {
+func renderMultiplayerGUI() {
 	g := activeGame
 	if g == nil {
 		return
@@ -364,87 +363,6 @@ func renderMultiplayerMatrix() {
 	renderLock.Unlock()
 }
 
-func renderMatrix(m *mino.Matrix) {
-	renderBuffer.Reset()
-
-	if m == nil {
-		return
-	}
-
-	m.Lock()
-	defer m.Unlock()
-
-	m.DrawPiecesL()
-
-	bs := blockSize
-	if m.Type == mino.MatrixPreview {
-		// Draw preview matrix at block size 2 max
-
-		if bs > 2 {
-			bs = 2
-		}
-		if bs > 1 {
-			renderBuffer.WriteRune('\n')
-		}
-	} else if m.Type == mino.MatrixCustom {
-		bs = 1
-	}
-
-	for i := 0; i < extraScreenPadding; i++ {
-		if m.Type == mino.MatrixStandard && i == extraScreenPadding-1 {
-			renderBuffer.Write(renderULCorner)
-			for x := 0; x < m.W*bs; x++ {
-				renderBuffer.Write(renderHLine)
-			}
-			renderBuffer.Write(renderURCorner)
-		}
-
-		renderBuffer.WriteRune('\n')
-	}
-
-	for y := m.H - 1; y >= 0; y-- {
-		for j := 0; j < bs; j++ {
-			if m.Type == mino.MatrixStandard {
-				renderBuffer.Write(renderVLine)
-			} else {
-				iPieceNext := m.Bag != nil && m.Bag.Next().String() == mino.TetrominoI
-				if bs == 1 {
-					renderBuffer.WriteRune(' ')
-					renderBuffer.WriteRune(' ')
-				} else if !iPieceNext {
-					renderBuffer.WriteRune(' ')
-				}
-			}
-			for x := 0; x < m.W; x++ {
-				for k := 0; k < bs; k++ {
-					renderBuffer.Write(renderBlock[m.Block(x, y)])
-				}
-			}
-
-			if m.Type == mino.MatrixStandard {
-				renderBuffer.Write(renderVLine)
-			}
-
-			if y != 0 || m.Type != mino.MatrixCustom {
-				renderBuffer.WriteRune('\n')
-			}
-		}
-	}
-
-	if m.Type != mino.MatrixStandard {
-		return
-	}
-
-	renderBuffer.Write(renderLLCorner)
-	for x := 0; x < m.W*bs; x++ {
-		renderBuffer.Write(renderHLine)
-	}
-	renderBuffer.Write(renderLRCorner)
-
-	renderBuffer.WriteRune('\n')
-	renderPlayerDetails(m, bs)
-}
-
 func renderPlayerDetails(m *mino.Matrix, bs int) {
 	var buf string
 	if !showDetails {
@@ -473,9 +391,27 @@ func renderPlayerDetails(m *mino.Matrix, bs int) {
 
 func renderMatrixes(mx []*mino.Matrix) {
 	renderBuffer.Reset()
-
-	if mx == nil {
+	if mx == nil || len(mx) == 0 {
 		return
+	}
+
+	bs := blockSize
+	mt := mx[0].Type
+	mh := mx[0].H
+	div := "  "
+
+	var nextPieceWidth = 0
+	if mt == mino.MatrixPreview {
+		renderBuffer.WriteRune('\n')
+		if mx[0].Bag != nil {
+			p := mx[0].Bag.Next()
+			nextPieceWidth, _ = p.Size()
+			if nextPieceWidth == 2 && blockSize == 1 {
+				nextPieceWidth = 3
+			}
+		}
+	} else if mt == mino.MatrixCustom {
+		bs = 1
 	}
 
 	for i := range mx {
@@ -483,45 +419,46 @@ func renderMatrixes(mx []*mino.Matrix) {
 		mx[i].DrawPiecesL()
 	}
 
-	div := "  "
-
-	height := mx[0].H
-
-	for i := 0; i < extraScreenPadding; i++ {
-		if i == extraScreenPadding-1 {
-			for i := range mx {
-				if i > 0 {
-					renderBuffer.WriteString(div)
-				}
-
-				renderBuffer.Write(renderULCorner)
-				for x := 0; x < mx[i].W*blockSize; x++ {
-					renderBuffer.Write(renderHLine)
-				}
-				renderBuffer.Write(renderURCorner)
+	if mt == mino.MatrixStandard {
+		for i := range mx {
+			if i > 0 {
+				renderBuffer.WriteString(div)
 			}
-		}
 
+			renderBuffer.Write(renderULCorner)
+			for x := 0; x < mx[i].W*bs; x++ {
+				renderBuffer.Write(renderHLine)
+			}
+			renderBuffer.Write(renderURCorner)
+		}
 		renderBuffer.WriteRune('\n')
 	}
 
-	for y := height - 1; y >= 0; y-- {
-		for j := 0; j < blockSize; j++ {
-			for i := range mx {
-				m := mx[i]
-
+	if bs == 1 {
+		for y := mh - 1; y >= 0; y -= 2 {
+			for i, m := range mx {
 				if i > 0 {
 					renderBuffer.WriteString(div)
 				}
 
 				if m.Type == mino.MatrixStandard {
 					renderBuffer.Write(renderVLine)
+				} else if m.Type == mino.MatrixPreview {
+					renderBuffer.WriteRune(' ')
+
+					if nextPieceWidth < 4 {
+						renderBuffer.WriteRune(' ')
+					}
 				}
 
 				for x := 0; x < m.W; x++ {
-					for j := 0; j < blockSize; j++ {
-						renderBuffer.Write(renderBlock[m.Block(x, y)])
-					}
+					renderBuffer.WriteRune('[')
+					renderBuffer.Write(m.Block(x, y-1).Color())
+					renderBuffer.WriteRune(':')
+					renderBuffer.Write(m.Block(x, y).Color())
+					renderBuffer.WriteRune(']')
+					renderBuffer.WriteRune('▄')
+					renderBuffer.Write([]byte("[-:-]"))
 				}
 
 				if m.Type == mino.MatrixStandard {
@@ -529,30 +466,107 @@ func renderMatrixes(mx []*mino.Matrix) {
 				}
 			}
 
-			renderBuffer.WriteRune('\n')
+			if y != 0 || mt != mino.MatrixCustom {
+				renderBuffer.WriteRune('\n')
+			}
+		}
+	} else if bs == 2 {
+		for y := mh - 1; y >= 0; y-- {
+			for i, m := range mx {
+				if i > 0 {
+					renderBuffer.WriteString(div)
+				}
+
+				if m.Type == mino.MatrixStandard {
+					renderBuffer.Write(renderVLine)
+				} else if m.Type == mino.MatrixPreview {
+					for pad := 0; pad < 3-nextPieceWidth; pad++ {
+						renderBuffer.WriteRune(' ')
+						renderBuffer.WriteRune(' ')
+					}
+				}
+
+				for x := 0; x < m.W; x++ {
+					renderBuffer.WriteRune('[')
+					renderBuffer.Write(m.Block(x, y).Color())
+					renderBuffer.WriteRune(']')
+					renderBuffer.WriteRune('█')
+					renderBuffer.WriteRune('█')
+					renderBuffer.Write([]byte("[-]"))
+				}
+
+				if m.Type == mino.MatrixStandard {
+					renderBuffer.Write(renderVLine)
+				}
+			}
+
+			if y != 0 || mt != mino.MatrixCustom {
+				renderBuffer.WriteRune('\n')
+			}
+		}
+	} else {
+		for y := mh - 1; y >= 0; y-- {
+			for repeat := 0; repeat < 2; repeat++ {
+				for i, m := range mx {
+					if i > 0 {
+						renderBuffer.WriteString(div)
+					}
+
+					if m.Type == mino.MatrixStandard {
+						renderBuffer.Write(renderVLine)
+					} else if m.Type == mino.MatrixPreview {
+						if nextPieceWidth == 2 {
+							renderBuffer.WriteRune(' ')
+							renderBuffer.WriteRune(' ')
+						} else if nextPieceWidth < 4 {
+							renderBuffer.WriteRune(' ')
+						}
+					}
+
+					for x := 0; x < m.W; x++ {
+						renderBuffer.WriteRune('[')
+						renderBuffer.Write(m.Block(x, y).Color())
+						renderBuffer.WriteRune(']')
+						renderBuffer.WriteRune('█')
+						renderBuffer.WriteRune('█')
+						renderBuffer.WriteRune('█')
+						renderBuffer.Write([]byte("[-]"))
+					}
+
+					if m.Type == mino.MatrixStandard {
+						renderBuffer.Write(renderVLine)
+					}
+				}
+
+				if y != 0 || mt != mino.MatrixCustom {
+					renderBuffer.WriteRune('\n')
+				}
+			}
 		}
 	}
 
-	for i := range mx {
-		if i > 0 {
-			renderBuffer.WriteString(div)
+	if mt == mino.MatrixStandard {
+		for i := range mx {
+			if i > 0 {
+				renderBuffer.WriteString(div)
+			}
+
+			renderBuffer.Write(renderLLCorner)
+			for x := 0; x < mx[i].W*bs; x++ {
+				renderBuffer.Write(renderHLine)
+			}
+			renderBuffer.Write(renderLRCorner)
 		}
 
-		renderBuffer.Write(renderLLCorner)
-		for x := 0; x < mx[i].W*blockSize; x++ {
-			renderBuffer.Write(renderHLine)
+		renderBuffer.WriteRune('\n')
+
+		for i, m := range mx {
+			if i > 0 {
+				renderBuffer.WriteString(div)
+			}
+
+			renderPlayerDetails(m, bs)
 		}
-		renderBuffer.Write(renderLRCorner)
-	}
-
-	renderBuffer.WriteRune('\n')
-
-	for i, m := range mx {
-		if i > 0 {
-			renderBuffer.WriteString(div)
-		}
-
-		renderPlayerDetails(m, blockSize)
 	}
 
 	for i := range mx {

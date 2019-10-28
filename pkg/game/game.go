@@ -148,7 +148,8 @@ func (g *Game) AddPlayerL(p *Player) {
 
 	g.Players[p.Player] = p
 
-	p.Preview = mino.NewMatrix(g.Rank, g.Rank-1, 0, 1, g.Event, g.draw, mino.MatrixPreview)
+	// TODO Verify rank-2 is valid for all playable rank previews
+	p.Preview = mino.NewMatrix(g.Rank, g.Rank-2, 0, 1, g.Event, g.draw, mino.MatrixPreview)
 	p.Preview.PlayerName = p.Name
 
 	p.Matrix = mino.NewMatrix(10, 20, 4, 1, g.Event, g.draw, mino.MatrixStandard)
@@ -258,7 +259,7 @@ func (g *Game) StartL(seed int64) int64 {
 	g.TimeStarted = time.Now()
 
 	if g.LocalPlayer == PlayerUnknown {
-		panic("Player unknown")
+		log.Fatal("failed to start game: player unknown")
 	}
 
 	if seed == 0 {
@@ -269,7 +270,7 @@ func (g *Game) StartL(seed int64) int64 {
 	for _, p := range g.Players {
 		bag, err := mino.NewBag(g.Seed, g.Minos, 10)
 		if err != nil {
-			panic(err)
+			log.Fatalf("failed to start game: failed to create bag: %s", err)
 		}
 
 		p.Preview.AttachBag(bag)
@@ -277,9 +278,10 @@ func (g *Game) StartL(seed int64) int64 {
 	}
 
 	// Take piece on host as well to give initial position for start of game
-	for _, p := range g.Players {
+	for playerID, p := range g.Players {
 		if !p.Matrix.TakePiece() {
 			g.Log(LogStandard, "Failed to take piece while starting game for player ", p.Player)
+			g.RemovePlayerL(playerID)
 		}
 	}
 
@@ -427,14 +429,10 @@ func (g *Game) handleDistributeMatrixes() {
 			g.setGameOverL(true)
 
 			winner := "Tie!"
-			if remainingPlayer != -1 {
-				winner = g.Players[remainingPlayer].Name
-			}
-			g.WriteAllL(&GameCommandGameOver{Player: 0, Winner: winner})
-
 			var otherPlayers string
 			for i := range g.Players {
 				if i == remainingPlayer {
+					winner = g.Players[remainingPlayer].Name
 					continue
 				}
 				if otherPlayers != "" {
@@ -443,6 +441,8 @@ func (g *Game) handleDistributeMatrixes() {
 
 				otherPlayers += g.Players[i].Name
 			}
+
+			g.WriteAllL(&GameCommandGameOver{Winner: winner})
 
 			g.WriteMessage("Game over - winner: " + winner)
 			g.WriteMessage("Garbage sent/received:")
@@ -772,7 +772,10 @@ func (g *Game) handleDropTerminatedPlayers() {
 	for {
 		time.Sleep(15 * time.Second)
 
+		g.Lock()
+
 		if g.Terminated {
+			g.Unlock()
 			return
 		}
 
@@ -781,13 +784,15 @@ func (g *Game) handleDropTerminatedPlayers() {
 				g.RemovePlayerL(playerID)
 			}
 		}
+
+		g.Unlock()
 	}
 }
 
 func GameName(name string) string {
 	name = gameNameRegexp.ReplaceAllString(strings.TrimSpace(name), "")
-	if len(name) > 28 {
-		name = name[:28]
+	if len(name) > 24 {
+		name = name[:24]
 	} else if name == "" {
 		name = "netris"
 	}

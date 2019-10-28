@@ -60,7 +60,14 @@ func main() {
 
 	sshServer := &ssh.SSHServer{ListenAddress: listenAddressSSH, NetrisBinary: netrisBinary, NetrisAddress: netrisAddress}
 
-	server := game.NewServer([]game.ServerInterface{sshServer})
+	logLevel := game.LogStandard
+	if logVerbose {
+		logLevel = game.LogVerbose
+	} else if logDebug {
+		logLevel = game.LogDebug
+	}
+
+	server := game.NewServer([]game.ServerInterface{sshServer}, logLevel)
 
 	logger := make(chan string, game.LogQueueSize)
 	go func() {
@@ -91,20 +98,4 @@ func main() {
 	<-done
 
 	server.StopListening()
-
-	/*
-		i, err := strconv.Atoi(flag.Arg(0))
-		if err != nil {
-			panic(err)
-		}
-
-		minos, err := mino.Generate(i)
-		if err != nil {
-			panic(err)
-		}
-		for _, m := range minos {
-			log.Println(m.Render())
-			log.Println()
-			log.Println()
-		}*/
 }

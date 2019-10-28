@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	SubTitle = "   .rocketnine.space         v"
+	SubTitle = " .rocketnine.space         v"
 )
 
 var (
@@ -300,15 +300,15 @@ func renderTitle() {
 
 	renderLock.Lock()
 
-	renderMatrix(titleMatrix)
+	renderMatrixes([]*mino.Matrix{titleMatrix})
 	titleName.Clear()
 	titleName.Write(renderBuffer.Bytes())
 
-	renderMatrix(titleMatrixL)
+	renderMatrixes([]*mino.Matrix{titleMatrixL})
 	titleL.Clear()
 	titleL.Write(renderBuffer.Bytes())
 
-	renderMatrix(titleMatrixR)
+	renderMatrixes([]*mino.Matrix{titleMatrixR})
 	titleR.Clear()
 	titleR.Write(renderBuffer.Bytes())
 
@@ -316,7 +316,7 @@ func renderTitle() {
 }
 
 func renderGameList() {
-	w := 36
+	w := 32
 
 	gameListView.Clear()
 	gameListView.Write(renderULCorner)
@@ -327,7 +327,7 @@ func renderGameList() {
 	gameListView.Write([]byte("\n"))
 
 	gameListView.Write(renderVLine)
-	gameListView.Write([]byte(fmt.Sprintf("%-29s%s", "Game", "Players")))
+	gameListView.Write([]byte(fmt.Sprintf("%-25s%s", "Game", "Players")))
 	gameListView.Write(renderVLine)
 	gameListView.Write([]byte("\n"))
 
@@ -338,7 +338,7 @@ func renderGameList() {
 	gameListView.Write(renderRTee)
 	gameListView.Write([]byte("\n"))
 
-	h := 8
+	h := 9
 
 	for i, g := range gameList {
 		p := strconv.Itoa(g.Players)
@@ -350,7 +350,7 @@ func renderGameList() {
 		if titleSelectedButton == 0 && gameListSelected == i {
 			gameListView.Write([]byte("[#000000:#FFFFFF]"))
 		}
-		gameListView.Write([]byte(fmt.Sprintf("%-29s%7s", g.Name, p)))
+		gameListView.Write([]byte(fmt.Sprintf("%-25s%7s", g.Name, p)))
 		if titleSelectedButton == 0 && gameListSelected == i {
 			gameListView.Write([]byte("[-:-]"))
 		}

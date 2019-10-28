@@ -216,7 +216,7 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 						titleScreen = 5
 						titleSelectedButton = 0
 
-						modal := tview.NewModal().SetText("Joining another server by IP via GUI is not yet implemented.\nPlease re-launch netris with the --connect argument instead.\n\nPress Escape to go back").ClearButtons()
+						modal := tview.NewModal().SetText("Joining another server by IP via GUI is not yet implemented.\nPlease re-launch netris with the --connect argument instead.\n\nPress Escape to return.").ClearButtons()
 						app.SetRoot(modal, true)
 					} else if titleSelectedButton == 3 {
 						titleScreen = 0

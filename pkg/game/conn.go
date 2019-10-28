@@ -137,7 +137,7 @@ func (s *Conn) handleRead() {
 		um = func(mgc interface{}) {
 			err := json.Unmarshal(msg.Data, mgc)
 			if err != nil {
-				panic(err)
+				s.Close()
 			}
 		}
 	)
@@ -147,7 +147,7 @@ func (s *Conn) handleRead() {
 
 		err := json.Unmarshal(scanner.Bytes(), &msg)
 		if err != nil {
-			panic(err)
+			break
 		}
 
 		s.LastTransfer = time.Now()
@@ -216,7 +216,7 @@ func (s *Conn) handleRead() {
 			um(&mgc)
 			gc = &mgc
 		default:
-			// TODO Place beind debug log level
+			// TODO Require at least debug log level
 			log.Println("unknown serverconn command", scanner.Text())
 			continue
 		}
@@ -228,8 +228,7 @@ func (s *Conn) handleRead() {
 
 		err = s.conn.SetReadDeadline(time.Now().Add(ConnTimeout))
 		if err != nil {
-			s.Close()
-			return
+			break
 		}
 	}
 
@@ -292,8 +291,9 @@ func (s *Conn) Close() {
 
 	s.Terminated = true
 
+	s.conn.Close()
+
 	go func() {
-		s.conn.Close()
 		s.Wait()
 		close(s.In)
 		close(s.out)

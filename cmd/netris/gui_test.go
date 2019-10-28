@@ -19,7 +19,7 @@ func TestRenderMatrix(t *testing.T) {
 
 	m.AddTestBlocks()
 
-	renderMatrix(m)
+	renderPlayerMatrix(m)
 }
 
 func BenchmarkRenderStandardMatrix(b *testing.B) {
@@ -39,7 +39,7 @@ func BenchmarkRenderStandardMatrix(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		renderMatrix(m)
+		renderPlayerMatrix(m)
 	}
 }
 
@@ -60,7 +60,7 @@ func BenchmarkRenderLargeMatrix(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		renderMatrix(m)
+		renderPlayerMatrix(m)
 	}
 
 	blockSize = 1

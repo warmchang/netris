@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -23,6 +24,8 @@ const (
 	ServerIdleTimeout = 1 * time.Minute
 )
 
+var server *ssh.Server
+
 type SSHServer struct {
 	ListenAddress string
 	NetrisBinary  string
@@ -36,15 +39,15 @@ func setWinsize(f *os.File, w, h int) {
 
 func (s *SSHServer) Host(newPlayers chan<- *game.IncomingPlayer) {
 	if s.ListenAddress == "" {
-		panic("SSH server ListenAddress must be specified")
+		return
 	}
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to retrieve user home dir: %s", err)
 	}
 
-	server := &ssh.Server{
+	server = &ssh.Server{
 		Addr:        s.ListenAddress,
 		IdleTimeout: ServerIdleTimeout,
 		Handler: func(sshSession ssh.Session) {
@@ -63,7 +66,10 @@ func (s *SSHServer) Host(newPlayers chan<- *game.IncomingPlayer) {
 
 			f, err := pty.Start(cmd)
 			if err != nil {
-				panic(err)
+				io.WriteString(sshSession, fmt.Sprintf("failed to start netris: failed to initialize pseudo-terminal: %s\n", err))
+
+				sshSession.Exit(1)
+				return
 			}
 			defer f.Close()
 
@@ -99,17 +105,17 @@ func (s *SSHServer) Host(newPlayers chan<- *game.IncomingPlayer) {
 
 	err = server.SetOption(ssh.HostKeyFile(path.Join(homeDir, ".ssh", "id_rsa")))
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to start SSH server: failed to set host key file: %s", err)
 	}
 
 	go func() {
 		err := server.ListenAndServe()
 		if err != nil {
-			panic(err)
+			log.Fatalf("failed to start SSH server: %s", err)
 		}
 	}()
 }
 
 func (s *SSHServer) Shutdown(reason string) {
-	// Stop listening
+	server.Close()
 }

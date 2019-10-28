@@ -26,7 +26,11 @@ import (
 var (
 	done = make(chan bool)
 
-	activeGame *game.Game
+	activeGame     *game.Game
+	activeGameConn *game.Conn
+
+	server         *game.Server
+	localListenDir string
 
 	connectAddress string
 	serverAddress  string
@@ -62,7 +66,7 @@ func main() {
 
 			log.Println()
 			log.Println()
-			log.Fatalf("panic: %+v", r)
+			log.Fatalf("caught panic: %+v", r)
 		}
 	}()
 
@@ -143,13 +147,18 @@ func main() {
 		connectAddress = serverAddress
 	}
 
-	var (
-		server         *game.Server
-		localListenDir string
-	)
-
-	go func(server *game.Server) {
+	go func() {
 		<-done
+
+		if activeGameConn != nil {
+			if server == nil {
+				activeGameConn.Write(&game.GameCommandDisconnect{})
+				activeGameConn.Wait()
+			}
+
+			activeGameConn.Close()
+		}
+
 		if server != nil {
 			server.StopListening()
 		}
@@ -160,7 +169,7 @@ func main() {
 		closeGUI()
 
 		os.Exit(0)
-	}(server)
+	}()
 
 	for {
 		gameID := <-joinGame
@@ -184,7 +193,7 @@ func main() {
 				logMessage(fmt.Sprintf("* Connecting to %s...", connectAddress))
 			}
 
-			s, err := game.Connect(connectAddress)
+			activeGameConn, err = game.Connect(connectAddress)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -206,7 +215,7 @@ func main() {
 				newGame = &game.ListedGame{Name: game.GameName(newGameNameInput.GetText()), MaxPlayers: maxPlayers, SpeedLimit: speedLimit}
 			}
 
-			activeGame, err = s.JoinGame(nickname, gameID, newGame, logger, draw)
+			activeGame, err = activeGameConn.JoinGame(nickname, gameID, newGame, logger, draw)
 			if err != nil {
 				log.Fatalf("failed to connect to %s: %s", connectAddress, err)
 			}
@@ -222,7 +231,7 @@ func main() {
 		joinedGame = true
 		setTitleVisible(false)
 
-		server = game.NewServer(nil)
+		server = game.NewServer(nil, logLevel)
 
 		server.Logger = make(chan string, game.LogQueueSize)
 		if logDebug || logVerbose {
@@ -247,14 +256,14 @@ func main() {
 
 		go server.Listen(localListenAddress)
 
-		localServerConn, err := game.Connect(localListenAddress)
+		activeGameConn, err = game.Connect(localListenAddress)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("failed to create local game: %s", err)
 		}
 
-		activeGame, err = localServerConn.JoinGame(nickname, event.GameIDNewLocal, nil, logger, draw)
+		activeGame, err = activeGameConn.JoinGame(nickname, event.GameIDNewLocal, nil, logger, draw)
 		if err != nil {
-			panic(err)
+			log.Fatalf("failed to join local game: %s", err)
 		}
 
 		activeGame.LogLevel = logLevel
@@ -271,7 +280,7 @@ func main() {
 			for i := range startMatrixSplit {
 				token, err = strconv.Atoi(startMatrixSplit[i])
 				if err != nil {
-					panic(fmt.Sprintf("failed to parse initial matrix on token #%d", i))
+					log.Fatalf("failed to parse custom matrix on token #%d", i)
 				}
 				if i%2 == 1 {
 					activeGame.Players[activeGame.LocalPlayer].Matrix.SetBlock(x, token, mino.BlockGarbage, false)

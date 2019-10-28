@@ -273,9 +273,11 @@ func renderPlayerGUI() {
 
 	player.Preview.Clear()
 
-	err := player.Preview.Add(p, p.Solid, mino.Point{0, 0}, false)
-	if err != nil {
-		log.Fatalf("failed to render preview matrix: %+v", err)
+	if !player.Matrix.GameOver {
+		err := player.Preview.Add(p, p.Solid, mino.Point{0, 0}, false)
+		if err != nil {
+			log.Fatalf("failed to render preview matrix: failed to add ghost piece: %+v", err)
+		}
 	}
 
 	m.Lock()
@@ -453,9 +455,9 @@ func renderMatrixes(mx []*mino.Matrix) {
 
 				for x := 0; x < m.W; x++ {
 					renderBuffer.WriteRune('[')
-					renderBuffer.Write(m.Block(x, y-1).Color())
+					renderBuffer.Write(mino.Colors[m.Block(x, y-1)])
 					renderBuffer.WriteRune(':')
-					renderBuffer.Write(m.Block(x, y).Color())
+					renderBuffer.Write(mino.Colors[m.Block(x, y)])
 					renderBuffer.WriteRune(']')
 					renderBuffer.WriteRune('▄')
 					renderBuffer.Write([]byte("[-:-]"))
@@ -466,7 +468,7 @@ func renderMatrixes(mx []*mino.Matrix) {
 				}
 			}
 
-			if y != 0 || mt != mino.MatrixCustom {
+			if y > 1 || mt != mino.MatrixCustom {
 				renderBuffer.WriteRune('\n')
 			}
 		}
@@ -488,7 +490,7 @@ func renderMatrixes(mx []*mino.Matrix) {
 
 				for x := 0; x < m.W; x++ {
 					renderBuffer.WriteRune('[')
-					renderBuffer.Write(m.Block(x, y).Color())
+					renderBuffer.Write(mino.Colors[m.Block(x, y)])
 					renderBuffer.WriteRune(']')
 					renderBuffer.WriteRune('█')
 					renderBuffer.WriteRune('█')
@@ -525,7 +527,7 @@ func renderMatrixes(mx []*mino.Matrix) {
 
 					for x := 0; x < m.W; x++ {
 						renderBuffer.WriteRune('[')
-						renderBuffer.Write(m.Block(x, y).Color())
+						renderBuffer.Write(mino.Colors[m.Block(x, y)])
 						renderBuffer.WriteRune(']')
 						renderBuffer.WriteRune('█')
 						renderBuffer.WriteRune('█')

@@ -340,10 +340,7 @@ func (s *Server) handleGameCommands(pl *Player, g *Game) {
 
 		switch p := e.(type) {
 		case *GameCommandDisconnect:
-			log.Printf("%+v", g.Players)
-			if _, ok := g.Players[p.SourcePlayer]; ok {
-				g.RemovePlayerL(p.SourcePlayer)
-			}
+			g.RemovePlayerL(p.SourcePlayer)
 		case *GameCommandMessage:
 			if player, ok := g.Players[p.SourcePlayer]; ok {
 				s.Logf("<%s> %s", player.Name, p.Message)

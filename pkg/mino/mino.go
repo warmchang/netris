@@ -59,21 +59,20 @@ func (m Mino) Equal(other Mino) bool {
 }
 
 func (m Mino) String() string {
-	newMino := make(Mino, len(m))
-	copy(newMino, m)
-
-	sort.Sort(newMino)
+	sort.Sort(m)
 
 	var b strings.Builder
-	for i := range newMino {
+	b.Grow(5*len(m) + (len(m) - 1))
+
+	for i := range m {
 		if i > 0 {
 			b.WriteRune(',')
 		}
 
 		b.WriteRune('(')
-		b.WriteString(strconv.Itoa(newMino[i].X))
+		b.WriteString(strconv.Itoa(m[i].X))
 		b.WriteRune(',')
-		b.WriteString(strconv.Itoa(newMino[i].Y))
+		b.WriteString(strconv.Itoa(m[i].Y))
 		b.WriteRune(')')
 	}
 

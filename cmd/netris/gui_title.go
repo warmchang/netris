@@ -338,7 +338,7 @@ func renderGameList() {
 	gameListView.Write(renderRTee)
 	gameListView.Write([]byte("\n"))
 
-	h := 9
+	h := 10
 
 	for i, g := range gameList {
 		p := strconv.Itoa(g.Players)

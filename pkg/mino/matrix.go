@@ -30,8 +30,8 @@ type Matrix struct {
 	H int `json:"-"` // Height
 	B int `json:"-"` // Buffer height
 
-	M map[int]Block // Matrix
-	O map[int]Block `json:"-"` // Overlay
+	M []Block // Matrix
+	O []Block `json:"-"` // Overlay
 
 	Bag        *Bag `json:"-"`
 	P          *Piece
@@ -66,9 +66,17 @@ func I(x int, y int, w int) int {
 }
 
 func NewMatrix(w int, h int, b int, players int, event chan<- interface{}, draw chan event.DrawObject, t MatrixType) *Matrix {
-	m := Matrix{W: w, H: h, B: b, M: make(map[int]Block), O: make(map[int]Block), Event: event, draw: draw, Type: t}
-
-	m.Move = make(chan int, 10)
+	m := Matrix{
+		Type:  t,
+		W:     w,
+		H:     h,
+		B:     b,
+		M:     make([]Block, w*(h+b)),
+		O:     make([]Block, w*(h+b)),
+		Event: event,
+		Move:  make(chan int, 10),
+		draw:  draw,
+	}
 
 	return &m
 }
@@ -212,7 +220,7 @@ func (m *Matrix) add(mn *Piece, b Block, loc Point, overlay bool) error {
 		x, y  int
 		index int
 
-		M map[int]Block
+		M []Block
 	)
 
 	if overlay {
@@ -368,8 +376,8 @@ func (m *Matrix) ClearOverlay() {
 }
 
 func (m *Matrix) clearOverlay() {
-	for i := range m.O {
-		if m.O[i] == BlockNone {
+	for i, b := range m.O {
+		if b == BlockNone {
 			continue
 		}
 
@@ -396,8 +404,8 @@ func (m *Matrix) Clear() {
 	m.Lock()
 	defer m.Unlock()
 
-	for i := range m.M {
-		if m.M[i] == BlockNone {
+	for i, b := range m.M {
+		if b == BlockNone {
 			continue
 		}
 
@@ -447,29 +455,15 @@ func (m *Matrix) DrawPiecesL() {
 	}
 }
 
-func (m *Matrix) NewM() map[int]Block {
-	newM := make(map[int]Block, len(m.M))
-	for i, b := range m.M {
-		newM[i] = b
-	}
-
-	return newM
-}
-
-func (m *Matrix) NewO() map[int]Block {
-	newO := make(map[int]Block, len(m.O))
-	for i, b := range m.O {
-		newO[i] = b
-	}
-
-	return newO
-}
-
 func (m *Matrix) Block(x int, y int) Block {
 	index := I(x, y, m.W)
+	if index < 0 || index > m.W*(m.H+m.B) {
+		return BlockGarbage
+	}
 
 	// Return overlay block first
-	if b, ok := m.O[index]; ok && b != BlockNone {
+	b := m.O[index]
+	if b != BlockNone {
 		return b
 	}
 
@@ -519,13 +513,13 @@ func (m *Matrix) SetBlock(x int, y int, block Block, overlay bool) bool {
 	index := I(x, y, m.W)
 
 	if overlay {
-		if b, ok := m.O[index]; ok && b != BlockNone {
+		if m.O[index] != BlockNone {
 			return false
 		}
 
 		m.O[index] = block
 	} else {
-		if b, ok := m.M[index]; ok && b != BlockNone {
+		if m.M[index] != BlockNone {
 			return false
 		}
 

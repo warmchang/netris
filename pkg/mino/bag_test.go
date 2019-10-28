@@ -22,8 +22,8 @@ func TestBag(t *testing.T) {
 		b, err := NewBag(0, minos, 10)
 		if err != nil {
 			t.Errorf("failed to create bag for rank %d: %s", d.Rank, err)
-
 		}
+
 		taken := make(map[string]int)
 		for i := 1; i < 4; i++ {
 			for i := 0; i < len(d.Minos); i++ {

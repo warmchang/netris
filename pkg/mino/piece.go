@@ -20,58 +20,41 @@ type RotationOffsets []Point
 type PieceType int
 
 const (
-	PieceI PieceType = iota
+	PieceUnknown PieceType = iota
+	PieceI
 	PieceO
 	PieceJ
 	PieceL
 	PieceS
 	PieceT
 	PieceZ
-
-	PieceJLSTZ
 )
 
-var AllRotationPivotsCW = map[PieceType][]Point{
-	PieceI: {{1, -2}, {-1, 0}, {1, -1}, {0, 0}},
-	PieceO: {{1, 0}, {1, 0}, {1, 0}, {1, 0}},
-	PieceJ: {{1, -1}, {0, 0}, {1, 0}, {1, 0}},
-	PieceL: {{1, -1}, {0, 0}, {1, 0}, {1, 0}},
-	PieceS: {{1, -1}, {0, 0}, {1, 0}, {1, 0}},
-	PieceT: {{1, -1}, {0, 0}, {1, 0}, {1, 0}},
-	PieceZ: {{1, -1}, {0, 0}, {1, 0}, {1, 0}},
+var AllRotationPivotsCW = [][]Point{
+	PieceUnknown: {{0, 0}, {0, 0}, {0, 0}, {0, 0}},
+	PieceI:       {{1, -2}, {-1, 0}, {1, -1}, {0, 0}},
+	PieceO:       {{1, 0}, {1, 0}, {1, 0}, {1, 0}},
+	PieceJ:       {{1, -1}, {0, 0}, {1, 0}, {1, 0}},
+	PieceL:       {{1, -1}, {0, 0}, {1, 0}, {1, 0}},
+	PieceS:       {{1, -1}, {0, 0}, {1, 0}, {1, 0}},
+	PieceT:       {{1, -1}, {0, 0}, {1, 0}, {1, 0}},
+	PieceZ:       {{1, -1}, {0, 0}, {1, 0}, {1, 0}},
 }
 
-// IN PROGRESS
-var AllRotationPivotsCCW = map[PieceType][]Point{
-	PieceI: {{2, 1}, {-1, 00}, {2, 2}, {1, 3}},
-	PieceO: {{0, 1}, {0, 1}, {0, 1}, {0, 1}},
-	PieceJ: {{1, 1}, {0, 0}, {1, 2}, {1, 2}},
-	PieceL: {{1, 1}, {0, 0}, {1, 2}, {1, 2}},
-	PieceS: {{1, 1}, {0, 0}, {1, 2}, {1, 2}},
-	PieceT: {{1, 1}, {0, 2}, {1, 2}, {1, 2}},
-	PieceZ: {{1, 1}, {0, 0}, {1, 2}, {1, 2}},
+var AllRotationPivotsCCW = [][]Point{
+	PieceUnknown: {{0, 0}, {0, 0}, {0, 0}, {0, 0}},
+	PieceI:       {{2, 1}, {-1, 00}, {2, 2}, {1, 3}},
+	PieceO:       {{0, 1}, {0, 1}, {0, 1}, {0, 1}},
+	PieceJ:       {{1, 1}, {0, 0}, {1, 2}, {1, 2}},
+	PieceL:       {{1, 1}, {0, 0}, {1, 2}, {1, 2}},
+	PieceS:       {{1, 1}, {0, 0}, {1, 2}, {1, 2}},
+	PieceT:       {{1, 1}, {0, 2}, {1, 2}, {1, 2}},
+	PieceZ:       {{1, 1}, {0, 0}, {1, 2}, {1, 2}},
 }
 
-// AllRotationOffets is a list of all piece offsets.  Each set includes offsets
-// for 0, R, L and 2 rotation states.
+// Rotation offsets
 var AllOffsets = []Point{{0, 0}, {-1, 0}, {1, 0}, {0, -1}, {-1, -1}, {1, -1}, {-2, 0}, {2, 0}}
 
-/*
-var AllRotationOffsets = map[PieceType][]RotationOffsets{
-	PieceI: {
-		{{0, 0}, {-1, 0}, {-1, 1}, {0, 1}},
-		{{-1, 0}, {0, 0}, {1, 1}, {0, 1}},
-		{{2, 0}, {0, 0}, {-2, 1}, {0, 1}},
-		{{-1, 0}, {0, 1}, {1, 0}, {0, -1}},
-		{{2, 0}, {0, -2}, {-2, 0}, {0, 2}}},
-	PieceO: {{{0, 0}, {0, -1}, {-1, -1}, {-1, 0}}},
-	PieceJLSTZ: {
-		{{0, 0}, {0, 0}, {0, 0}, {0, 0}},
-		{{0, 0}, {1, 0}, {0, 0}, {-1, 0}},
-		{{0, 0}, {1, -1}, {0, 0}, {-1, -1}},
-		{{0, 0}, {0, 2}, {0, 0}, {0, 2}},
-		{{0, 0}, {1, 2}, {0, 0}, {-1, 2}}}}
-*/
 type Piece struct {
 	Point    `json:"pp,omitempty"`
 	Mino     `json:"pm,omitempty"`

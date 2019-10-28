@@ -88,10 +88,17 @@ func initGUI(skipTitle bool) (*tview.Application, error) {
 		piece      *mino.Piece
 		addToRight bool
 		i          int
+		offset     int
 	)
 	for y := 0; y < 11; y++ {
 		for x := 0; x < 4; x++ {
-			piece = mino.NewPiece(minos[i], mino.Point{(x * 5) + 2, (y * 5)})
+			if !addToRight {
+				offset = 3
+			} else {
+				offset = 2
+			}
+
+			piece = mino.NewPiece(minos[i], mino.Point{(x * 5) + offset, (y * 5)})
 
 			i++
 			if i == len(minos) {
@@ -137,22 +144,23 @@ func initGUI(skipTitle bool) (*tview.Application, error) {
 	buttonC = tview.NewButton("C")
 	buttonLabelC = tview.NewTextView().SetTextAlign(tview.AlignCenter)
 
-	titleNameGrid := tview.NewGrid().SetRows(3).
+	titleNameGrid := tview.NewGrid().SetRows(3, 2).
 		AddItem(titleName, 0, 0, 1, 1, 0, 0, false).
 		AddItem(tview.NewTextView().SetText(SubTitle+game.Version), 1, 0, 1, 1, 0, 0, false)
 
 	titleGrid = tview.NewGrid().
-		SetRows(5, 3, 3, 3, 3, 3, 4).
+		SetRows(5, 3, 3, 3, 3, 3, 3).
 		SetColumns(-1, 34, -1).
-		AddItem(titleL, 0, 0, 7, 1, 0, 0, false).
+		AddItem(titleL, 0, 0, 8, 1, 0, 0, false).
 		AddItem(titleNameGrid, 0, 1, 1, 1, 0, 0, false).
-		AddItem(titleR, 0, 2, 7, 1, 0, 0, false).
+		AddItem(titleR, 0, 2, 8, 1, 0, 0, false).
 		AddItem(buttonA, 1, 1, 1, 1, 0, 0, false).
 		AddItem(buttonLabelA, 2, 1, 1, 1, 0, 0, false).
 		AddItem(buttonB, 3, 1, 1, 1, 0, 0, false).
 		AddItem(buttonLabelB, 4, 1, 1, 1, 0, 0, false).
 		AddItem(buttonC, 5, 1, 1, 1, 0, 0, false).
-		AddItem(buttonLabelC, 6, 1, 1, 1, 0, 0, false)
+		AddItem(buttonLabelC, 6, 1, 1, 1, 0, 0, false).
+		AddItem(pad, 7, 1, 1, 1, 0, 0, false)
 
 	gameListView = tview.NewTextView().SetDynamicColors(true)
 
@@ -167,7 +175,7 @@ func initGUI(skipTitle bool) (*tview.Application, error) {
 	gameListHeader = tview.NewTextView().SetTextAlign(tview.AlignCenter)
 
 	gameListGrid = tview.NewGrid().
-		SetRows(5, 1, -1, 1, 3).
+		SetRows(5, 1, 14, 1, 3).
 		SetColumns(-1, 34, -1).
 		AddItem(titleL, 0, 0, 5, 1, 0, 0, false).
 		AddItem(titleNameGrid, 0, 1, 1, 1, 0, 0, false).
@@ -412,7 +420,7 @@ func newTitleMatrixName() *mino.Matrix {
 		}
 	}()
 
-	m := mino.NewMatrix(36, 5, 0, 1, ev, draw, mino.MatrixCustom)
+	m := mino.NewMatrix(36, 6, 0, 1, ev, draw, mino.MatrixCustom)
 
 	centerStart := (m.W / 2) - 17
 

@@ -1,5 +1,26 @@
 package mino
 
+// Dark color ghosts are 60% original overlaid #777777
+// Light color ghosts are 40% original overlaid #888888
+var Colors = [][]byte{
+	BlockNone:         []byte("#000000"),
+	BlockGarbage:      []byte("#999999"),
+	BlockGhostBlue:    []byte("#6e7bc3"),
+	BlockGhostCyan:    []byte("#6bbaba"),
+	BlockGhostRed:     []byte("#ba6b6b"),
+	BlockGhostYellow:  []byte("#b1b16b"),
+	BlockGhostMagenta: []byte("#a16ba8"),
+	BlockGhostGreen:   []byte("#6bb76b"),
+	BlockGhostOrange:  []byte("#c3806c"),
+	BlockSolidBlue:    []byte("#2864ff"),
+	BlockSolidCyan:    []byte("#00eeee"),
+	BlockSolidRed:     []byte("#ee0000"),
+	BlockSolidYellow:  []byte("#dddd00"),
+	BlockSolidMagenta: []byte("#c000cc"),
+	BlockSolidGreen:   []byte("#00e900"),
+	BlockSolidOrange:  []byte("#ff7308"),
+}
+
 type Block int
 
 func (b Block) String() string {
@@ -16,48 +37,6 @@ func (b Block) Rune() rune {
 		return '█'
 	default:
 		return '?'
-	}
-}
-
-func (b Block) Color() []byte {
-	// Dark color ghosts are 60% original overlaid #777777
-	// Light color ghosts are 40% original overlaid #888888
-
-	switch b {
-	case BlockNone:
-		return []byte("#000000")
-	case BlockGhostBlue:
-		return []byte("#6e7bc3")
-	case BlockSolidBlue:
-		return []byte("#2864ff")
-	case BlockGhostCyan:
-		return []byte("#6bbaba")
-	case BlockSolidCyan:
-		return []byte("#00eeee")
-	case BlockGhostRed:
-		return []byte("#ba6b6b")
-	case BlockSolidRed:
-		return []byte("#ee0000")
-	case BlockGhostYellow:
-		return []byte("#b1b16b")
-	case BlockSolidYellow:
-		return []byte("#dddd00")
-	case BlockGhostMagenta:
-		return []byte("#a16ba8")
-	case BlockSolidMagenta:
-		return []byte("#c000cc")
-	case BlockGhostGreen:
-		return []byte("#6bb76b")
-	case BlockSolidGreen:
-		return []byte("#00e900")
-	case BlockGhostOrange:
-		return []byte("#c3806c")
-	case BlockSolidOrange:
-		return []byte("#ff7308")
-	case BlockGarbage:
-		return []byte("#999999")
-	default:
-		return []byte("#ffffff")
 	}
 }
 

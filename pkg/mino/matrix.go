@@ -273,10 +273,10 @@ func (m *Matrix) ClearFilled() int {
 func (m *Matrix) clearFilled() int {
 	cleared := 0
 
-	for y := 0; y < m.H+m.B; y++ {
+	for y := 0; y < (m.H+m.B)-1; y++ {
 		for {
 			if m.LineFilled(y) {
-				for my := y + 1; my < m.H+m.B; my++ {
+				for my := y + 1; my < (m.H+m.B)-1; my++ {
 					for mx := 0; mx < m.W; mx++ {
 						m.M[I(mx, my-1, m.W)] = m.M[I(mx, my, m.W)]
 					}
@@ -321,10 +321,14 @@ func (m *Matrix) ReceiveGarbage() {
 }
 
 func (m *Matrix) addGarbage(lines int) bool {
-	for my := m.H + m.B; my >= 0; my-- {
+	for my := (m.H + m.B) - 1; my >= 0; my-- {
 		for mx := 0; mx < m.W; mx++ {
-			if my >= m.H+m.B-lines && m.M[I(mx, my, m.W)] != BlockNone {
-				return false
+			if my >= (m.H+m.B-1)-lines {
+				if m.M[I(mx, my, m.W)] != BlockNone {
+					return false
+				}
+
+				continue
 			}
 
 			m.M[I(mx, my+lines, m.W)] = m.M[I(mx, my, m.W)]
@@ -456,10 +460,11 @@ func (m *Matrix) DrawPiecesL() {
 }
 
 func (m *Matrix) Block(x int, y int) Block {
-	index := I(x, y, m.W)
-	if index < 0 || index > m.W*(m.H+m.B) {
+	if x < 0 || x >= m.W || y < 0 || y >= m.H+m.B {
 		return BlockGarbage
 	}
+
+	index := I(x, y, m.W)
 
 	// Return overlay block first
 	b := m.O[index]
@@ -576,7 +581,7 @@ func (m *Matrix) SpawnLocation(p *Piece) Point {
 	w, _ := p.Size()
 	x := (m.W / 2) - (w / 2)
 
-	for y := m.H; y < m.H+m.B; y++ {
+	for y := m.H; y < (m.H+m.B)-1; y++ {
 		if m.canAddAt(p, Point{x, y}) {
 			return Point{x, y}
 		}
@@ -633,7 +638,7 @@ func (m *Matrix) finishLandingPiece() {
 LANDPIECE:
 	for y := m.P.Y; y >= 0; y-- {
 		if y == 0 || !m.canAddAt(m.P, Point{m.P.X, y - 1}) {
-			for dropY := y - 1; dropY < m.H+m.B; dropY++ {
+			for dropY := y - 1; dropY < (m.H+m.B)-1; dropY++ {
 				if !m.canAddAt(m.P, Point{m.P.X, dropY}) {
 					continue
 				}

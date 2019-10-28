@@ -425,47 +425,63 @@ func (g *Game) handleDistributeMatrixes() {
 			}
 		}
 
-		if !g.gameOver && !g.Local && remainingPlayers <= 1 {
+		requiredPlayers := 2
+		if g.Local {
+			requiredPlayers = 0
+		}
+
+		if !g.gameOver && remainingPlayers <= requiredPlayers {
 			g.setGameOverL(true)
 
-			winner := "Tie!"
-			var otherPlayers string
-			for i := range g.Players {
-				if i == remainingPlayer {
-					winner = g.Players[remainingPlayer].Name
-					continue
-				}
-				if otherPlayers != "" {
-					otherPlayers += ", "
-				}
+			if g.Local {
+				g.WriteMessage("Game over")
 
-				otherPlayers += g.Players[i].Name
-			}
+				go func() {
+					time.Sleep(3 * time.Second)
 
-			g.WriteAllL(&GameCommandGameOver{Winner: winner})
-
-			g.WriteMessage("Game over - winner: " + winner)
-			g.WriteMessage("Garbage sent/received:")
-			for _, p := range g.Players {
-				g.WriteMessage(p.Name + " - " + strconv.Itoa(p.totalGarbageSent) + "/" + strconv.Itoa(p.totalGarbageReceived))
-			}
-
-			if len(g.Players) < 2 {
-				g.WriteMessage("Game will start when there are at least two players")
-			}
-
-			go func() {
-				for {
-					time.Sleep(7 * time.Second)
-					if g.Terminated {
-						return
-					} else if len(g.Players) > 1 {
-						g.Reset()
-						g.Start(0)
-						return
+					g.Reset()
+					g.Start(0)
+				}()
+			} else {
+				winner := "Tie!"
+				var otherPlayers string
+				for i := range g.Players {
+					if i == remainingPlayer {
+						winner = g.Players[remainingPlayer].Name
+						continue
 					}
+					if otherPlayers != "" {
+						otherPlayers += ", "
+					}
+
+					otherPlayers += g.Players[i].Name
 				}
-			}()
+
+				g.WriteAllL(&GameCommandGameOver{Winner: winner})
+
+				g.WriteMessage("Game over - winner: " + winner)
+				g.WriteMessage("Garbage sent/received:")
+				for _, p := range g.Players {
+					g.WriteMessage(p.Name + " - " + strconv.Itoa(p.totalGarbageSent) + "/" + strconv.Itoa(p.totalGarbageReceived))
+				}
+
+				if len(g.Players) < 2 {
+					g.WriteMessage("Game will start when there are at least two players")
+				}
+
+				go func() {
+					for {
+						time.Sleep(7 * time.Second)
+						if g.Terminated {
+							return
+						} else if len(g.Players) > 1 {
+							g.Reset()
+							g.Start(0)
+							return
+						}
+					}
+				}()
+			}
 		}
 
 		matrixes = make(map[int]*mino.Matrix)

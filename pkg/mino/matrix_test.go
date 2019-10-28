@@ -74,4 +74,14 @@ func TestMatrix(t *testing.T) {
 			t.Errorf("failed to Move piece on iteration %d", i)
 		}
 	}
+
+	ok = m.addGarbage(1)
+	if !ok {
+		t.Error("failed to add 1 line of garbage")
+	}
+
+	ok = m.addGarbage(3)
+	if !ok {
+		t.Error("failed to add 3 line of garbage")
+	}
 }

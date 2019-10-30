@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 
 	"git.sr.ht/~tslocum/netris/pkg/mino"
@@ -10,63 +11,54 @@ func TestRenderMatrix(t *testing.T) {
 	renderLock.Lock()
 	defer renderLock.Unlock()
 
-	blockSize = 1
+	for bs := 1; bs <= 3; bs++ {
+		bs := bs // Capture
 
-	m, err := mino.NewTestMatrix()
-	if err != nil {
-		t.Error(err)
+		t.Run(fmt.Sprintf("Size=%d", bs), func(t *testing.T) {
+			blockSize = bs
+
+			m, err := mino.NewTestMatrix()
+			if err != nil {
+				t.Error(err)
+			}
+
+			m.AddTestBlocks()
+
+			mx := []*mino.Matrix{m}
+
+			renderMatrixes(mx)
+		})
 	}
 
-	m.AddTestBlocks()
-
-	mx := []*mino.Matrix{m}
-
-	renderMatrixes(mx)
+	blockSize = 1
 }
 
-func BenchmarkRenderStandardMatrix(b *testing.B) {
+func BenchmarkRenderMatrix(b *testing.B) {
 	renderLock.Lock()
 	defer renderLock.Unlock()
 
-	blockSize = 1
+	for bs := 1; bs <= 3; bs++ {
+		bs := bs // Capture
 
-	m, err := mino.NewTestMatrix()
-	if err != nil {
-		b.Error(err)
-	}
+		b.Run(fmt.Sprintf("Size=%d", bs), func(b *testing.B) {
+			blockSize = bs
 
-	m.AddTestBlocks()
+			m, err := mino.NewTestMatrix()
+			if err != nil {
+				b.Error(err)
+			}
 
-	mx := []*mino.Matrix{m}
+			m.AddTestBlocks()
 
-	b.ReportAllocs()
-	b.ResetTimer()
+			mx := []*mino.Matrix{m}
 
-	for i := 0; i < b.N; i++ {
-		renderMatrixes(mx)
-	}
-}
+			b.ReportAllocs()
+			b.ResetTimer()
 
-func BenchmarkRenderLargeMatrix(b *testing.B) {
-	renderLock.Lock()
-	defer renderLock.Unlock()
-
-	blockSize = 2
-
-	m, err := mino.NewTestMatrix()
-	if err != nil {
-		b.Error(err)
-	}
-
-	m.AddTestBlocks()
-
-	mx := []*mino.Matrix{m}
-
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		renderMatrixes(mx)
+			for i := 0; i < b.N; i++ {
+				renderMatrixes(mx)
+			}
+		})
 	}
 
 	blockSize = 1

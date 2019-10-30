@@ -5,12 +5,10 @@ import (
 )
 
 func TestGenerate(t *testing.T) {
-	var (
-		minos []Mino
-		err   error
-	)
+	t.Parallel()
+
 	for _, d := range minoTestData {
-		minos, err = Generate(d.Rank)
+		minos, err := Generate(d.Rank)
 		if err != nil {
 			t.Errorf("failed to generate minos for rank %d: %s", d.Rank, err)
 		}

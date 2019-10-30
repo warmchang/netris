@@ -5,6 +5,8 @@ import (
 )
 
 func TestMatrix(t *testing.T) {
+	t.Parallel()
+
 	m, err := NewTestMatrix()
 	if err != nil {
 		t.Error(err)
@@ -65,7 +67,7 @@ func TestMatrix(t *testing.T) {
 
 	ok = m.RotatePiece(1, 0)
 	if !ok {
-		t.Errorf("failed to rotate piece for right wall kick")
+		t.Errorf("failed to rotate piece for right 1wall kick")
 	}
 
 	for i := 0; i < 7; i++ {

@@ -427,10 +427,10 @@ func (g *Game) handleDistributeMatrixes() {
 
 		requiredPlayers := 2
 		if g.Local {
-			requiredPlayers = 0
+			requiredPlayers = 1
 		}
 
-		if !g.gameOver && remainingPlayers <= requiredPlayers {
+		if !g.gameOver && remainingPlayers < requiredPlayers {
 			g.setGameOverL(true)
 
 			if g.Local {

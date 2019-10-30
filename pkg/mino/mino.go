@@ -44,6 +44,26 @@ const (
 	PentominoR = "(0,0),(1,0),(2,0),(3,0),(1,1)"
 )
 
+func NewMino(points string) Mino {
+	var m Mino
+
+	var last int
+	for i, p := range strings.Split(strings.ReplaceAll(strings.ReplaceAll(points, "(", ""), ")", ""), ",") {
+		v, err := strconv.Atoi(p)
+		if err != nil {
+			return nil
+		}
+		if i%2 == 0 {
+			last = v
+			continue
+		}
+
+		m = append(m, Point{last, v})
+	}
+
+	return m
+}
+
 func (m Mino) Equal(other Mino) bool {
 	if len(m) != len(other) {
 		return false

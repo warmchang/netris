@@ -2,12 +2,8 @@ Knock out all of your opponents to win!
 
 # Garbage
 
-To attack opponents, lines with random holes are sent to fill their playfields.
-
-# Target
-
-Garbage is sent to the opponent who has received the least amount garbage from
-anyone.
+Clear lines quickly to send garbage lines to attack your opponents. A garbage
+line has one hole randomly placed.
 
 # Combo
 
@@ -21,7 +17,7 @@ number of lines being cleared. **It is more effective to start a combo with a
 multi-line clear.**
 
 When at least two lines are cleared, (cleared - 1) lines of garbage are sent.
-Bonus garbage is sent each time the counter increases.
+**Bonus garbage is sent each time the counter increases.**
 
 | Counter | Base time | Bonus time | Bonus garbage |
 |---|---|---|---|
@@ -35,3 +31,12 @@ Bonus garbage is sent each time the counter increases.
 8 | 0.019 | 0.009 | 5
 9 | 0.009 | 0.005 | 8
 10 | 0.005 | 0.002 | 13
+
+# Target
+
+Garbage is sent to the opponent who has received the least garbage from anyone.
+
+# Countering
+
+Any garbage you send will instead remove the same number of lines from your
+pending garbage, when you have any. Remaining garbage is still sent normally.

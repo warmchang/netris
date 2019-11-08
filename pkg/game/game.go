@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -444,24 +445,29 @@ func (g *Game) handleDistributeMatrixes() {
 				}()
 			} else {
 				winner := "Tie!"
-				var otherPlayers string
-				for i := range g.Players {
+				var (
+					garbageSent []int
+					players     []*Player
+				)
+				for i, p := range g.Players {
+					p := p // Capture
+
 					if i == remainingPlayer {
-						winner = g.Players[remainingPlayer].Name
-						continue
-					}
-					if otherPlayers != "" {
-						otherPlayers += ", "
+						winner = p.Name
 					}
 
-					otherPlayers += g.Players[i].Name
+					garbageSent = append(garbageSent, p.totalGarbageSent)
+					players = append(players, p)
 				}
+				sort.Slice(players, func(i, j int) bool {
+					return garbageSent[i] < garbageSent[j]
+				})
 
 				g.WriteAllL(&GameCommandGameOver{Winner: winner})
 
 				g.WriteMessage("Game over - winner: " + winner)
 				g.WriteMessage("Garbage sent/received:")
-				for _, p := range g.Players {
+				for _, p := range players {
 					g.WriteMessage(p.Name + " - " + strconv.Itoa(p.totalGarbageSent) + "/" + strconv.Itoa(p.totalGarbageReceived))
 				}
 

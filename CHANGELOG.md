@@ -1,5 +1,6 @@
 0.1.3:
 - Animate game over display
+- Add /nick command
 
 0.1.2:
 - Resolve early game over issue

@@ -12,4 +12,5 @@ const (
 	ActionHardDrop
 	ActionPing
 	ActionStats
+	ActionNick
 )

@@ -763,6 +763,10 @@ func (g *Game) ProcessAction(a event.GameAction) {
 	g.Lock()
 	defer g.Unlock()
 
+	g.ProcessActionL(a)
+}
+
+func (g *Game) ProcessActionL(a event.GameAction) {
 	if p, ok := g.Players[g.LocalPlayer]; ok {
 		if p.Matrix == nil {
 			return
@@ -781,6 +785,8 @@ func (g *Game) ProcessAction(a event.GameAction) {
 			p.Matrix.MovePiece(0, -1)
 		case event.ActionHardDrop:
 			p.Matrix.HardDropPiece()
+		case event.ActionNick:
+			g.out(&GameCommandNickname{Nickname: Nickname(p.Name)})
 		case event.ActionPing:
 			g.sentPing = time.Now()
 			g.out(&GameCommandPing{Message: fmt.Sprintf("m%d", g.sentPing.UnixNano())})

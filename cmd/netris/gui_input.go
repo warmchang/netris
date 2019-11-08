@@ -386,60 +386,81 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 	if inputActive {
 		switch k {
 		case tcell.KeyEnter:
+			defer setInputStatus(false)
+
 			msg := inputView.GetText()
-			if msg != "" {
-				if strings.HasPrefix(msg, "/cpu") {
-					if profileCPU == nil {
-						if len(msg) < 5 {
-							logMessage("Profile name must be specified")
-						} else {
-							profileName := strings.TrimSpace(msg[5:])
+			if strings.TrimSpace(msg) == "" {
+				return nil
+			}
 
-							var err error
-							profileCPU, err = os.Create(profileName)
-							if err != nil {
-								log.Fatal(err)
-							}
-
-							err = pprof.StartCPUProfile(profileCPU)
-							if err != nil {
-								log.Fatal(err)
-							}
-
-							logMessage(fmt.Sprintf("Started profiling CPU usage as %s", profileName))
-						}
+			msgl := strings.ToLower(msg)
+			switch {
+			case strings.HasPrefix(msgl, "/nick"):
+				if activeGame != nil && len(msg) > 6 {
+					var oldnick string
+					activeGame.Lock()
+					if p, ok := activeGame.Players[activeGame.LocalPlayer]; ok {
+						oldnick = p.Name
+						p.Name = game.Nickname(msg[6:])
 					} else {
-						pprof.StopCPUProfile()
-						profileCPU.Close()
-						profileCPU = nil
+						return nil
+					}
+					activeGame.ProcessActionL(event.ActionNick)
+					if p, ok := activeGame.Players[activeGame.LocalPlayer]; ok {
+						p.Name = oldnick
+					}
+					activeGame.Unlock()
+				}
+			case strings.HasPrefix(msgl, "/ping"):
+				if activeGame != nil {
+					activeGame.ProcessAction(event.ActionPing)
+				}
+			case strings.HasPrefix(msgl, "/stats"):
+				if activeGame != nil {
+					activeGame.ProcessAction(event.ActionStats)
+				}
+			case strings.HasPrefix(msgl, "/version"):
+				v := game.Version
+				if v == "" {
+					v = "unknown"
+				}
 
-						logMessage("Stopped profiling CPU usage")
-					}
-				} else if strings.HasPrefix(msg, "/version") {
-					v := game.Version
-					if v == "" {
-						v = "unknown"
-					}
+				logMessage(fmt.Sprintf("netris version %s", v))
+			case strings.HasPrefix(msgl, "/cpu"):
+				if profileCPU == nil {
+					if len(msg) < 5 {
+						logMessage("Profile name must be specified")
+					} else {
+						profileName := strings.TrimSpace(msg[5:])
 
-					logMessage(fmt.Sprintf("netris version %s", v))
-				} else if strings.HasPrefix(msg, "/ping") {
-					if activeGame != nil {
-						activeGame.ProcessAction(event.ActionPing)
-					}
-				} else if strings.HasPrefix(msg, "/stats") {
-					if activeGame != nil {
-						activeGame.ProcessAction(event.ActionStats)
+						var err error
+						profileCPU, err = os.Create(profileName)
+						if err != nil {
+							log.Fatal(err)
+						}
+
+						err = pprof.StartCPUProfile(profileCPU)
+						if err != nil {
+							log.Fatal(err)
+						}
+
+						logMessage(fmt.Sprintf("Started profiling CPU usage as %s", profileName))
 					}
 				} else {
-					if activeGame != nil {
-						activeGame.Event <- &event.MessageEvent{Message: msg}
-					} else {
-						logMessage("Message not sent - not currently connected to any game")
-					}
+					pprof.StopCPUProfile()
+					profileCPU.Close()
+					profileCPU = nil
+
+					logMessage("Stopped profiling CPU usage")
+				}
+			default:
+				if activeGame != nil {
+					activeGame.Event <- &event.MessageEvent{Message: msg}
+				} else {
+					logMessage("Message not sent - not currently connected to any game")
 				}
 			}
 
-			setInputStatus(false)
 			return nil
 		case tcell.KeyPgUp:
 			scrollMessages(-1)

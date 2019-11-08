@@ -60,6 +60,7 @@ func (s *SSHServer) Host(newPlayers chan<- *game.IncomingPlayer) {
 			}
 
 			cmdCtx, cancelCmd := context.WithCancel(sshSession.Context())
+			defer cancelCmd()
 
 			cmd := exec.CommandContext(cmdCtx, s.NetrisBinary, "--nick", game.Nickname(sshSession.User()), "--server", s.NetrisAddress)
 			cmd.Env = append(cmd.Env, fmt.Sprintf("TERM=%s", ptyReq.Term))
@@ -84,7 +85,6 @@ func (s *SSHServer) Host(newPlayers chan<- *game.IncomingPlayer) {
 			}()
 			io.Copy(sshSession, f)
 
-			cancelCmd()
 			cmd.Wait()
 		},
 		PtyCallback: func(ctx ssh.Context, pty ssh.Pty) bool {

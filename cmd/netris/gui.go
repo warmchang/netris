@@ -400,7 +400,7 @@ func renderPlayerDetails(m *mino.Matrix, bs int) {
 
 func renderMatrixes(mx []*mino.Matrix) {
 	renderBuffer.Reset()
-	if mx == nil || len(mx) == 0 {
+	if len(mx) == 0 {
 		return
 	}
 

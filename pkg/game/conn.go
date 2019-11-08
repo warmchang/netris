@@ -361,7 +361,7 @@ func (s *Conn) JoinGame(name string, gameID int, newGame *ListedGame, logger cha
 					g.Start(p.Seed)
 
 					if p.Started {
-						g.Players[g.LocalPlayer].Matrix.GameOver = true
+						g.Players[g.LocalPlayer].Matrix.SetGameOver()
 					}
 
 					go g.HandleReadCommands(s.In)

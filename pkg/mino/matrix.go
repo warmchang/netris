@@ -62,6 +62,10 @@ type Matrix struct {
 }
 
 func I(x int, y int, w int) int {
+	if x < 0 || x >= w || y < 0 {
+		log.Fatalf("failed to calculate matrix index %d %d %d", x, y, w)
+	}
+
 	return (y * w) + x
 }
 
@@ -452,7 +456,7 @@ func (m *Matrix) DrawPiecesL() {
 		}
 	}
 
-	// Draw piece
+	// Draw active piece
 	err := m.add(p, p.Solid, Point{p.X, p.Y}, true)
 	if err != nil {
 		log.Fatalf("failed to draw active piece: %+v", err)
@@ -466,9 +470,8 @@ func (m *Matrix) Block(x int, y int) Block {
 
 	index := I(x, y, m.W)
 
-	// Return overlay block first
-	b := m.O[index]
-	if b != BlockNone {
+	// Return overlay block when present
+	if b := m.O[index]; b != BlockNone {
 		return b
 	}
 
@@ -488,26 +491,44 @@ func (m *Matrix) SetGameOver() {
 	m.ComboStart = time.Time{}
 	m.ComboEnd = time.Time{}
 
-	for i := range m.M {
-		if m.M[i] != BlockNone && m.M[i] != BlockGarbage {
-			switch m.M[i] {
-			case BlockSolidBlue:
-				m.M[i] = BlockGhostBlue
-			case BlockSolidCyan:
-				m.M[i] = BlockGhostCyan
-			case BlockSolidGreen:
-				m.M[i] = BlockGhostGreen
-			case BlockSolidMagenta:
-				m.M[i] = BlockGhostMagenta
-			case BlockSolidOrange:
-				m.M[i] = BlockGhostOrange
-			case BlockSolidRed:
-				m.M[i] = BlockGhostRed
-			case BlockSolidYellow:
-				m.M[i] = BlockGhostYellow
+	go func() {
+		for y := 0; y < m.H+m.B-1; y++ {
+			m.Lock()
+
+			if !m.GameOver {
+				m.Unlock()
+
+				return
 			}
+
+			for x := 0; x < m.W; x++ {
+				i := I(x, y, m.W)
+
+				switch m.M[i] {
+				case BlockSolidBlue:
+					m.M[i] = BlockGhostBlue
+				case BlockSolidCyan:
+					m.M[i] = BlockGhostCyan
+				case BlockSolidGreen:
+					m.M[i] = BlockGhostGreen
+				case BlockSolidMagenta:
+					m.M[i] = BlockGhostMagenta
+				case BlockSolidOrange:
+					m.M[i] = BlockGhostOrange
+				case BlockSolidRed:
+					m.M[i] = BlockGhostRed
+				case BlockSolidYellow:
+					m.M[i] = BlockGhostYellow
+				}
+			}
+
+			m.Draw()
+
+			m.Unlock()
+
+			time.Sleep(7 * time.Millisecond)
 		}
-	}
+	}()
 }
 
 func (m *Matrix) SetBlock(x int, y int, block Block, overlay bool) bool {

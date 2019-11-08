@@ -1,3 +1,6 @@
+0.1.3:
+- Animate game over display
+
 0.1.2:
 - Resolve early game over issue
 - Resolve display issue when rendering at size 3

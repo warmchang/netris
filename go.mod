@@ -9,8 +9,8 @@ require (
 	github.com/gdamore/tcell v1.3.0
 	github.com/gliderlabs/ssh v0.2.2
 	github.com/mattn/go-isatty v0.0.10
-	github.com/mattn/go-runewidth v0.0.5 // indirect
+	github.com/mattn/go-runewidth v0.0.6 // indirect
 	github.com/tslocum/tview v0.0.0-20191018041445-09b275a4b660
-	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
-	golang.org/x/sys v0.0.0-20191025090151-53bf42e6b339 // indirect
+	golang.org/x/crypto v0.0.0-20191107222254-f4817d981bb6
+	golang.org/x/sys v0.0.0-20191105231009-c1f44814a5cd // indirect
 )

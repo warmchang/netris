@@ -156,7 +156,7 @@ func (g *Game) AddPlayerL(p *Player) {
 	p.Matrix.PlayerName = p.Name
 
 	if g.Started {
-		p.Matrix.GameOver = true
+		p.Matrix.SetGameOver()
 	}
 
 	if g.LocalPlayer == PlayerHost {
@@ -580,7 +580,7 @@ func (g *Game) HandleReadCommands(in chan GameCommandInterface) {
 				g.StartL(p.Seed)
 
 				if p.Started {
-					g.Players[g.LocalPlayer].Matrix.GameOver = true
+					g.Players[g.LocalPlayer].Matrix.SetGameOver()
 				}
 			}
 		case CommandUpdateMatrix:

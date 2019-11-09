@@ -20,7 +20,7 @@ func initGUI(skipTitle bool) (*tview.Application, error) {
 		SetText(DefaultStatusText).
 		SetLabel("> ").
 		SetFieldWidth(0).
-		SetFieldBackgroundColor(tcell.ColorDefault).
+		SetFieldBackgroundColor(tcell.ColorBlack).
 		SetFieldTextColor(tcell.ColorWhite)
 
 	inputView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {

@@ -154,16 +154,16 @@ func updateTitle() {
 			buttonLabelA.SetText("\nResume game in progress")
 
 			buttonB.SetLabel("Settings")
-			buttonLabelB.SetText("\nChange player name, keybindings, etc")
+			buttonLabelB.SetText("\nPlayer name, keybindings, etc.")
 
 			buttonC.SetLabel("Quit")
 			buttonLabelC.SetText("\nQuit game")
 		} else {
 			buttonA.SetLabel("Play")
-			buttonLabelA.SetText("\nPlay with others online")
+			buttonLabelA.SetText("\nPlay with others")
 
 			buttonB.SetLabel("Practice")
-			buttonLabelB.SetText("\nPlay by yourself")
+			buttonLabelB.SetText("\nPlay alone")
 
 			buttonC.SetLabel("Settings")
 			buttonLabelC.SetText("\nPlayer name, keybindings, etc.")

@@ -13,7 +13,7 @@ To play netris without installing, connect via [SSH](https://en.wikipedia.org/wi
 
 ## Screenshot
 
-![](https://netris.rocketnine.space/static/screenshot4.png)
+[![](https://netris.rocketnine.space/static/screenshot5.png)](https://netris.rocketnine.space/static/screenshot5.png)
 
 ## Install
 
@@ -52,9 +52,9 @@ The following libraries are used to build netris:
 
 * [tcell](https://github.com/gdamore/tcell) - User interface
 * [tview](https://github.com/rivo/tview) - User interface
-* [ssh](github.com/gliderlabs/ssh) - SSH server
-* [pty](github.com/creack/pty) - Pseudo-terminal interface
-* [go-isatty](github.com/mattn/go-isatty) - Terminal detection
+* [ssh](https://github.com/gliderlabs/ssh) - SSH server
+* [pty](https://github.com/creack/pty) - Pseudo-terminal interface
+* [go-isatty](https://github.com/mattn/go-isatty) - Terminal detection
 
 ## Disclaimer
 

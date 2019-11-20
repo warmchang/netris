@@ -380,10 +380,10 @@ func (m *Matrix) ClearOverlay() {
 	m.Lock()
 	defer m.Unlock()
 
-	m.clearOverlay()
+	m.ClearOverlayL()
 }
 
-func (m *Matrix) clearOverlay() {
+func (m *Matrix) ClearOverlayL() {
 	for i, b := range m.O {
 		if b == BlockNone {
 			continue
@@ -421,30 +421,12 @@ func (m *Matrix) Clear() {
 	}
 }
 
-func (m *Matrix) DrawPieces() {
-	m.Lock()
-	defer m.Unlock()
-
-	m.DrawPiecesL()
-}
-
-func (m *Matrix) DrawPiecesL() {
-	if m.Type != MatrixStandard {
-		return
-	}
-
-	m.clearOverlay()
-
-	if m.GameOver {
-		return
-	}
-
+func (m *Matrix) DrawGhostPieceL() {
 	p := m.P
-	if p == nil {
+	if m.Type != MatrixStandard || m.GameOver || p == nil {
 		return
 	}
 
-	// Draw ghost piece
 	for y := p.Y; y >= 0; y-- {
 		if y == 0 || !m.canAddAt(p, Point{p.X, y - 1}) {
 			err := m.add(p, p.Ghost, Point{p.X, y}, true)
@@ -455,8 +437,14 @@ func (m *Matrix) DrawPiecesL() {
 			break
 		}
 	}
+}
 
-	// Draw active piece
+func (m *Matrix) DrawActivePieceL() {
+	p := m.P
+	if m.Type != MatrixStandard || m.GameOver || p == nil {
+		return
+	}
+
 	err := m.add(p, p.Solid, Point{p.X, p.Y}, true)
 	if err != nil {
 		log.Fatalf("failed to draw active piece: %+v", err)

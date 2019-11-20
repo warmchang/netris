@@ -87,17 +87,17 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 
 		var action event.GameAction
 		switch gameSettingsSelectedButton {
-		case 0:
-			action = event.ActionRotateCCW
 		case 1:
-			action = event.ActionRotateCW
+			action = event.ActionRotateCCW
 		case 2:
-			action = event.ActionMoveLeft
+			action = event.ActionRotateCW
 		case 3:
-			action = event.ActionMoveRight
+			action = event.ActionMoveLeft
 		case 4:
-			action = event.ActionSoftDrop
+			action = event.ActionMoveRight
 		case 5:
+			action = event.ActionSoftDrop
+		case 6:
 			action = event.ActionHardDrop
 		default:
 			log.Fatal("setting keybind for unknown action")
@@ -136,8 +136,8 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 				switch k {
 				case tcell.KeyTab:
 					gameSettingsSelectedButton++
-					if gameSettingsSelectedButton > 7 {
-						gameSettingsSelectedButton = 7
+					if gameSettingsSelectedButton > 8 {
+						gameSettingsSelectedButton = 8
 					}
 
 					updateGameSettings()
@@ -151,8 +151,15 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 					updateGameSettings()
 					return nil
 				case tcell.KeyEnter:
-					if gameSettingsSelectedButton == 6 || gameSettingsSelectedButton == 7 {
-						if gameSettingsSelectedButton == 7 {
+					if gameSettingsSelectedButton == 0 {
+						// TODO Cache until saved
+						drawGhostPieceUnsaved = !drawGhostPieceUnsaved
+						updateGameSettings()
+						return nil
+					} else if gameSettingsSelectedButton == 7 || gameSettingsSelectedButton == 8 {
+						if gameSettingsSelectedButton == 8 {
+							drawGhostPiece = drawGhostPieceUnsaved
+
 							keybindings = make([]*Keybinding, len(draftKeybindings))
 							copy(keybindings, draftKeybindings)
 						}
@@ -294,10 +301,13 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 					titleSelectedButton = 0
 					gameSettingsSelectedButton = 0
 
+					drawGhostPieceUnsaved = drawGhostPiece
+
 					draftKeybindings = make([]*Keybinding, len(keybindings))
 					copy(draftKeybindings, keybindings)
 
-					app.SetRoot(gameSettingsContainerGrid, true).SetFocus(buttonKeybindRotateCCW)
+					app.SetRoot(gameSettingsContainerGrid, true)
+					updateGameSettings()
 					return nil
 				case 2:
 					titleScreen = 0

@@ -48,10 +48,14 @@ var (
 	nickname      = "Anonymous"
 	nicknameDraft string
 
+	drawGhostPiece        = true
+	drawGhostPieceUnsaved bool
+
 	inputHeight, mainHeight, previewWidth, newLogLines int
 
 	profileCPU *os.File
 
+	buttonGhostPiece       *tview.Button
 	buttonKeybindRotateCCW *tview.Button
 	buttonKeybindRotateCW  *tview.Button
 	buttonKeybindMoveLeft  *tview.Button
@@ -276,7 +280,7 @@ func renderPlayerGUI() {
 	if !player.Matrix.GameOver {
 		err := player.Preview.Add(p, p.Solid, mino.Point{0, 0}, false)
 		if err != nil {
-			log.Fatalf("failed to render preview matrix: failed to add ghost piece: %+v", err)
+			log.Fatalf("failed to render preview matrix: failed to add preview piece: %+v", err)
 		}
 	}
 
@@ -435,7 +439,15 @@ func renderMatrixes(mx []*mino.Matrix) {
 
 	for i := range mx {
 		mx[i].Lock()
-		mx[i].DrawPiecesL()
+		if mt == mino.MatrixCustom {
+			continue
+		}
+
+		mx[i].ClearOverlayL()
+		if drawGhostPiece {
+			mx[i].DrawGhostPieceL()
+		}
+		mx[i].DrawActivePieceL()
 	}
 
 	if mt == mino.MatrixStandard {

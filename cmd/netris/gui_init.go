@@ -271,6 +271,12 @@ func initGUI(skipTitle bool) (*tview.Application, error) {
 		SetWrap(false).
 		SetWordWrap(false).SetText("Game Settings")
 
+	buttonGhostPiece = tview.NewButton("Enabled")
+
+	ghostPieceGrid := tview.NewGrid().SetColumns(19, -1).
+		AddItem(tview.NewTextView().SetText("Ghost Piece"), 0, 0, 1, 1, 0, 0, false).
+		AddItem(buttonGhostPiece, 0, 1, 1, 1, 0, 0, false)
+
 	buttonKeybindRotateCCW = tview.NewButton("Set")
 	buttonKeybindRotateCW = tview.NewButton("Set")
 	buttonKeybindMoveLeft = tview.NewButton("Set")
@@ -280,27 +286,27 @@ func initGUI(skipTitle bool) (*tview.Application, error) {
 	buttonKeybindCancel = tview.NewButton("Cancel")
 	buttonKeybindSave = tview.NewButton("Save")
 
-	rotateCCWGrid := tview.NewGrid().
+	rotateCCWGrid := tview.NewGrid().SetColumns(27, -1).
 		AddItem(tview.NewTextView().SetText("Rotate CCW"), 0, 0, 1, 1, 0, 0, false).
 		AddItem(buttonKeybindRotateCCW, 0, 1, 1, 1, 0, 0, false)
 
-	rotateCWGrid := tview.NewGrid().
+	rotateCWGrid := tview.NewGrid().SetColumns(27, -1).
 		AddItem(tview.NewTextView().SetText("Rotate CW"), 0, 0, 1, 1, 0, 0, false).
 		AddItem(buttonKeybindRotateCW, 0, 1, 1, 1, 0, 0, false)
 
-	moveLeftGrid := tview.NewGrid().
+	moveLeftGrid := tview.NewGrid().SetColumns(27, -1).
 		AddItem(tview.NewTextView().SetText("Move Left"), 0, 0, 1, 1, 0, 0, false).
 		AddItem(buttonKeybindMoveLeft, 0, 1, 1, 1, 0, 0, false)
 
-	moveRightGrid := tview.NewGrid().
+	moveRightGrid := tview.NewGrid().SetColumns(27, -1).
 		AddItem(tview.NewTextView().SetText("Move Right"), 0, 0, 1, 1, 0, 0, false).
 		AddItem(buttonKeybindMoveRight, 0, 1, 1, 1, 0, 0, false)
 
-	softDropGrid := tview.NewGrid().
+	softDropGrid := tview.NewGrid().SetColumns(27, -1).
 		AddItem(tview.NewTextView().SetText("Soft Drop"), 0, 0, 1, 1, 0, 0, false).
 		AddItem(buttonKeybindSoftDrop, 0, 1, 1, 1, 0, 0, false)
 
-	hardDropGrid := tview.NewGrid().
+	hardDropGrid := tview.NewGrid().SetColumns(27, -1).
 		AddItem(tview.NewTextView().SetText("Hard Drop"), 0, 0, 1, 1, 0, 0, false).
 		AddItem(buttonKeybindHardDrop, 0, 1, 1, 1, 0, 0, false)
 
@@ -313,29 +319,37 @@ func initGUI(skipTitle bool) (*tview.Application, error) {
 		AddItem(pad, 0, 4, 1, 1, 0, 0, false)
 
 	gameSettingsGrid = tview.NewGrid().
-		SetRows(5, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, -1).
+		SetRows(5, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, -1).
 		SetColumns(-1, 34, -1).
-		AddItem(titleL, 0, 0, 16, 1, 0, 0, false).
+		AddItem(titleL, 0, 0, 18, 1, 0, 0, false).
 		AddItem(titleNameGrid, 0, 1, 1, 1, 0, 0, false).
-		AddItem(titleR, 0, 2, 16, 1, 0, 0, false).
+		AddItem(titleR, 0, 2, 18, 1, 0, 0, false).
 		AddItem(gameSettingsTitle, 1, 1, 1, 1, 0, 0, false).
-		AddItem(rotateCCWGrid, 2, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 3, 1, 1, 1, 0, 0, false).
-		AddItem(rotateCWGrid, 4, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 5, 1, 1, 1, 0, 0, false).
-		AddItem(moveLeftGrid, 6, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 7, 1, 1, 1, 0, 0, false).
-		AddItem(moveRightGrid, 8, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 9, 1, 1, 1, 0, 0, false).
-		AddItem(softDropGrid, 10, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 11, 1, 1, 1, 0, 0, false).
-		AddItem(hardDropGrid, 12, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 13, 1, 1, 1, 0, 0, false).
-		AddItem(gameSettingsSubmitGrid, 14, 1, 1, 1, 0, 0, false).
+		AddItem(pad, 2, 1, 1, 1, 0, 0, false).
 		AddItem(tview.NewTextView().
 			SetTextAlign(tview.AlignCenter).
 			SetWrap(false).
-			SetWordWrap(false).SetText("\nPrevious: Shift+Tab - Next: Tab"), 15, 1, 1, 1, 0, 0, false)
+			SetWordWrap(false).SetText("Options"), 3, 1, 1, 1, 0, 0, false).
+		AddItem(ghostPieceGrid, 4, 1, 1, 1, 0, 0, false).
+		AddItem(ghostPieceGrid, 5, 1, 1, 1, 0, 0, false).
+		AddItem(pad, 6, 1, 1, 1, 0, 0, false).
+		AddItem(tview.NewTextView().
+			SetTextAlign(tview.AlignCenter).
+			SetWrap(false).
+			SetWordWrap(false).SetText("Keybindings"), 7, 1, 1, 1, 0, 0, false).
+		AddItem(pad, 8, 1, 1, 1, 0, 0, false).
+		AddItem(rotateCCWGrid, 9, 1, 1, 1, 0, 0, false).
+		AddItem(rotateCWGrid, 10, 1, 1, 1, 0, 0, false).
+		AddItem(moveLeftGrid, 11, 1, 1, 1, 0, 0, false).
+		AddItem(moveRightGrid, 12, 1, 1, 1, 0, 0, false).
+		AddItem(softDropGrid, 13, 1, 1, 1, 0, 0, false).
+		AddItem(hardDropGrid, 14, 1, 1, 1, 0, 0, false).
+		AddItem(pad, 15, 1, 1, 1, 0, 0, false).
+		AddItem(gameSettingsSubmitGrid, 16, 1, 1, 1, 0, 0, false).
+		AddItem(tview.NewTextView().
+			SetTextAlign(tview.AlignCenter).
+			SetWrap(false).
+			SetWordWrap(false).SetText("\nPrevious: Shift+Tab - Next: Tab"), 17, 1, 1, 1, 0, 0, false)
 
 	titleContainerGrid = tview.NewGrid().SetColumns(-1, 80, -1).SetRows(-1, 24, -1).
 		AddItem(pad, 0, 0, 1, 3, 0, 0, false).

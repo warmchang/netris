@@ -89,22 +89,30 @@ func nextTitleButton() {
 }
 
 func updateGameSettings() {
+	if drawGhostPieceUnsaved {
+		buttonGhostPiece.SetLabel("Enabled")
+	} else {
+		buttonGhostPiece.SetLabel("Disabled")
+	}
+
 	switch gameSettingsSelectedButton {
 	case 0:
-		app.SetFocus(buttonKeybindRotateCCW)
+		app.SetFocus(buttonGhostPiece)
 	case 1:
-		app.SetFocus(buttonKeybindRotateCW)
+		app.SetFocus(buttonKeybindRotateCCW)
 	case 2:
-		app.SetFocus(buttonKeybindMoveLeft)
+		app.SetFocus(buttonKeybindRotateCW)
 	case 3:
-		app.SetFocus(buttonKeybindMoveRight)
+		app.SetFocus(buttonKeybindMoveLeft)
 	case 4:
-		app.SetFocus(buttonKeybindSoftDrop)
+		app.SetFocus(buttonKeybindMoveRight)
 	case 5:
-		app.SetFocus(buttonKeybindHardDrop)
+		app.SetFocus(buttonKeybindSoftDrop)
 	case 6:
-		app.SetFocus(buttonKeybindCancel)
+		app.SetFocus(buttonKeybindHardDrop)
 	case 7:
+		app.SetFocus(buttonKeybindCancel)
+	case 8:
 		app.SetFocus(buttonKeybindSave)
 	}
 }

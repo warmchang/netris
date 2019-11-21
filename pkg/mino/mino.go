@@ -64,20 +64,6 @@ func NewMino(points string) Mino {
 	return m
 }
 
-func (m Mino) Equal(other Mino) bool {
-	if len(m) != len(other) {
-		return false
-	}
-
-	for i := 0; i < len(m); i++ {
-		if !m.HasPoint(other[i]) {
-			return false
-		}
-	}
-
-	return true
-}
-
 func (m Mino) String() string {
 	sort.Sort(m)
 

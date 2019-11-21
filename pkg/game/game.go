@@ -465,11 +465,16 @@ func (g *Game) handleDistributeMatrixes() {
 
 				g.WriteAllL(&GameCommandGameOver{Winner: winner})
 
-				g.WriteMessage("Game over - winner: " + winner)
-				g.WriteMessage("Garbage sent/received:")
-				for _, p := range players {
-					g.WriteMessage(p.Name + " - " + strconv.Itoa(p.totalGarbageSent) + "/" + strconv.Itoa(p.totalGarbageReceived))
+				var garbageMessage strings.Builder
+				for i, p := range players {
+					if i > 0 {
+						garbageMessage.WriteString(", ")
+					}
+
+					garbageMessage.WriteString(fmt.Sprintf("%s %d/%d", p.Name, p.totalGarbageSent, p.totalGarbageReceived))
 				}
+
+				g.WriteMessage(fmt.Sprintf("Winner: %s - Garbage sent/received: %s", winner, garbageMessage.String()))
 
 				if len(g.Players) < 2 {
 					g.WriteMessage("Game will start when there are at least two players")

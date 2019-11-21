@@ -60,4 +60,4 @@ The following libraries are used to build netris:
 
 Tetris is a registered trademark of the Tetris Holding, LLC.
 
-netris is no way affiliated with Tetris Holding, LLC.
+netris is in no way affiliated with Tetris Holding, LLC.

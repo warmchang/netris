@@ -63,7 +63,7 @@ type Matrix struct {
 
 func I(x int, y int, w int) int {
 	if x < 0 || x >= w || y < 0 {
-		log.Fatalf("failed to calculate matrix index %d %d %d", x, y, w)
+		log.Panicf("failed to retrieve index for %d,%d width %d: invalid coordinates", x, y, w)
 	}
 
 	return (y * w) + x
@@ -452,8 +452,8 @@ func (m *Matrix) DrawActivePieceL() {
 }
 
 func (m *Matrix) Block(x int, y int) Block {
-	if x < 0 || x >= m.W || y < 0 || y >= m.H+m.B {
-		return BlockGarbage
+	if y >= m.H+m.B {
+		log.Panicf("failed to retrieve block at %d,%d: invalid y coordinate", x, y)
 	}
 
 	index := I(x, y, m.W)
@@ -884,6 +884,10 @@ func (m *Matrix) HardDropPiece() {
 	defer m.Unlock()
 
 	m.finishLandingPiece()
+}
+
+func (m *Matrix) ValidPoint(x int, y int) bool {
+	return x >= 0 && x < m.W && y >= 0 && y < m.H+m.B
 }
 
 func (m *Matrix) Replace(newmtx *Matrix) {

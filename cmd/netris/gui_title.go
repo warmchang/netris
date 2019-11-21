@@ -271,7 +271,7 @@ func handleTitle() {
 			}
 
 			for _, m := range p.Mino {
-				if titleMatrixR.Block(p.X+m.X, p.Y+m.Y) != mino.BlockNone {
+				if !titleMatrixR.ValidPoint(p.X+m.X, p.Y+m.Y) || titleMatrixR.Block(p.X+m.X, p.Y+m.Y) != mino.BlockNone {
 					continue
 				}
 

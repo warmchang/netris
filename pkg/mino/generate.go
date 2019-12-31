@@ -4,7 +4,7 @@ import (
 	"errors"
 )
 
-// Generate
+// Generate procedurally generates minos of a supplied rank.
 func Generate(rank int) ([]Mino, error) {
 	switch {
 	case rank < 0:
@@ -19,14 +19,20 @@ func Generate(rank int) ([]Mino, error) {
 			return nil, err
 		}
 
-		var minos []Mino
-		found := make(map[string]bool)
+		var (
+			minos []Mino
+			s     string
+			found = make(map[string]bool)
+		)
 		for _, mino := range r {
-			for _, newMino := range mino.newMinos() {
-				if s := newMino.Canonical().String(); !found[s] {
-					minos = append(minos, newMino.Canonical())
-					found[s] = true
+			for _, newMino := range mino.NewMinos() {
+				s = newMino.Canonical().String()
+				if found[s] {
+					continue
 				}
+
+				minos = append(minos, newMino.Canonical())
+				found[s] = true
 			}
 		}
 

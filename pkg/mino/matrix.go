@@ -85,19 +85,6 @@ func NewMatrix(w int, h int, b int, players int, event chan<- interface{}, draw 
 	return &m
 }
 
-/*
-func (m *Matrix) Lock() {
-	log.Println("LOCKING ", string(debug.Stack()))
-	m.Mutex.Lock()
-	log.Println("LOCKED ", string(debug.Stack()))
-}
-
-func (m *Matrix) Unlock() {
-	log.Println("UNLOCKED ", string(debug.Stack()))
-	m.Mutex.Unlock()
-}
-*/
-
 func (m *Matrix) HandleReceiveGarbage() {
 	t := time.NewTicker(500 * time.Millisecond)
 	for {

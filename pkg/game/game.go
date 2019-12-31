@@ -68,19 +68,6 @@ type Game struct {
 	*sync.Mutex
 }
 
-/*
-func (g *Game) Lock() {
-	g.Log("LOCKING ", string(debug.Stack()))
-	g.Mutex.Lock()
-	g.Log("LOCKED ", string(debug.Stack()))
-}
-
-func (g *Game) Unlock() {
-	g.Log("UNLOCKED ", string(debug.Stack()))
-	g.Mutex.Unlock()
-}
-*/
-
 func NewGame(rank int, out func(GameCommandInterface), logger chan string, draw chan event.DrawObject) (*Game, error) {
 	minos, err := mino.Generate(rank)
 	if err != nil {

@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
+	"git.sr.ht/~tslocum/cview"
 	"git.sr.ht/~tslocum/netris/pkg/event"
 	"git.sr.ht/~tslocum/netris/pkg/game"
 	"git.sr.ht/~tslocum/netris/pkg/mino"
 	"github.com/gdamore/tcell"
-	"github.com/tslocum/tview"
 )
 
 var (
@@ -24,12 +24,12 @@ var (
 	capturingKeybind bool
 	showDetails      bool
 
-	app       *tview.Application
-	inputView *tview.InputField
-	mtx       *tview.TextView
-	side      *tview.TextView
-	buffer    *tview.TextView
-	recent    *tview.TextView
+	app       *cview.Application
+	inputView *cview.InputField
+	mtx       *cview.TextView
+	side      *cview.TextView
+	buffer    *cview.TextView
+	recent    *cview.TextView
 
 	joinedGame bool
 
@@ -55,18 +55,18 @@ var (
 
 	profileCPU *os.File
 
-	buttonGhostPiece       *tview.Button
-	buttonKeybindRotateCCW *tview.Button
-	buttonKeybindRotateCW  *tview.Button
-	buttonKeybindMoveLeft  *tview.Button
-	buttonKeybindMoveRight *tview.Button
-	buttonKeybindSoftDrop  *tview.Button
-	buttonKeybindHardDrop  *tview.Button
-	buttonKeybindCancel    *tview.Button
-	buttonKeybindSave      *tview.Button
+	buttonGhostPiece       *cview.Button
+	buttonKeybindRotateCCW *cview.Button
+	buttonKeybindRotateCW  *cview.Button
+	buttonKeybindMoveLeft  *cview.Button
+	buttonKeybindMoveRight *cview.Button
+	buttonKeybindSoftDrop  *cview.Button
+	buttonKeybindHardDrop  *cview.Button
+	buttonKeybindCancel    *cview.Button
+	buttonKeybindSave      *cview.Button
 
-	buttonCancel *tview.Button
-	buttonStart  *tview.Button
+	buttonCancel *cview.Button
+	buttonStart  *cview.Button
 )
 
 const DefaultStatusText = "Press Enter to chat, Z/X to rotate, arrow keys or HJKL to move/drop"

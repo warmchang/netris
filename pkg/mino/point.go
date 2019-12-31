@@ -26,8 +26,8 @@ func (p Point) String() string {
 }
 
 // Neighborhood returns the Von Neumann neighborhood of a point
-func (p Point) Neighborhood() Mino {
-	return Mino{
+func (p Point) Neighborhood() []Point {
+	return []Point{
 		{p.X - 1, p.Y},
 		{p.X, p.Y - 1},
 		{p.X + 1, p.Y},

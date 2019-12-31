@@ -261,22 +261,26 @@ func (m Mino) Flatten() Mino {
 	return newMino
 }
 
-func (m Mino) newPoints() Mino {
-	var newMino Mino
+// NewPoints calculates the neighborhood of each point of a mino and returns only new points.
+func (m Mino) NewPoints() []Point {
+	var newPoints []Point
 
 	for _, p := range m {
 		for _, np := range p.Neighborhood() {
-			if !m.HasPoint(np) {
-				newMino = append(newMino, np)
+			if m.HasPoint(np) {
+				continue
 			}
+
+			newPoints = append(newPoints, np)
 		}
 	}
 
-	return newMino
+	return newPoints
 }
 
-func (m Mino) newMinos() []Mino {
-	points := m.newPoints()
+// NewMinos returns a new mino for every new neighborhood point of a mino.
+func (m Mino) NewMinos() []Mino {
+	points := m.NewPoints()
 
 	minos := make([]Mino, len(points))
 	for i, p := range points {

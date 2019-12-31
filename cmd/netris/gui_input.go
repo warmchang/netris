@@ -7,10 +7,10 @@ import (
 	"runtime/pprof"
 	"strings"
 
+	"git.sr.ht/~tslocum/cview"
 	"git.sr.ht/~tslocum/netris/pkg/event"
 	"git.sr.ht/~tslocum/netris/pkg/game"
 	"github.com/gdamore/tcell"
-	"github.com/tslocum/tview"
 )
 
 type Keybinding struct {
@@ -173,7 +173,7 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 						return nil
 					}
 
-					modal := tview.NewModal().SetText("Press desired key(s) to set keybinding or press Escape to cancel.").ClearButtons()
+					modal := cview.NewModal().SetText("Press desired key(s) to set keybinding or press Escape to cancel.").ClearButtons()
 					app.SetRoot(modal, true)
 
 					capturingKeybind = true
@@ -223,7 +223,7 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 						titleScreen = 5
 						titleSelectedButton = 0
 
-						modal := tview.NewModal().SetText("Joining another server by IP via GUI is not yet implemented.\nPlease re-launch netris with the --connect argument instead.\n\nPress Escape to return.").ClearButtons()
+						modal := cview.NewModal().SetText("Joining another server by IP via GUI is not yet implemented.\nPlease re-launch netris with the --connect argument instead.\n\nPress Escape to return.").ClearButtons()
 						app.SetRoot(modal, true)
 					} else if titleSelectedButton == 3 {
 						titleScreen = 0

@@ -28,10 +28,7 @@ Windows and Linux binaries are available.
 ### Compile
 
 ```
-GO111MODULE=on
-go get -u git.sr.ht/~tslocum/netris
-go get -u git.sr.ht/~tslocum/netris/cmd/netris
-go get -u git.sr.ht/~tslocum/netris/cmd/netris-server
+GO111MODULE=on go get git.sr.ht/~tslocum/netris/...
 ```
 
 ## Configure
@@ -50,8 +47,8 @@ Please share suggestions/issues [here](https://todo.sr.ht/~tslocum/netris).
 
 The following libraries are used to build netris:
 
+* [cview](https://git.sr.ht/~tslocum/cview) - User interface
 * [tcell](https://github.com/gdamore/tcell) - User interface
-* [tview](https://github.com/rivo/tview) - User interface
 * [ssh](https://github.com/gliderlabs/ssh) - SSH server
 * [pty](https://github.com/creack/pty) - Pseudo-terminal interface
 * [go-isatty](https://github.com/mattn/go-isatty) - Terminal detection

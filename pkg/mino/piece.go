@@ -123,16 +123,6 @@ func NewPiece(m Mino, loc Point) *Piece {
 	return p
 }
 
-/*
-func (p *Piece) MarshalJSON() ([]byte, error) {
-	log.Println("LOCK PIECE")
-	p.Lock()
-	defer p.Unlock()
-	defer log.Println("UNLOCKED PIECE")
-
-	return json.Marshal(LockedPiece(p))
-}*/
-
 // Rotate returns the new mino of a piece when a rotation is applied
 func (p *Piece) Rotate(rotations int, direction int) Mino {
 	p.Lock()
@@ -145,14 +135,24 @@ func (p *Piece) Rotate(rotations int, direction int) Mino {
 	newMino := make(Mino, len(p.Mino))
 	copy(newMino, p.Mino.Origin())
 
-	var rotationPivot int
+	var rotationMatrix Point
+	if direction == 0 {
+		rotationMatrix = Point{1, -1}
+	} else {
+		rotationMatrix = Point{-1, 1}
+	}
+
+	var (
+		rotationPivot = p.Rotation
+		pivotPoint    Point
+		x, y          int
+	)
 	for j := 0; j < rotations; j++ {
 		if direction == 0 {
-			rotationPivot = p.Rotation + j
+			rotationPivot += j
 		} else {
-			rotationPivot = p.Rotation - j
+			rotationPivot -= j
 		}
-
 		if rotationPivot < 0 {
 			rotationPivot += RotationStates
 		}
@@ -160,21 +160,17 @@ func (p *Piece) Rotate(rotations int, direction int) Mino {
 		if (rotationPivot == 3 && direction == 0) || (rotationPivot == 1 && direction == 1) {
 			newMino = p.original
 		} else {
-			pp := p.pivotsCW[rotationPivot%RotationStates]
-			if direction == 1 {
-				pp = p.pivotsCCW[rotationPivot%RotationStates]
+			if direction == 0 {
+				pivotPoint = p.pivotsCW[rotationPivot%RotationStates]
+			} else {
+				pivotPoint = p.pivotsCCW[rotationPivot%RotationStates]
 			}
-			px, py := pp.X, pp.Y
 
 			for i := 0; i < len(newMino); i++ {
-				x := newMino[i].X
-				y := newMino[i].Y
+				x = newMino[i].X - pivotPoint.X
+				y = newMino[i].Y - pivotPoint.Y
 
-				if direction == 0 {
-					newMino[i] = Point{(0 * (x - px)) + (1 * (y - py)), (-1 * (x - px)) + (0 * (y - py))}
-				} else {
-					newMino[i] = Point{(0 * (x - px)) + (-1 * (y - py)), (1 * (x - px)) + (0 * (y - py))}
-				}
+				newMino[i] = Point{y * rotationMatrix.X, x * rotationMatrix.Y}
 			}
 		}
 	}

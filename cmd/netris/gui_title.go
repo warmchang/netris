@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"time"
 
+	"git.sr.ht/~tslocum/cview"
 	"git.sr.ht/~tslocum/netris/pkg/game"
 	"git.sr.ht/~tslocum/netris/pkg/mino"
-	"github.com/tslocum/tview"
 )
 
 const (
@@ -22,34 +22,34 @@ var (
 	gameSettingsSelectedButton int
 	drawTitle                  = make(chan struct{}, game.CommandQueueSize)
 
-	titleGrid          *tview.Grid
-	titleContainerGrid *tview.Grid
+	titleGrid          *cview.Grid
+	titleContainerGrid *cview.Grid
 
 	gameListSelected int
 
-	newGameGrid            *tview.Grid
-	newGameNameInput       *tview.InputField
-	newGameMaxPlayersInput *tview.InputField
-	newGameSpeedLimitInput *tview.InputField
+	newGameGrid            *cview.Grid
+	newGameNameInput       *cview.InputField
+	newGameMaxPlayersInput *cview.InputField
+	newGameSpeedLimitInput *cview.InputField
 
-	playerSettingsForm          *tview.Form
-	playerSettingsGrid          *tview.Grid
-	playerSettingsContainerGrid *tview.Grid
+	playerSettingsForm          *cview.Form
+	playerSettingsGrid          *cview.Grid
+	playerSettingsContainerGrid *cview.Grid
 
 	gameList              []*game.ListedGame
-	gameListHeader        *tview.TextView
-	gameListView          *tview.TextView
-	gameListGrid          *tview.Grid
-	gameListContainerGrid *tview.Grid
-	newGameContainerGrid  *tview.Grid
+	gameListHeader        *cview.TextView
+	gameListView          *cview.TextView
+	gameListGrid          *cview.Grid
+	gameListContainerGrid *cview.Grid
+	newGameContainerGrid  *cview.Grid
 
-	gameSettingsGrid          *tview.Grid
-	gameSettingsContainerGrid *tview.Grid
-	gameGrid                  *tview.Grid
+	gameSettingsGrid          *cview.Grid
+	gameSettingsContainerGrid *cview.Grid
+	gameGrid                  *cview.Grid
 
-	titleName *tview.TextView
-	titleL    *tview.TextView
-	titleR    *tview.TextView
+	titleName *cview.TextView
+	titleL    *cview.TextView
+	titleR    *cview.TextView
 
 	titleMatrixL = newTitleMatrixSide()
 	titleMatrix  = newTitleMatrixName()
@@ -57,13 +57,13 @@ var (
 	titlePiecesL []*mino.Piece
 	titlePiecesR []*mino.Piece
 
-	buttonA *tview.Button
-	buttonB *tview.Button
-	buttonC *tview.Button
+	buttonA *cview.Button
+	buttonB *cview.Button
+	buttonC *cview.Button
 
-	buttonLabelA *tview.TextView
-	buttonLabelB *tview.TextView
-	buttonLabelC *tview.TextView
+	buttonLabelA *cview.TextView
+	buttonLabelB *cview.TextView
+	buttonLabelC *cview.TextView
 )
 
 func previousTitleButton() {

@@ -86,25 +86,11 @@ func resetPlayerSettingsForm() {
 	playerSettingsForm.Clear(true).AddInputField("Name", nickname, 0, nil, func(text string) {
 		nicknameDraft = text
 	}).AddButton("Cancel", func() {
-		titleScreen = 1
 		titleSelectedButton = 0
-
-		app.SetRoot(titleContainerGrid, true)
-		updateTitle()
+		selectTitleButton()
 	}).AddButton("Save", func() {
-		if nicknameDraft != "" && game.Nickname(nicknameDraft) != nickname {
-			nickname = game.Nickname(nicknameDraft)
-
-			if activeGame != nil {
-				activeGame.Event <- &event.NicknameEvent{Nickname: nickname}
-			}
-		}
-
-		titleScreen = 1
-		titleSelectedButton = 0
-
-		app.SetRoot(titleContainerGrid, true)
-		updateTitle()
+		titleSelectedButton = 1
+		selectTitleButton()
 	})
 }
 

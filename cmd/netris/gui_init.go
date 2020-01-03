@@ -12,7 +12,7 @@ import (
 )
 
 func initGUI(skipTitle bool) (*cview.Application, error) {
-	app = cview.NewApplication()
+	app = cview.NewApplication().EnableMouse()
 
 	app.SetAfterResizeFunc(handleResize)
 
@@ -135,13 +135,31 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 
 	go handleTitle()
 
-	buttonA = cview.NewButton("A")
+	buttonA = cview.NewButton("A").SetSelectedFunc(func() {
+		titleSelectedButton = 0
+		if titleScreen == 4 {
+			titleSelectedButton++
+		}
+		selectTitleButton()
+	})
 	buttonLabelA = cview.NewTextView().SetTextAlign(cview.AlignCenter)
 
-	buttonB = cview.NewButton("B")
+	buttonB = cview.NewButton("B").SetSelectedFunc(func() {
+		titleSelectedButton = 1
+		if titleScreen == 4 {
+			titleSelectedButton++
+		}
+		selectTitleButton()
+	})
 	buttonLabelB = cview.NewTextView().SetTextAlign(cview.AlignCenter)
 
-	buttonC = cview.NewButton("C")
+	buttonC = cview.NewButton("C").SetSelectedFunc(func() {
+		titleSelectedButton = 2
+		if titleScreen == 4 {
+			titleSelectedButton++
+		}
+		selectTitleButton()
+	})
 	buttonLabelC = cview.NewTextView().SetTextAlign(cview.AlignCenter)
 
 	titleNameGrid := cview.NewGrid().SetRows(3, 2).
@@ -188,8 +206,8 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 			SetWrap(false).
 			SetWordWrap(false).SetText("\nRefresh: R\nPrevious: Shift+Tab - Next: Tab"), 4, 1, 1, 1, 0, 0, true)
 
-	buttonCancel = cview.NewButton("Cancel")
-	buttonStart = cview.NewButton("Start")
+	buttonCancel = cview.NewButton("Cancel").SetSelectedFunc(selectTitleFunc(3))
+	buttonStart = cview.NewButton("Start").SetSelectedFunc(selectTitleFunc(4))
 
 	newGameSubmitGrid := cview.NewGrid().
 		SetColumns(-1, 10, 1, 10, -1).
@@ -271,20 +289,21 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 		SetWrap(false).
 		SetWordWrap(false).SetText("Game Settings")
 
-	buttonGhostPiece = cview.NewButton("Enabled")
+	buttonGhostPiece = cview.NewButton("Enabled").SetSelectedFunc(selectTitleFunc(0))
 
 	ghostPieceGrid := cview.NewGrid().SetColumns(19, -1).
 		AddItem(cview.NewTextView().SetText("Ghost Piece"), 0, 0, 1, 1, 0, 0, false).
 		AddItem(buttonGhostPiece, 0, 1, 1, 1, 0, 0, false)
 
-	buttonKeybindRotateCCW = cview.NewButton("Set")
-	buttonKeybindRotateCW = cview.NewButton("Set")
-	buttonKeybindMoveLeft = cview.NewButton("Set")
-	buttonKeybindMoveRight = cview.NewButton("Set")
-	buttonKeybindSoftDrop = cview.NewButton("Set")
-	buttonKeybindHardDrop = cview.NewButton("Set")
-	buttonKeybindCancel = cview.NewButton("Cancel")
-	buttonKeybindSave = cview.NewButton("Save")
+	buttonKeybindRotateCCW = cview.NewButton("Set").SetSelectedFunc(selectTitleFunc(1))
+	buttonKeybindRotateCW = cview.NewButton("Set").SetSelectedFunc(selectTitleFunc(2))
+	buttonKeybindMoveLeft = cview.NewButton("Set").SetSelectedFunc(selectTitleFunc(3))
+	buttonKeybindMoveRight = cview.NewButton("Set").SetSelectedFunc(selectTitleFunc(4))
+	buttonKeybindSoftDrop = cview.NewButton("Set").SetSelectedFunc(selectTitleFunc(5))
+	buttonKeybindHardDrop = cview.NewButton("Set").SetSelectedFunc(selectTitleFunc(6))
+
+	buttonKeybindCancel = cview.NewButton("Cancel").SetSelectedFunc(selectTitleFunc(7))
+	buttonKeybindSave = cview.NewButton("Save").SetSelectedFunc(selectTitleFunc(8))
 
 	rotateCCWGrid := cview.NewGrid().SetColumns(27, -1).
 		AddItem(cview.NewTextView().SetText("Rotate CCW"), 0, 0, 1, 1, 0, 0, false).

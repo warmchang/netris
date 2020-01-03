@@ -3,7 +3,7 @@ module git.sr.ht/~tslocum/netris
 go 1.13
 
 require (
-	git.sr.ht/~tslocum/cview v0.2.1-0.20191231040847-3c1736c9c849
+	git.sr.ht/~tslocum/cview v0.2.2-0.20200103004846-1207c71f9f20
 	github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239 // indirect
 	github.com/creack/pty v1.1.9
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
@@ -13,5 +13,5 @@ require (
 	github.com/mattn/go-isatty v0.0.11
 	github.com/mattn/go-runewidth v0.0.7 // indirect
 	golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876
-	golang.org/x/sys v0.0.0-20191228213918-04cbcbbfeed8 // indirect
+	golang.org/x/sys v0.0.0-20200103143344-a1369afcdac7 // indirect
 )

@@ -7,7 +7,6 @@ import (
 	"runtime/pprof"
 	"strings"
 
-	"git.sr.ht/~tslocum/cview"
 	"git.sr.ht/~tslocum/netris/pkg/event"
 	"git.sr.ht/~tslocum/netris/pkg/game"
 	"github.com/gdamore/tcell"
@@ -71,7 +70,7 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 			draftKeybindings = nil
 
 			app.SetRoot(gameSettingsContainerGrid, true)
-			updateGameSettings()
+			updateTitle()
 
 			return nil
 		}
@@ -86,7 +85,7 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 		}
 
 		var action event.GameAction
-		switch gameSettingsSelectedButton {
+		switch titleSelectedButton {
 		case 1:
 			action = event.ActionRotateCCW
 		case 2:
@@ -106,7 +105,7 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 		draftKeybindings = append(draftKeybindings, &Keybinding{k: k, r: r, m: ev.Modifiers(), a: action})
 
 		app.SetRoot(gameSettingsContainerGrid, true)
-		updateGameSettings()
+		updateTitle()
 		return nil
 	} else if titleVisible {
 		if titleScreen > 1 {
@@ -135,48 +134,23 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 			if titleScreen == 3 {
 				switch k {
 				case tcell.KeyTab:
-					gameSettingsSelectedButton++
-					if gameSettingsSelectedButton > 8 {
-						gameSettingsSelectedButton = 8
+					titleSelectedButton++
+					if titleSelectedButton > 8 {
+						titleSelectedButton = 8
 					}
 
-					updateGameSettings()
+					updateTitle()
 					return nil
 				case tcell.KeyBacktab:
-					gameSettingsSelectedButton--
-					if gameSettingsSelectedButton < 0 {
-						gameSettingsSelectedButton = 0
+					titleSelectedButton--
+					if titleSelectedButton < 0 {
+						titleSelectedButton = 0
 					}
 
-					updateGameSettings()
+					updateTitle()
 					return nil
 				case tcell.KeyEnter:
-					if gameSettingsSelectedButton == 0 {
-						// TODO Cache until saved
-						drawGhostPieceUnsaved = !drawGhostPieceUnsaved
-						updateGameSettings()
-						return nil
-					} else if gameSettingsSelectedButton == 7 || gameSettingsSelectedButton == 8 {
-						if gameSettingsSelectedButton == 8 {
-							drawGhostPiece = drawGhostPieceUnsaved
-
-							keybindings = make([]*Keybinding, len(draftKeybindings))
-							copy(keybindings, draftKeybindings)
-						}
-						draftKeybindings = nil
-
-						titleScreen = 1
-						titleSelectedButton = 0
-
-						app.SetRoot(titleContainerGrid, true)
-						updateTitle()
-						return nil
-					}
-
-					modal := cview.NewModal().SetText("Press desired key(s) to set keybinding or press Escape to cancel.").ClearButtons()
-					app.SetRoot(modal, true)
-
-					capturingKeybind = true
+					selectTitleButton()
 					return nil
 				}
 			} else if titleScreen == 4 {
@@ -208,31 +182,7 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 					renderGameList()
 					return nil
 				case tcell.KeyEnter:
-					if titleSelectedButton == 0 {
-						if gameListSelected >= 0 && gameListSelected < len(gameList) {
-							joinGame <- gameList[gameListSelected].ID
-						}
-					} else if titleSelectedButton == 1 {
-						titleScreen = 5
-						titleSelectedButton = 0
-
-						resetNewGameInputs()
-						app.SetRoot(newGameContainerGrid, true).SetFocus(nil)
-						updateTitle()
-					} else if titleSelectedButton == 2 {
-						titleScreen = 5
-						titleSelectedButton = 0
-
-						modal := cview.NewModal().SetText("Joining another server by IP via GUI is not yet implemented.\nPlease re-launch netris with the --connect argument instead.\n\nPress Escape to return.").ClearButtons()
-						app.SetRoot(modal, true)
-					} else if titleSelectedButton == 3 {
-						titleScreen = 0
-						titleSelectedButton = 0
-
-						app.SetRoot(titleContainerGrid, true)
-						updateTitle()
-					}
-
+					selectTitleButton()
 					return nil
 				default:
 					if titleSelectedButton == 0 {
@@ -266,17 +216,7 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 					updateTitle()
 					return nil
 				case tcell.KeyEnter:
-					if titleSelectedButton == 3 {
-						titleScreen = 4
-						gameListSelected = 0
-						titleSelectedButton = 0
-						app.SetRoot(gameListContainerGrid, true)
-						renderGameList()
-						updateTitle()
-					} else if titleSelectedButton == 4 {
-						joinGame <- event.GameIDNewCustom
-					}
-
+					selectTitleButton()
 					return nil
 				}
 			}
@@ -286,77 +226,7 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 
 		switch k {
 		case tcell.KeyEnter:
-			if titleScreen == 1 {
-				switch titleSelectedButton {
-				case 0:
-					resetPlayerSettingsForm()
-
-					titleScreen = 2
-					titleSelectedButton = 0
-
-					app.SetRoot(playerSettingsContainerGrid, true).SetFocus(playerSettingsForm)
-					return nil
-				case 1:
-					titleScreen = 3
-					titleSelectedButton = 0
-					gameSettingsSelectedButton = 0
-
-					drawGhostPieceUnsaved = drawGhostPiece
-
-					draftKeybindings = make([]*Keybinding, len(keybindings))
-					copy(draftKeybindings, keybindings)
-
-					app.SetRoot(gameSettingsContainerGrid, true)
-					updateGameSettings()
-					return nil
-				case 2:
-					titleScreen = 0
-					titleSelectedButton = 0
-
-					updateTitle()
-					return nil
-				}
-			} else {
-				if joinedGame {
-					switch titleSelectedButton {
-					case 0:
-						setTitleVisible(false)
-						return nil
-					case 1:
-						titleScreen = 1
-						titleSelectedButton = 0
-
-						updateTitle()
-						return nil
-					case 2:
-						done <- true
-						return nil
-					}
-				} else {
-					switch titleSelectedButton {
-					case 0:
-						titleScreen = 4
-						titleSelectedButton = 0
-						gameListSelected = 0
-
-						refreshGameList()
-						renderGameList()
-
-						app.SetRoot(gameListContainerGrid, true).SetFocus(nil)
-						updateTitle()
-						return nil
-					case 1:
-						joinGame <- event.GameIDNewLocal
-						return nil
-					case 2:
-						titleScreen = 1
-						titleSelectedButton = 0
-
-						updateTitle()
-						return nil
-					}
-				}
-			}
+			selectTitleButton()
 			return nil
 		case tcell.KeyUp, tcell.KeyBacktab:
 			previousTitleButton()

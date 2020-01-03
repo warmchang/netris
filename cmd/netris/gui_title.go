@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"git.sr.ht/~tslocum/cview"
+	"git.sr.ht/~tslocum/netris/pkg/event"
 	"git.sr.ht/~tslocum/netris/pkg/game"
 	"git.sr.ht/~tslocum/netris/pkg/mino"
 )
@@ -16,11 +17,10 @@ const (
 )
 
 var (
-	titleVisible               bool
-	titleScreen                int
-	titleSelectedButton        int
-	gameSettingsSelectedButton int
-	drawTitle                  = make(chan struct{}, game.CommandQueueSize)
+	titleVisible        bool
+	titleScreen         int
+	titleSelectedButton int
+	drawTitle           = make(chan struct{}, game.CommandQueueSize)
 
 	titleGrid          *cview.Grid
 	titleContainerGrid *cview.Grid
@@ -88,32 +88,151 @@ func nextTitleButton() {
 	titleSelectedButton++
 }
 
-func updateGameSettings() {
-	if drawGhostPieceUnsaved {
-		buttonGhostPiece.SetLabel("Enabled")
-	} else {
-		buttonGhostPiece.SetLabel("Disabled")
+func selectTitleButton() {
+	if !titleVisible {
+		return
 	}
 
-	switch gameSettingsSelectedButton {
-	case 0:
-		app.SetFocus(buttonGhostPiece)
+	switch titleScreen {
 	case 1:
-		app.SetFocus(buttonKeybindRotateCCW)
+		switch titleSelectedButton {
+		case 0:
+			resetPlayerSettingsForm()
+
+			titleScreen = 2
+			titleSelectedButton = 0
+
+			app.SetRoot(playerSettingsContainerGrid, true).SetFocus(playerSettingsForm)
+		case 1:
+			titleScreen = 3
+			titleSelectedButton = 0
+
+			drawGhostPieceUnsaved = drawGhostPiece
+
+			draftKeybindings = make([]*Keybinding, len(keybindings))
+			copy(draftKeybindings, keybindings)
+
+			app.SetRoot(gameSettingsContainerGrid, true)
+			updateTitle()
+		case 2:
+			titleScreen = 0
+			titleSelectedButton = 0
+
+			updateTitle()
+		}
 	case 2:
-		app.SetFocus(buttonKeybindRotateCW)
+		if titleSelectedButton == 1 {
+			// Save
+			if nicknameDraft != "" && game.Nickname(nicknameDraft) != nickname {
+				nickname = game.Nickname(nicknameDraft)
+
+				if activeGame != nil {
+					activeGame.Event <- &event.NicknameEvent{Nickname: nickname}
+				}
+			}
+		}
+
+		titleScreen = 1
+		titleSelectedButton = 0
+
+		app.SetRoot(titleContainerGrid, true)
+		updateTitle()
 	case 3:
-		app.SetFocus(buttonKeybindMoveLeft)
+		if titleSelectedButton == 0 {
+			drawGhostPieceUnsaved = !drawGhostPieceUnsaved
+			updateTitle()
+			return
+		} else if titleSelectedButton == 7 || titleSelectedButton == 8 {
+			if titleSelectedButton == 8 {
+				drawGhostPiece = drawGhostPieceUnsaved
+
+				keybindings = make([]*Keybinding, len(draftKeybindings))
+				copy(keybindings, draftKeybindings)
+			}
+			draftKeybindings = nil
+
+			titleScreen = 1
+			titleSelectedButton = 0
+
+			app.SetRoot(titleContainerGrid, true)
+			updateTitle()
+			return
+		}
+
+		modal := cview.NewModal().SetText("Press desired key(s) to set keybinding or press Escape to cancel.").ClearButtons()
+		app.SetRoot(modal, true)
+
+		capturingKeybind = true
 	case 4:
-		app.SetFocus(buttonKeybindMoveRight)
+		if titleSelectedButton == 0 {
+			if gameListSelected >= 0 && gameListSelected < len(gameList) {
+				joinGame <- gameList[gameListSelected].ID
+			}
+		} else if titleSelectedButton == 1 {
+			titleScreen = 5
+			titleSelectedButton = 0
+
+			resetNewGameInputs()
+			app.SetRoot(newGameContainerGrid, true).SetFocus(nil)
+			updateTitle()
+		} else if titleSelectedButton == 2 {
+			titleScreen = 5
+			titleSelectedButton = 0
+
+			modal := cview.NewModal().SetText("Joining another server by IP via GUI is not yet implemented.\nPlease re-launch netris with the --connect argument instead.\n\nPress Escape to return.").ClearButtons()
+			app.SetRoot(modal, true)
+		} else if titleSelectedButton == 3 {
+			titleScreen = 0
+			titleSelectedButton = 0
+
+			app.SetRoot(titleContainerGrid, true)
+			updateTitle()
+		}
 	case 5:
-		app.SetFocus(buttonKeybindSoftDrop)
-	case 6:
-		app.SetFocus(buttonKeybindHardDrop)
-	case 7:
-		app.SetFocus(buttonKeybindCancel)
-	case 8:
-		app.SetFocus(buttonKeybindSave)
+		if titleSelectedButton == 3 {
+			titleScreen = 4
+			gameListSelected = 0
+			titleSelectedButton = 0
+			app.SetRoot(gameListContainerGrid, true)
+			renderGameList()
+			updateTitle()
+		} else if titleSelectedButton == 4 {
+			joinGame <- event.GameIDNewCustom
+		}
+	default: // Title screen 0
+		if joinedGame {
+			switch titleSelectedButton {
+			case 0:
+				setTitleVisible(false)
+			case 1:
+				titleScreen = 1
+				titleSelectedButton = 0
+
+				updateTitle()
+			case 2:
+				done <- true
+			}
+		} else {
+			switch titleSelectedButton {
+			case 0:
+				titleScreen = 4
+				titleSelectedButton = 0
+				gameListSelected = 0
+
+				refreshGameList()
+				renderGameList()
+
+				app.SetRoot(gameListContainerGrid, true).SetFocus(nil)
+				updateTitle()
+			case 1:
+				joinGame <- event.GameIDNewLocal
+			case 2:
+				titleScreen = 1
+				titleSelectedButton = 0
+
+				updateTitle()
+			}
+		}
 	}
 }
 
@@ -178,7 +297,35 @@ func updateTitle() {
 		}
 	}
 
-	if titleScreen == 4 {
+	if titleScreen == 3 {
+		if drawGhostPieceUnsaved {
+			buttonGhostPiece.SetLabel("Enabled")
+		} else {
+			buttonGhostPiece.SetLabel("Disabled")
+		}
+
+		switch titleSelectedButton {
+		case 0:
+			app.SetFocus(buttonGhostPiece)
+		case 1:
+			app.SetFocus(buttonKeybindRotateCCW)
+		case 2:
+			app.SetFocus(buttonKeybindRotateCW)
+		case 3:
+			app.SetFocus(buttonKeybindMoveLeft)
+		case 4:
+			app.SetFocus(buttonKeybindMoveRight)
+		case 5:
+			app.SetFocus(buttonKeybindSoftDrop)
+		case 6:
+			app.SetFocus(buttonKeybindHardDrop)
+		case 7:
+			app.SetFocus(buttonKeybindCancel)
+		case 8:
+			app.SetFocus(buttonKeybindSave)
+		}
+		return
+	} else if titleScreen == 4 {
 		switch titleSelectedButton {
 		case 2:
 			app.SetFocus(buttonB)
@@ -448,4 +595,11 @@ func resetNewGameInputs() {
 	newGameNameInput.SetText("netris")
 	newGameMaxPlayersInput.SetText("0")
 	newGameSpeedLimitInput.SetText("0")
+}
+
+func selectTitleFunc(i int) func() {
+	return func() {
+		titleSelectedButton = i
+		selectTitleButton()
+	}
 }

@@ -1,5 +1,6 @@
 0.1.4:
 - Allow ghost piece to be disabled
+- Add mouse support
 
 0.1.3:
 - Animate game over display

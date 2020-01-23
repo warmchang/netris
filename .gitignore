@@ -1,6 +1,6 @@
 .idea/
 dist/
-*.sh
 vendor/
-cmd/netris-server/netris-server
+*.sh
 cmd/netris/netris
+cmd/netris-server/netris-server

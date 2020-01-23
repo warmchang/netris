@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"time"
 
-	"git.sr.ht/~tslocum/netris/pkg/mino"
+	"gitlab.com/tslocum/netris/pkg/mino"
 )
 
 type Command int

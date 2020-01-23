@@ -14,9 +14,9 @@ import (
 	"time"
 	"unsafe"
 
-	"git.sr.ht/~tslocum/netris/pkg/game"
 	"github.com/creack/pty"
 	"github.com/gliderlabs/ssh"
+	"gitlab.com/tslocum/netris/pkg/game"
 	gossh "golang.org/x/crypto/ssh"
 )
 

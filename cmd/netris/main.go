@@ -17,10 +17,10 @@ import (
 	"syscall"
 	"time"
 
-	"git.sr.ht/~tslocum/netris/pkg/event"
-	"git.sr.ht/~tslocum/netris/pkg/game"
-	"git.sr.ht/~tslocum/netris/pkg/mino"
 	"github.com/mattn/go-isatty"
+	"gitlab.com/tslocum/netris/pkg/event"
+	"gitlab.com/tslocum/netris/pkg/game"
+	"gitlab.com/tslocum/netris/pkg/mino"
 )
 
 var (

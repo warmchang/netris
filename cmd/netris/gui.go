@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"git.sr.ht/~tslocum/cview"
-	"git.sr.ht/~tslocum/netris/pkg/event"
-	"git.sr.ht/~tslocum/netris/pkg/game"
-	"git.sr.ht/~tslocum/netris/pkg/mino"
 	"github.com/gdamore/tcell"
+	"gitlab.com/tslocum/cview"
+	"gitlab.com/tslocum/netris/pkg/event"
+	"gitlab.com/tslocum/netris/pkg/game"
+	"gitlab.com/tslocum/netris/pkg/mino"
 )
 
 var (
@@ -42,8 +42,7 @@ var (
 	multiplayerMatrixSize int
 	screenPadding         int
 
-	screenW, screenH       int
-	newScreenW, newScreenH int
+	screenW, screenH int
 
 	nickname      = "Anonymous"
 	nicknameDraft string
@@ -97,13 +96,12 @@ func resetPlayerSettingsForm() {
 // BS 1: 10x10
 // BS 2: 20x20
 // BS 3: 40x40
-func handleResize(screen tcell.Screen) {
-	newScreenW, newScreenH = screen.Size()
-	if newScreenW == screenW && newScreenH == screenH {
+func handleResize(width int, height int) {
+	if width == screenW && height == screenH {
 		return
 	}
 
-	screenW, screenH = newScreenW, newScreenH
+	screenW, screenH = width, height
 
 	if !fixedBlockSize {
 		if screenW >= 106 && screenH >= 46 {

@@ -10,9 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"git.sr.ht/~tslocum/netris/pkg/event"
-	"git.sr.ht/~tslocum/netris/pkg/game"
-	"git.sr.ht/~tslocum/netris/pkg/game/ssh"
+	"gitlab.com/tslocum/netris/pkg/event"
+	"gitlab.com/tslocum/netris/pkg/game"
+	"gitlab.com/tslocum/netris/pkg/game/ssh"
 )
 
 var (

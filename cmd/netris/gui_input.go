@@ -7,9 +7,9 @@ import (
 	"runtime/pprof"
 	"strings"
 
-	"git.sr.ht/~tslocum/netris/pkg/event"
-	"git.sr.ht/~tslocum/netris/pkg/game"
 	"github.com/gdamore/tcell"
+	"gitlab.com/tslocum/netris/pkg/event"
+	"gitlab.com/tslocum/netris/pkg/game"
 )
 
 type Keybinding struct {

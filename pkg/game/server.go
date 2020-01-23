@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"git.sr.ht/~tslocum/netris/pkg/event"
+	"gitlab.com/tslocum/netris/pkg/event"
 )
 
 const (

@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"time"
 
-	"git.sr.ht/~tslocum/cview"
-	"git.sr.ht/~tslocum/netris/pkg/event"
-	"git.sr.ht/~tslocum/netris/pkg/game"
-	"git.sr.ht/~tslocum/netris/pkg/mino"
+	"gitlab.com/tslocum/cview"
+	"gitlab.com/tslocum/netris/pkg/event"
+	"gitlab.com/tslocum/netris/pkg/game"
+	"gitlab.com/tslocum/netris/pkg/mino"
 )
 
 const (

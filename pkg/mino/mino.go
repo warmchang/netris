@@ -253,9 +253,8 @@ func (m Mino) Flatten() Mino {
 	}
 
 	newMino := make(Mino, len(m))
-	copy(newMino, m)
 	for i := 0; i < len(m); i++ {
-		newMino[i] = rotateFunc(newMino[i])
+		newMino[i] = rotateFunc(m[i])
 	}
 
 	return newMino

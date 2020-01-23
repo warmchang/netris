@@ -1,6 +1,6 @@
 # netris
-[![GoDoc](https://godoc.org/git.sr.ht/~tslocum/netris?status.svg)](https://godoc.org/git.sr.ht/~tslocum/netris)
-[![builds.sr.ht status](https://builds.sr.ht/~tslocum/netris.svg)](https://builds.sr.ht/~tslocum/netris)
+[![GoDoc](https://godoc.org/gitlab.com/tslocum/netris?status.svg)](https://godoc.org/gitlab.com/tslocum/netris)
+[![CI status](https://gitlab.com/tslocum/netris/badges/master/pipeline.svg)](https://gitlab.com/tslocum/netris/commits/master)
 [![Donate](https://img.shields.io/liberapay/receives/rocketnine.space.svg?logo=liberapay)](https://liberapay.com/rocketnine.space)
 
 Multiplayer Tetris clone
@@ -28,26 +28,26 @@ Windows and Linux binaries are available.
 ### Compile
 
 ```
-GO111MODULE=on go get git.sr.ht/~tslocum/netris/...
+GO111MODULE=on go get gitlab.com/tslocum/netris/...
 ```
 
 ## Configure
 
-See [CONFIGURATION.md](https://man.sr.ht/~tslocum/netris/CONFIGURATION.md)
+See [CONFIGURATION.md](https://gitlab.com/tslocum/netris/blob/master/CONFIGURATION.md)
 
 ## How to Play
 
-See [GAMEPLAY.md](https://man.sr.ht/~tslocum/netris/GAMEPLAY.md)
+See [GAMEPLAY.md](https://gitlab.com/tslocum/netris/blob/master/GAMEPLAY.md)
 
 ## Support
 
-Please share suggestions/issues [here](https://todo.sr.ht/~tslocum/netris).
+Please share issues/suggestions [here](https://gitlab.com/tslocum/netris/issues).
 
 ## Libraries
 
 The following libraries are used to build netris:
 
-* [cview](https://git.sr.ht/~tslocum/cview) - User interface
+* [cview](https://gitlab.com/tslocum/cview) - User interface
 * [tcell](https://github.com/gdamore/tcell) - User interface
 * [ssh](https://github.com/gliderlabs/ssh) - SSH server
 * [pty](https://github.com/creack/pty) - Pseudo-terminal interface

@@ -1,10 +1,5 @@
 package mino
 
-import (
-	"log"
-	"testing"
-)
-
 type PieceTestData struct {
 	R0 string
 	RR string
@@ -17,10 +12,11 @@ var pieceTestData = []*PieceTestData{
 	{Domino, "(0,-1),(0,0)", Domino, "(0,-1),(0,0)"},
 }
 
+// TODO Resolve CCW rotation resulting in different coords than CW rotation before completing test
+/*
 func TestPiece(t *testing.T) {
 	t.Parallel()
 
-	// TODO Resolve CCW rotation resulting in different coords than CW rotation before completing test
 	return
 
 	for i, d := range pieceTestData {
@@ -31,7 +27,7 @@ func TestPiece(t *testing.T) {
 
 		p := NewPiece(m, Point{0, 0})
 		if p == nil || p.Mino.String() != d.R0 {
-			t.Errorf("failed to create piece %d %s: got %s", i, d.R0, p)
+			t.Errorf("failed to create piece %d %s: got %+v", i, d.R0, p)
 		}
 
 		for direction := 0; direction <= 1; direction++ {
@@ -67,3 +63,4 @@ func TestPiece(t *testing.T) {
 		log.Println(p)
 	}
 }
+*/

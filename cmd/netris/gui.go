@@ -463,13 +463,32 @@ func renderMatrixes(mx []*mino.Matrix) {
 				}
 
 				for x := 0; x < m.W; x++ {
+					if m.Block(x, y-1) == mino.BlockNone && m.Block(x, y) == mino.BlockNone {
+						renderBuffer.WriteRune(' ')
+						continue
+					} else if m.Block(x, y-1) == mino.BlockNone {
+						renderBuffer.WriteRune('[')
+						renderBuffer.Write(mino.Colors[m.Block(x, y)])
+						renderBuffer.WriteRune(']')
+						renderBuffer.WriteRune('▀')
+						renderBuffer.Write([]byte("[-:-]"))
+						continue
+					} else if m.Block(x, y) == mino.BlockNone {
+						renderBuffer.WriteRune('[')
+						renderBuffer.Write(mino.Colors[m.Block(x, y-1)])
+						renderBuffer.WriteRune(']')
+						renderBuffer.WriteRune('▄')
+						renderBuffer.Write([]byte("[-:-]"))
+						continue
+					}
+
 					renderBuffer.WriteRune('[')
 					renderBuffer.Write(mino.Colors[m.Block(x, y-1)])
 					renderBuffer.WriteRune(':')
 					renderBuffer.Write(mino.Colors[m.Block(x, y)])
 					renderBuffer.WriteRune(']')
 					renderBuffer.WriteRune('▄')
-					renderBuffer.Write([]byte("[#FFFFFF:#000000]"))
+					renderBuffer.Write([]byte("[-:-]"))
 				}
 
 				if m.Type == mino.MatrixStandard {
@@ -497,12 +516,18 @@ func renderMatrixes(mx []*mino.Matrix) {
 				}
 
 				for x := 0; x < m.W; x++ {
+					if m.Block(x, y) == mino.BlockNone {
+						renderBuffer.WriteRune(' ')
+						renderBuffer.WriteRune(' ')
+						continue
+					}
+
 					renderBuffer.WriteRune('[')
 					renderBuffer.Write(mino.Colors[m.Block(x, y)])
 					renderBuffer.WriteRune(']')
 					renderBuffer.WriteRune('█')
 					renderBuffer.WriteRune('█')
-					renderBuffer.Write([]byte("[#FFFFFF]"))
+					renderBuffer.Write([]byte("[-]"))
 				}
 
 				if m.Type == mino.MatrixStandard {
@@ -531,6 +556,14 @@ func renderMatrixes(mx []*mino.Matrix) {
 					}
 
 					for x := 0; x < m.W; x++ {
+						if m.Block(x, y) == mino.BlockNone {
+							renderBuffer.WriteRune(' ')
+							renderBuffer.WriteRune(' ')
+							renderBuffer.WriteRune(' ')
+							renderBuffer.WriteRune(' ')
+							continue
+						}
+
 						renderBuffer.WriteRune('[')
 						renderBuffer.Write(mino.Colors[m.Block(x, y)])
 						renderBuffer.WriteRune(']')
@@ -538,7 +571,7 @@ func renderMatrixes(mx []*mino.Matrix) {
 						renderBuffer.WriteRune('█')
 						renderBuffer.WriteRune('█')
 						renderBuffer.WriteRune('█')
-						renderBuffer.Write([]byte("[#FFFFFF]"))
+						renderBuffer.Write([]byte("[-]"))
 					}
 
 					if m.Type == mino.MatrixStandard {

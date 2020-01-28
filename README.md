@@ -27,9 +27,7 @@ Windows and Linux binaries are available.
 
 ### Compile
 
-```
-GO111MODULE=on go get gitlab.com/tslocum/netris/...
-```
+```go get gitlab.com/tslocum/netris/cmd/netris```
 
 ## Configure
 
@@ -41,7 +39,7 @@ See [GAMEPLAY.md](https://gitlab.com/tslocum/netris/blob/master/GAMEPLAY.md)
 
 ## Support
 
-Please share issues/suggestions [here](https://gitlab.com/tslocum/netris/issues).
+Please share issues and suggestions [here](https://gitlab.com/tslocum/netris/issues).
 
 ## Libraries
 

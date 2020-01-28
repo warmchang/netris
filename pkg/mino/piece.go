@@ -1,7 +1,6 @@
 package mino
 
 import (
-	"fmt"
 	"sync"
 	"time"
 )
@@ -71,12 +70,6 @@ type Piece struct {
 	landed    bool
 
 	sync.Mutex `json:"-"`
-}
-
-type LockedPiece *Piece
-
-func (p *Piece) String() string {
-	return fmt.Sprintf("%+v", *p)
 }
 
 func NewPiece(m Mino, loc Point) *Piece {

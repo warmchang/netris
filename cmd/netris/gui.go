@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gdamore/tcell"
 	"gitlab.com/tslocum/cview"
 	"gitlab.com/tslocum/netris/pkg/event"
 	"gitlab.com/tslocum/netris/pkg/game"
@@ -71,14 +70,14 @@ var (
 const DefaultStatusText = "Press Enter to chat, Z/X to rotate, arrow keys or HJKL to move/drop"
 
 var (
-	renderHLine    = []byte(string(tcell.RuneHLine))
-	renderVLine    = []byte(string(tcell.RuneVLine))
-	renderLTee     = []byte(string(tcell.RuneLTee))
-	renderRTee     = []byte(string(tcell.RuneRTee))
-	renderULCorner = []byte(string(tcell.RuneULCorner))
-	renderURCorner = []byte(string(tcell.RuneURCorner))
-	renderLLCorner = []byte(string(tcell.RuneLLCorner))
-	renderLRCorner = []byte(string(tcell.RuneLRCorner))
+	renderHLine    = []byte("[-:#444444] [-:-]")
+	renderVLine    = []byte("[-:#444444]  [-:-]")
+	renderLTee     = []byte("[-:#444444] [-:-]")
+	renderRTee     = []byte("[-:#444444] [-:-]")
+	renderULCorner = []byte("[-:#444444]  [-:-]")
+	renderURCorner = []byte("[-:#444444]  [-:-]")
+	renderLLCorner = []byte("[-:#444444]  [-:-]")
+	renderLRCorner = []byte("[-:#444444]  [-:-]")
 )
 
 func resetPlayerSettingsForm() {
@@ -129,11 +128,11 @@ func handleResize(width int, height int) {
 	}
 
 	if screenH > mainHeight+9 {
-		screenPadding = 2
+		screenPadding = 1
 		mainHeight++
 		inputHeight = 2
 	} else if screenH > mainHeight+7 {
-		screenPadding = 2
+		screenPadding = 1
 		mainHeight++
 		inputHeight = 1
 	} else if screenH > mainHeight+5 {
@@ -156,7 +155,7 @@ func handleResize(width int, height int) {
 		previewWidth = 18
 	}
 
-	multiplayerMatrixSize = ((screenW - screenPadding) - ((10 * xMultiplier) + previewWidth + 6)) / ((10 * xMultiplier) + 4)
+	multiplayerMatrixSize = ((screenW - screenPadding) - ((10 * xMultiplier) + previewWidth + 6)) / ((10 * xMultiplier) + 6)
 
 	newLogLines = ((screenH - mainHeight) - inputHeight) - screenPadding
 	if newLogLines > 0 {
@@ -165,7 +164,7 @@ func handleResize(width int, height int) {
 		showLogLines = 1
 	}
 
-	gameGrid.SetRows(screenPadding, mainHeight, inputHeight, -1).SetColumns(screenPadding+1, 3+(10*xMultiplier), previewWidth, -1)
+	gameGrid.SetRows(screenPadding, mainHeight, inputHeight, -1).SetColumns(screenPadding+1, 5+(10*xMultiplier), previewWidth, -1)
 
 	draw <- event.DrawAll
 }
@@ -375,12 +374,12 @@ func renderPlayerDetails(m *mino.Matrix, bs int) {
 		buf = buf[:m.W*xMultiplier]
 	}
 
-	padBuf := ((m.W*xMultiplier - len(buf)) / 2) + 1
+	padBuf := ((m.W*xMultiplier - len(buf)) / 2) + 3
 	for i := 0; i < padBuf; i++ {
 		renderBuffer.WriteRune(' ')
 	}
 	renderBuffer.WriteString(buf)
-	padBuf = m.W*xMultiplier + 2 - len(buf) - padBuf
+	padBuf = m.W*xMultiplier + 4 - len(buf) - padBuf
 	for i := 0; i < padBuf; i++ {
 		renderBuffer.WriteRune(' ')
 	}

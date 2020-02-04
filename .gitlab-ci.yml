@@ -19,3 +19,15 @@ test:
   stage: validate
   script:
     - go test -race -v ./...
+
+build-netris:
+  stage: build
+  script:
+    - cd cmd/netris
+    - go build
+
+build-netris-server:
+  stage: build
+  script:
+    - cd cmd/netris-server
+    - go build

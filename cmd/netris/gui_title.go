@@ -471,26 +471,12 @@ func renderTitle() {
 }
 
 func renderGameList() {
-	w := 32
+	w := 34
 
 	gameListView.Clear()
-	gameListView.Write(renderULCorner)
-	for i := 0; i < w; i++ {
-		gameListView.Write(renderHLine)
-	}
-	gameListView.Write(renderURCorner)
 	gameListView.Write([]byte("\n"))
 
-	gameListView.Write(renderVLine)
-	gameListView.Write([]byte(fmt.Sprintf("%-25s%s", "Game", "Players")))
-	gameListView.Write(renderVLine)
-	gameListView.Write([]byte("\n"))
-
-	gameListView.Write(renderLTee)
-	for i := 0; i < w; i++ {
-		gameListView.Write(renderHLine)
-	}
-	gameListView.Write(renderRTee)
+	gameListView.Write([]byte(fmt.Sprintf("%-27s%s", "Game", "Players")))
 	gameListView.Write([]byte("\n"))
 
 	h := 10
@@ -501,15 +487,13 @@ func renderGameList() {
 			p += "/" + strconv.Itoa(g.MaxPlayers)
 		}
 
-		gameListView.Write(renderVLine)
 		if titleSelectedButton == 0 && gameListSelected == i {
 			gameListView.Write([]byte("[#000000:#FFFFFF]"))
 		}
-		gameListView.Write([]byte(fmt.Sprintf("%-25s%7s", g.Name, p)))
+		gameListView.Write([]byte(fmt.Sprintf("%-27s%7s", g.Name, p)))
 		if titleSelectedButton == 0 && gameListSelected == i {
 			gameListView.Write([]byte("[-:-]"))
 		}
-		gameListView.Write(renderVLine)
 		gameListView.Write([]byte("\n"))
 
 		h--
@@ -517,19 +501,11 @@ func renderGameList() {
 
 	if h > 0 {
 		for i := 0; i < h; i++ {
-			gameListView.Write(renderVLine)
 			for i := 0; i < w; i++ {
 				gameListView.Write([]byte(" "))
 			}
-			gameListView.Write(renderVLine)
 		}
 	}
-
-	gameListView.Write(renderLLCorner)
-	for i := 0; i < w; i++ {
-		gameListView.Write(renderHLine)
-	}
-	gameListView.Write(renderLRCorner)
 }
 
 func refreshGameList() {

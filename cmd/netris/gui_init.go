@@ -12,6 +12,11 @@ import (
 )
 
 func initGUI(skipTitle bool) (*cview.Application, error) {
+	cview.Styles.TitleColor = tcell.ColorDefault
+	cview.Styles.BorderColor = tcell.ColorDefault
+	cview.Styles.PrimaryTextColor = tcell.ColorDefault
+	cview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
+
 	app = cview.NewApplication().EnableMouse()
 
 	app.SetAfterResizeFunc(handleResize)
@@ -22,8 +27,6 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 		SetFieldWidth(0).
 		SetFieldBackgroundColor(tcell.ColorDefault).
 		SetFieldTextColor(tcell.ColorDefault)
-
-	inputView.SetBackgroundColor(tcell.ColorDefault)
 
 	inputView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if !inputActive {
@@ -42,7 +45,7 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 		SetWrap(false).
 		SetWordWrap(false)
 
-	mtx.SetDynamicColors(true).SetTextColor(tcell.ColorDefault).SetBackgroundColor(tcell.ColorDefault)
+	mtx.SetDynamicColors(true)
 
 	side = cview.NewTextView().
 		SetScrollable(false).
@@ -50,7 +53,7 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 		SetWrap(false).
 		SetWordWrap(false)
 
-	side.SetDynamicColors(true).SetTextColor(tcell.ColorDefault).SetBackgroundColor(tcell.ColorDefault)
+	side.SetDynamicColors(true)
 
 	buffer = cview.NewTextView().
 		SetScrollable(false).
@@ -58,17 +61,15 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 		SetWrap(false).
 		SetWordWrap(false)
 
-	buffer.SetDynamicColors(true).SetTextColor(tcell.ColorDefault).SetBackgroundColor(tcell.ColorDefault)
+	buffer.SetDynamicColors(true)
 
-	pad := cview.NewBox().SetBackgroundColor(tcell.ColorDefault)
+	pad := cview.NewBox()
 
 	recent = cview.NewTextView().
 		SetScrollable(true).
 		SetTextAlign(cview.AlignLeft).
 		SetWrap(true).
 		SetWordWrap(true)
-
-	recent.SetTextColor(tcell.ColorDefault).SetBackgroundColor(tcell.ColorDefault)
 
 	gameGrid.
 		AddItem(pad, 0, 0, 4, 1, 0, 0, false).
@@ -124,56 +125,55 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 		SetTextAlign(cview.AlignLeft).
 		SetWrap(false).
 		SetWordWrap(false).SetDynamicColors(true)
-	titleName.SetTextColor(tcell.ColorDefault).SetBackgroundColor(tcell.ColorDefault)
 
 	titleL = cview.NewTextView().
 		SetScrollable(false).
 		SetTextAlign(cview.AlignLeft).
 		SetWrap(false).
 		SetWordWrap(false).SetDynamicColors(true)
-	titleL.SetTextColor(tcell.ColorDefault).SetBackgroundColor(tcell.ColorDefault)
 
 	titleR = cview.NewTextView().
 		SetScrollable(false).
 		SetTextAlign(cview.AlignLeft).
 		SetWrap(false).
 		SetWordWrap(false).SetDynamicColors(true)
-	titleR.SetTextColor(tcell.ColorDefault).SetBackgroundColor(tcell.ColorDefault)
 
 	go handleTitle()
 
-	buttonA = cview.NewButton("A").SetSelectedFunc(func() {
-		titleSelectedButton = 0
-		if titleScreen == 4 {
-			titleSelectedButton++
-		}
-		selectTitleButton()
-	})
+	buttonA = cview.NewButton("A").
+		SetSelectedFunc(func() {
+			currentSelection = 0
+			if currentScreen == screenGames {
+				currentSelection++
+			}
+			selectTitleButton()
+		})
+	styleButton(buttonA)
 	buttonLabelA = cview.NewTextView().SetTextAlign(cview.AlignCenter)
-	buttonLabelA.SetTextColor(tcell.ColorDefault).SetBackgroundColor(tcell.ColorDefault)
 
-	buttonB = cview.NewButton("B").SetSelectedFunc(func() {
-		titleSelectedButton = 1
-		if titleScreen == 4 {
-			titleSelectedButton++
-		}
-		selectTitleButton()
-	})
+	buttonB = cview.NewButton("B").
+		SetSelectedFunc(func() {
+			currentSelection = 1
+			if currentScreen == screenGames {
+				currentSelection++
+			}
+			selectTitleButton()
+		})
+	styleButton(buttonB)
 	buttonLabelB = cview.NewTextView().SetTextAlign(cview.AlignCenter)
-	buttonLabelB.SetTextColor(tcell.ColorDefault).SetBackgroundColor(tcell.ColorDefault)
 
-	buttonC = cview.NewButton("C").SetSelectedFunc(func() {
-		titleSelectedButton = 2
-		if titleScreen == 4 {
-			titleSelectedButton++
-		}
-		selectTitleButton()
-	})
+	buttonC = cview.NewButton("C").
+		SetSelectedFunc(func() {
+			currentSelection = 2
+			if currentScreen == screenGames {
+				currentSelection++
+			}
+			selectTitleButton()
+		})
+	styleButton(buttonC)
 	buttonLabelC = cview.NewTextView().SetTextAlign(cview.AlignCenter)
-	buttonLabelC.SetTextColor(tcell.ColorDefault).SetBackgroundColor(tcell.ColorDefault)
 
 	subTitle := cview.NewTextView().SetText(SubTitle + game.Version)
-	subTitle.SetTextColor(tcell.ColorDefault).SetBackgroundColor(tcell.ColorDefault)
 
 	titleNameGrid := cview.NewGrid().SetRows(3, 2).
 		AddItem(titleName, 0, 0, 1, 1, 0, 0, false).
@@ -194,7 +194,6 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 		AddItem(pad, 7, 1, 1, 1, 0, 0, false)
 
 	gameListView = cview.NewTextView().SetDynamicColors(true)
-	gameListView.SetBackgroundColor(tcell.ColorDefault)
 
 	gameListButtonsGrid := cview.NewGrid().
 		SetColumns(-1, 1, -1, 1, -1).
@@ -205,13 +204,11 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 		AddItem(buttonC, 0, 4, 1, 1, 0, 0, false)
 
 	gameListHeader = cview.NewTextView().SetTextAlign(cview.AlignCenter)
-	gameListHeader.SetBackgroundColor(tcell.ColorDefault)
 
 	gameListHelp := cview.NewTextView().
 		SetTextAlign(cview.AlignCenter).
 		SetWrap(false).
 		SetWordWrap(false).SetText("\nRefresh: R\nPrevious: Shift+Tab - Next: Tab")
-	gameListHelp.SetBackgroundColor(tcell.ColorDefault)
 
 	gameListGrid = cview.NewGrid().
 		SetRows(5, 1, 14, 1, 3).
@@ -224,45 +221,47 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 		AddItem(gameListButtonsGrid, 3, 1, 1, 1, 0, 0, true).
 		AddItem(gameListHelp, 4, 1, 1, 1, 0, 0, true)
 
-	buttonCancel = cview.NewButton("Cancel").SetSelectedFunc(selectTitleFunc(3))
-	buttonStart = cview.NewButton("Start").SetSelectedFunc(selectTitleFunc(4))
+	buttonNewGameCancel = cview.NewButton("Cancel").SetSelectedFunc(selectTitleFunc(3))
+	buttonNewGameStart = cview.NewButton("Start").SetSelectedFunc(selectTitleFunc(4))
+
+	styleButton(buttonNewGameCancel)
+	styleButton(buttonNewGameStart)
 
 	newGameSubmitGrid := cview.NewGrid().
 		SetColumns(-1, 10, 1, 10, -1).
 		AddItem(pad, 0, 0, 1, 1, 0, 0, false).
-		AddItem(buttonCancel, 0, 1, 1, 1, 0, 0, false).
+		AddItem(buttonNewGameCancel, 0, 1, 1, 1, 0, 0, false).
 		AddItem(pad, 0, 2, 1, 1, 0, 0, false).
-		AddItem(buttonStart, 0, 3, 1, 1, 0, 0, false).
+		AddItem(buttonNewGameStart, 0, 3, 1, 1, 0, 0, false).
 		AddItem(pad, 0, 4, 1, 1, 0, 0, false)
 
 	newGameNameInput = cview.NewInputField().SetText("netris")
 	newGameMaxPlayersInput = cview.NewInputField().SetFieldWidth(3).SetAcceptanceFunc(func(textToCheck string, lastChar rune) bool {
 		return unicode.IsDigit(lastChar) && len(textToCheck) <= 3
 	})
-	newGameMaxPlayersInput.SetBackgroundColor(tcell.ColorDefault)
 	newGameSpeedLimitInput = cview.NewInputField().SetFieldWidth(3).SetAcceptanceFunc(func(textToCheck string, lastChar rune) bool {
 		return unicode.IsDigit(lastChar) && len(textToCheck) <= 3
 	})
-	newGameSpeedLimitInput.SetBackgroundColor(tcell.ColorDefault)
+
+	styleInputField(newGameNameInput)
+	styleInputField(newGameMaxPlayersInput)
+	styleInputField(newGameSpeedLimitInput)
 
 	resetNewGameInputs()
 
 	newGameNameLabel := cview.NewTextView().SetText("Name")
-	newGameNameLabel.SetBackgroundColor(tcell.ColorDefault)
 
 	newGameNameGrid := cview.NewGrid().
 		AddItem(newGameNameLabel, 0, 0, 1, 1, 0, 0, false).
 		AddItem(newGameNameInput, 0, 1, 1, 1, 0, 0, false)
 
 	newGameMaxPlayersLabel := cview.NewTextView().SetText("Player Limit")
-	newGameMaxPlayersLabel.SetBackgroundColor(tcell.ColorDefault)
 
 	newGameMaxPlayersGrid := cview.NewGrid().
 		AddItem(newGameMaxPlayersLabel, 0, 0, 1, 1, 0, 0, false).
 		AddItem(newGameMaxPlayersInput, 0, 1, 1, 1, 0, 0, false)
 
 	newGameSpeedLimitLabel := cview.NewTextView().SetText("Speed Limit")
-	newGameSpeedLimitLabel.SetBackgroundColor(tcell.ColorDefault)
 
 	newGameSpeedLimitGrid := cview.NewGrid().
 		AddItem(newGameSpeedLimitLabel, 0, 0, 1, 1, 0, 0, false).
@@ -272,13 +271,11 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 		SetTextAlign(cview.AlignCenter).
 		SetWrap(false).
 		SetWordWrap(false).SetText("New Game")
-	newGameHeader.SetBackgroundColor(tcell.ColorDefault)
 
 	newGameHelp := cview.NewTextView().
 		SetTextAlign(cview.AlignCenter).
 		SetWrap(false).
 		SetWordWrap(false).SetText("\nLimits set to zero are disabled\nPrevious: Shift+Tab - Next: Tab")
-	newGameHelp.SetBackgroundColor(tcell.ColorDefault)
 
 	newGameGrid = cview.NewGrid().
 		SetRows(5, 2, 1, 1, 1, 1, 1, 1, 1, -1, 3).
@@ -301,54 +298,70 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 		SetTextAlign(cview.AlignCenter).
 		SetWrap(false).
 		SetWordWrap(false).SetText("Player Settings")
-	playerSettingsTitle.SetBackgroundColor(tcell.ColorDefault)
 
-	playerSettingsForm = cview.NewForm().SetButtonsAlign(cview.AlignCenter)
-	playerSettingsForm.SetBackgroundColor(tcell.ColorDefault)
+	playerSettingsNameLabel := cview.NewTextView().SetText("Name")
+	playerSettingsNameInput = cview.NewInputField().SetFieldWidth(11).SetAcceptanceFunc(func(textToCheck string, lastChar rune) bool {
+		return len(textToCheck) <= 10
+	})
+	styleInputField(playerSettingsNameInput)
+
+	playerSettingsNameGrid := cview.NewGrid().
+		AddItem(playerSettingsNameLabel, 0, 0, 1, 1, 0, 0, false).
+		AddItem(playerSettingsNameInput, 0, 1, 1, 1, 0, 0, false)
+
+	playerSettingsCancel = cview.NewButton("Cancel").SetSelectedFunc(selectTitleFunc(1))
+	playerSettingsSave = cview.NewButton("Save").SetSelectedFunc(selectTitleFunc(2))
+
+	styleButton(playerSettingsCancel)
+	styleButton(playerSettingsSave)
+
+	playerSettingsSubmitGrid := cview.NewGrid().
+		SetColumns(-1, 10, 1, 10, -1).
+		AddItem(pad, 0, 0, 1, 1, 0, 0, false).
+		AddItem(playerSettingsCancel, 0, 1, 1, 1, 0, 0, false).
+		AddItem(pad, 0, 2, 1, 1, 0, 0, false).
+		AddItem(playerSettingsSave, 0, 3, 1, 1, 0, 0, false).
+		AddItem(pad, 0, 4, 1, 1, 0, 0, false)
 
 	playerSettingsHelp := cview.NewTextView().
 		SetTextAlign(cview.AlignCenter).
 		SetWrap(false).
 		SetWordWrap(false).SetText("Previous: Shift+Tab - Next: Tab")
-	playerSettingsHelp.SetBackgroundColor(tcell.ColorDefault)
 
 	playerSettingsGrid = cview.NewGrid().
-		SetRows(5, 2, -1, 1).
+		SetRows(5, 2, 1, 1, -1, 1, 1, 1).
 		SetColumns(-1, 34, -1).
-		AddItem(titleL, 0, 0, 4, 1, 0, 0, false).
+		AddItem(titleL, 0, 0, 8, 1, 0, 0, false).
 		AddItem(titleNameGrid, 0, 1, 1, 1, 0, 0, false).
-		AddItem(titleR, 0, 2, 4, 1, 0, 0, false).
+		AddItem(titleR, 0, 2, 8, 1, 0, 0, false).
 		AddItem(playerSettingsTitle, 1, 1, 1, 1, 0, 0, true).
-		AddItem(playerSettingsForm, 2, 1, 1, 1, 0, 0, true).
-		AddItem(playerSettingsHelp, 3, 1, 1, 1, 0, 0, true)
+		AddItem(pad, 2, 1, 1, 1, 0, 0, false).
+		AddItem(playerSettingsNameGrid, 3, 1, 1, 1, 0, 0, true).
+		AddItem(pad, 4, 1, 1, 1, 0, 0, false).
+		AddItem(playerSettingsSubmitGrid, 5, 1, 1, 1, 0, 0, false).
+		AddItem(pad, 6, 1, 1, 1, 0, 0, false).
+		AddItem(playerSettingsHelp, 7, 1, 1, 1, 0, 0, true)
 
 	gameSettingsTitle := cview.NewTextView().
 		SetTextAlign(cview.AlignCenter).
 		SetWrap(false).
 		SetWordWrap(false).SetText("Game Settings")
-	gameSettingsTitle.SetBackgroundColor(tcell.ColorDefault)
 
 	labelGhostPiece := cview.NewTextView().SetText("Ghost Piece")
-	labelGhostPiece.SetBackgroundColor(tcell.ColorDefault)
 
 	buttonGhostPiece = cview.NewButton("Enabled").SetSelectedFunc(selectTitleFunc(0))
+	styleButton(buttonGhostPiece)
 
 	ghostPieceGrid := cview.NewGrid().SetColumns(19, -1).
 		AddItem(labelGhostPiece, 0, 0, 1, 1, 0, 0, false).
 		AddItem(buttonGhostPiece, 0, 1, 1, 1, 0, 0, false)
 
 	labelKeybindRotateCCW := cview.NewTextView().SetText("Rotate CCW")
-	labelKeybindRotateCCW.SetBackgroundColor(tcell.ColorDefault)
 	labelKeybindRotateCW := cview.NewTextView().SetText("Rotate CW")
-	labelKeybindRotateCW.SetBackgroundColor(tcell.ColorDefault)
 	labelKeybindMoveLeft := cview.NewTextView().SetText("Move Left")
-	labelKeybindMoveLeft.SetBackgroundColor(tcell.ColorDefault)
 	labelKeybindMoveRight := cview.NewTextView().SetText("Move Right")
-	labelKeybindMoveRight.SetBackgroundColor(tcell.ColorDefault)
 	labelKeybindSoftDrop := cview.NewTextView().SetText("Soft Drop")
-	labelKeybindSoftDrop.SetBackgroundColor(tcell.ColorDefault)
 	labelKeybindHardDrop := cview.NewTextView().SetText("Hard Drop")
-	labelKeybindHardDrop.SetBackgroundColor(tcell.ColorDefault)
 
 	buttonKeybindRotateCCW = cview.NewButton("Set").SetSelectedFunc(selectTitleFunc(1))
 	buttonKeybindRotateCW = cview.NewButton("Set").SetSelectedFunc(selectTitleFunc(2))
@@ -359,6 +372,15 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 
 	buttonKeybindCancel = cview.NewButton("Cancel").SetSelectedFunc(selectTitleFunc(7))
 	buttonKeybindSave = cview.NewButton("Save").SetSelectedFunc(selectTitleFunc(8))
+
+	styleButton(buttonKeybindRotateCCW)
+	styleButton(buttonKeybindRotateCW)
+	styleButton(buttonKeybindMoveLeft)
+	styleButton(buttonKeybindMoveRight)
+	styleButton(buttonKeybindSoftDrop)
+	styleButton(buttonKeybindHardDrop)
+	styleButton(buttonKeybindCancel)
+	styleButton(buttonKeybindSave)
 
 	rotateCCWGrid := cview.NewGrid().SetColumns(27, -1).
 		AddItem(labelKeybindRotateCCW, 0, 0, 1, 1, 0, 0, false).
@@ -396,19 +418,16 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 		SetTextAlign(cview.AlignCenter).
 		SetWrap(false).
 		SetWordWrap(false).SetText("Options")
-	gameSettingsOptionsTitle.SetBackgroundColor(tcell.ColorDefault)
 
 	gameSettingsKeybindsTitle := cview.NewTextView().
 		SetTextAlign(cview.AlignCenter).
 		SetWrap(false).
 		SetWordWrap(false).SetText("Keybindings")
-	gameSettingsKeybindsTitle.SetBackgroundColor(tcell.ColorDefault)
 
 	gameSettingsHelp := cview.NewTextView().
 		SetTextAlign(cview.AlignCenter).
 		SetWrap(false).
 		SetWordWrap(false).SetText("\nPrevious: Shift+Tab - Next: Tab")
-	gameSettingsHelp.SetBackgroundColor(tcell.ColorDefault)
 
 	gameSettingsGrid = cview.NewGrid().
 		SetRows(5, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, -1).

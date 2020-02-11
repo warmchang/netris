@@ -1,5 +1,4 @@
 # netris
-[![GoDoc](https://godoc.org/gitlab.com/tslocum/netris?status.svg)](https://godoc.org/gitlab.com/tslocum/netris)
 [![CI status](https://gitlab.com/tslocum/netris/badges/master/pipeline.svg)](https://gitlab.com/tslocum/netris/commits/master)
 [![Donate](https://img.shields.io/liberapay/receives/rocketnine.space.svg?logo=liberapay)](https://liberapay.com/rocketnine.space)
 

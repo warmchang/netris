@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gdamore/tcell"
 	"gitlab.com/tslocum/cview"
 	"gitlab.com/tslocum/netris/pkg/event"
 	"gitlab.com/tslocum/netris/pkg/game"
@@ -16,11 +17,22 @@ const (
 	SubTitle = " .rocketnine.space         v"
 )
 
+type screen int
+
+const (
+	screenTitle screen = iota
+	screenSettings
+	screenPlayerSettings
+	screenGameSettings
+	screenGames
+	screenNewGame
+)
+
 var (
-	titleVisible        bool
-	titleScreen         int
-	titleSelectedButton int
-	drawTitle           = make(chan struct{}, game.CommandQueueSize)
+	titleVisible     bool
+	currentScreen    screen
+	currentSelection int
+	drawTitle        = make(chan struct{}, game.CommandQueueSize)
 
 	titleGrid          *cview.Grid
 	titleContainerGrid *cview.Grid
@@ -32,9 +44,9 @@ var (
 	newGameMaxPlayersInput *cview.InputField
 	newGameSpeedLimitInput *cview.InputField
 
-	playerSettingsForm          *cview.Form
 	playerSettingsGrid          *cview.Grid
 	playerSettingsContainerGrid *cview.Grid
+	playerSettingsNameInput     *cview.InputField
 
 	gameList              []*game.ListedGame
 	gameListHeader        *cview.TextView
@@ -67,25 +79,25 @@ var (
 )
 
 func previousTitleButton() {
-	if titleSelectedButton == 0 {
+	if currentSelection == 0 {
 		return
 	}
 
-	titleSelectedButton--
+	currentSelection--
 }
 
 func nextTitleButton() {
 	maxButton := 2
-	if titleScreen == 4 {
+	if currentScreen == screenGames {
 		maxButton = 3
-	} else if titleScreen == 5 {
+	} else if currentScreen == screenNewGame {
 		maxButton = 4
 	}
-	if titleSelectedButton >= maxButton {
+	if currentSelection >= maxButton {
 		return
 	}
 
-	titleSelectedButton++
+	currentSelection++
 }
 
 func selectTitleButton() {
@@ -93,19 +105,19 @@ func selectTitleButton() {
 		return
 	}
 
-	switch titleScreen {
-	case 1:
-		switch titleSelectedButton {
+	switch currentScreen {
+	case screenSettings:
+		switch currentSelection {
 		case 0:
 			resetPlayerSettingsForm()
 
-			titleScreen = 2
-			titleSelectedButton = 0
+			currentScreen = screenPlayerSettings
+			currentSelection = 0
 
-			app.SetRoot(playerSettingsContainerGrid, true).SetFocus(playerSettingsForm)
+			app.SetRoot(playerSettingsContainerGrid, true).SetFocus(playerSettingsNameInput)
 		case 1:
-			titleScreen = 3
-			titleSelectedButton = 0
+			currentScreen = screenGameSettings
+			currentSelection = 0
 
 			drawGhostPieceUnsaved = drawGhostPiece
 
@@ -115,14 +127,16 @@ func selectTitleButton() {
 			app.SetRoot(gameSettingsContainerGrid, true)
 			updateTitle()
 		case 2:
-			titleScreen = 0
-			titleSelectedButton = 0
+			currentScreen = screenTitle
+			currentSelection = 0
 
 			updateTitle()
 		}
-	case 2:
-		if titleSelectedButton == 1 {
-			// Save
+	case screenPlayerSettings:
+		if currentSelection == 0 { // Name input
+			return
+		} else if currentSelection == 2 { // Save
+			nicknameDraft := playerSettingsNameInput.GetText()
 			if nicknameDraft != "" && game.Nickname(nicknameDraft) != nickname {
 				nickname = game.Nickname(nicknameDraft)
 
@@ -132,18 +146,18 @@ func selectTitleButton() {
 			}
 		}
 
-		titleScreen = 1
-		titleSelectedButton = 0
+		currentScreen = screenSettings
+		currentSelection = 0
 
 		app.SetRoot(titleContainerGrid, true)
 		updateTitle()
-	case 3:
-		if titleSelectedButton == 0 {
+	case screenGameSettings:
+		if currentSelection == 0 {
 			drawGhostPieceUnsaved = !drawGhostPieceUnsaved
 			updateTitle()
 			return
-		} else if titleSelectedButton == 7 || titleSelectedButton == 8 {
-			if titleSelectedButton == 8 {
+		} else if currentSelection == 7 || currentSelection == 8 {
+			if currentSelection == 8 {
 				drawGhostPiece = drawGhostPieceUnsaved
 
 				keybindings = make([]*Keybinding, len(draftKeybindings))
@@ -151,8 +165,8 @@ func selectTitleButton() {
 			}
 			draftKeybindings = nil
 
-			titleScreen = 1
-			titleSelectedButton = 0
+			currentScreen = screenSettings
+			currentSelection = 0
 
 			app.SetRoot(titleContainerGrid, true)
 			updateTitle()
@@ -163,60 +177,60 @@ func selectTitleButton() {
 		app.SetRoot(modal, true)
 
 		capturingKeybind = true
-	case 4:
-		if titleSelectedButton == 0 {
+	case screenGames:
+		if currentSelection == 0 {
 			if gameListSelected >= 0 && gameListSelected < len(gameList) {
 				joinGame <- gameList[gameListSelected].ID
 			}
-		} else if titleSelectedButton == 1 {
-			titleScreen = 5
-			titleSelectedButton = 0
+		} else if currentSelection == 1 {
+			currentScreen = screenNewGame
+			currentSelection = 0
 
 			resetNewGameInputs()
 			app.SetRoot(newGameContainerGrid, true).SetFocus(nil)
 			updateTitle()
-		} else if titleSelectedButton == 2 {
-			titleScreen = 5
-			titleSelectedButton = 0
+		} else if currentSelection == 2 {
+			currentScreen = screenNewGame
+			currentSelection = 0
 
 			modal := cview.NewModal().SetText("Joining another server by IP via GUI is not yet implemented.\nPlease re-launch netris with the --connect argument instead.\n\nPress Escape to return.").ClearButtons()
 			app.SetRoot(modal, true)
-		} else if titleSelectedButton == 3 {
-			titleScreen = 0
-			titleSelectedButton = 0
+		} else if currentSelection == 3 {
+			currentScreen = screenTitle
+			currentSelection = 0
 
 			app.SetRoot(titleContainerGrid, true)
 			updateTitle()
 		}
-	case 5:
-		if titleSelectedButton == 3 {
-			titleScreen = 4
+	case screenNewGame:
+		if currentSelection == 3 {
+			currentScreen = screenGames
 			gameListSelected = 0
-			titleSelectedButton = 0
+			currentSelection = 0
 			app.SetRoot(gameListContainerGrid, true)
 			renderGameList()
 			updateTitle()
-		} else if titleSelectedButton == 4 {
+		} else if currentSelection == 4 {
 			joinGame <- event.GameIDNewCustom
 		}
 	default: // Title screen 0
 		if joinedGame {
-			switch titleSelectedButton {
+			switch currentSelection {
 			case 0:
 				setTitleVisible(false)
 			case 1:
-				titleScreen = 1
-				titleSelectedButton = 0
+				currentScreen = screenSettings
+				currentSelection = 0
 
 				updateTitle()
 			case 2:
 				done <- true
 			}
 		} else {
-			switch titleSelectedButton {
+			switch currentSelection {
 			case 0:
-				titleScreen = 4
-				titleSelectedButton = 0
+				currentScreen = screenGames
+				currentSelection = 0
 				gameListSelected = 0
 
 				refreshGameList()
@@ -227,8 +241,8 @@ func selectTitleButton() {
 			case 1:
 				joinGame <- event.GameIDNewLocal
 			case 2:
-				titleScreen = 1
-				titleSelectedButton = 0
+				currentScreen = screenSettings
+				currentSelection = 0
 
 				updateTitle()
 			}
@@ -248,8 +262,8 @@ func setTitleVisible(visible bool) {
 
 		app.SetFocus(nil)
 	} else {
-		titleScreen = 0
-		titleSelectedButton = 0
+		currentScreen = screenTitle
+		currentSelection = 0
 
 		drawTitle <- struct{}{}
 
@@ -260,7 +274,8 @@ func setTitleVisible(visible bool) {
 }
 
 func updateTitle() {
-	if titleScreen == 1 {
+	switch currentScreen {
+	case screenSettings:
 		buttonA.SetLabel("Player Settings")
 		buttonLabelA.SetText("\nChange name")
 
@@ -269,13 +284,13 @@ func updateTitle() {
 
 		buttonC.SetLabel("Return")
 		buttonLabelC.SetText("\nReturn to the last screen")
-	} else if titleScreen == 4 {
+	case screenGames:
 		buttonA.SetLabel("New Game")
 
 		buttonB.SetLabel("Join by IP")
 
 		buttonC.SetLabel("Return")
-	} else {
+	default:
 		if joinedGame {
 			buttonA.SetLabel("Resume")
 			buttonLabelA.SetText("\nResume game in progress")
@@ -297,14 +312,25 @@ func updateTitle() {
 		}
 	}
 
-	if titleScreen == 3 {
+	switch currentScreen {
+	case screenPlayerSettings:
+		switch currentSelection {
+		case 1:
+			app.SetFocus(playerSettingsCancel)
+		case 2:
+			app.SetFocus(playerSettingsSave)
+		default:
+			app.SetFocus(playerSettingsNameInput)
+		}
+		return
+	case screenGameSettings:
 		if drawGhostPieceUnsaved {
 			buttonGhostPiece.SetLabel("Enabled")
 		} else {
 			buttonGhostPiece.SetLabel("Disabled")
 		}
 
-		switch titleSelectedButton {
+		switch currentSelection {
 		case 0:
 			app.SetFocus(buttonGhostPiece)
 		case 1:
@@ -325,8 +351,8 @@ func updateTitle() {
 			app.SetFocus(buttonKeybindSave)
 		}
 		return
-	} else if titleScreen == 4 {
-		switch titleSelectedButton {
+	case screenGames:
+		switch currentSelection {
 		case 2:
 			app.SetFocus(buttonB)
 		case 3:
@@ -336,28 +362,28 @@ func updateTitle() {
 		default:
 			app.SetFocus(nil)
 		}
-
 		return
-	} else if titleScreen == 5 {
-		switch titleSelectedButton {
+	case screenNewGame:
+		switch currentSelection {
 		case 1:
 			app.SetFocus(newGameMaxPlayersInput)
 		case 2:
 			app.SetFocus(newGameSpeedLimitInput)
 		case 3:
-			app.SetFocus(buttonCancel)
+			app.SetFocus(buttonNewGameCancel)
 		case 4:
-			app.SetFocus(buttonStart)
+			app.SetFocus(buttonNewGameStart)
 		default:
 			app.SetFocus(newGameNameInput)
 		}
-
 		return
-	} else if titleScreen > 1 {
-		return
+	default:
+		if currentScreen > 1 {
+			return
+		}
 	}
 
-	switch titleSelectedButton {
+	switch currentSelection {
 	case 1:
 		app.SetFocus(buttonB)
 	case 2:
@@ -487,11 +513,11 @@ func renderGameList() {
 			p += "/" + strconv.Itoa(g.MaxPlayers)
 		}
 
-		if titleSelectedButton == 0 && gameListSelected == i {
+		if currentSelection == 0 && gameListSelected == i {
 			gameListView.Write([]byte("[#000000:#FFFFFF]"))
 		}
 		gameListView.Write([]byte(fmt.Sprintf("%-27s%7s", g.Name, p)))
-		if titleSelectedButton == 0 && gameListSelected == i {
+		if currentSelection == 0 && gameListSelected == i {
 			gameListView.Write([]byte("[-:-]"))
 		}
 		gameListView.Write([]byte("\n"))
@@ -575,7 +601,18 @@ func resetNewGameInputs() {
 
 func selectTitleFunc(i int) func() {
 	return func() {
-		titleSelectedButton = i
+		currentSelection = i
 		selectTitleButton()
 	}
+}
+
+func styleButton(button *cview.Button) {
+	button.
+		SetLabelColor(tcell.ColorWhite).
+		SetBackgroundColorActivated(tcell.ColorWhite)
+}
+
+func styleInputField(inputField *cview.InputField) {
+	inputField.
+		SetFieldTextColor(tcell.ColorWhite)
 }

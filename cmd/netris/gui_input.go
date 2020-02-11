@@ -85,7 +85,7 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 		}
 
 		var action event.GameAction
-		switch titleSelectedButton {
+		switch currentSelection {
 		case 1:
 			action = event.ActionRotateCCW
 		case 2:
@@ -108,43 +108,43 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 		updateTitle()
 		return nil
 	} else if titleVisible {
-		if titleScreen > 1 {
+		if currentScreen > 1 {
 			switch k {
 			case tcell.KeyEscape:
-				if titleScreen == 5 {
-					titleScreen = 4
+				if currentScreen == screenNewGame {
+					currentScreen = screenGames
 					gameListSelected = 0
-					titleSelectedButton = 0
+					currentSelection = 0
 					app.SetRoot(gameListContainerGrid, true)
 					renderGameList()
 					updateTitle()
 					return nil
-				} else if titleScreen == 4 {
-					titleScreen = 0
+				} else if currentScreen == screenGames {
+					currentScreen = screenTitle
 				} else {
-					titleScreen = 1
+					currentScreen = screenSettings
 				}
-				titleSelectedButton = 0
+				currentSelection = 0
 
 				app.SetRoot(titleContainerGrid, true)
 				updateTitle()
 				return nil
 			}
 
-			if titleScreen == 3 {
+			if currentScreen == screenPlayerSettings {
 				switch k {
 				case tcell.KeyTab:
-					titleSelectedButton++
-					if titleSelectedButton > 8 {
-						titleSelectedButton = 8
+					currentSelection++
+					if currentSelection > 2 {
+						currentSelection = 2
 					}
 
 					updateTitle()
 					return nil
 				case tcell.KeyBacktab:
-					titleSelectedButton--
-					if titleSelectedButton < 0 {
-						titleSelectedButton = 0
+					currentSelection--
+					if currentSelection < 0 {
+						currentSelection = 0
 					}
 
 					updateTitle()
@@ -153,10 +153,32 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 					selectTitleButton()
 					return nil
 				}
-			} else if titleScreen == 4 {
+			} else if currentScreen == screenGameSettings {
+				switch k {
+				case tcell.KeyTab:
+					currentSelection++
+					if currentSelection > 8 {
+						currentSelection = 8
+					}
+
+					updateTitle()
+					return nil
+				case tcell.KeyBacktab:
+					currentSelection--
+					if currentSelection < 0 {
+						currentSelection = 0
+					}
+
+					updateTitle()
+					return nil
+				case tcell.KeyEnter:
+					selectTitleButton()
+					return nil
+				}
+			} else if currentScreen == screenGames {
 				switch k {
 				case tcell.KeyUp:
-					if titleSelectedButton == 0 {
+					if currentSelection == 0 {
 						if gameListSelected > 0 {
 							gameListSelected--
 						}
@@ -169,7 +191,7 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 					renderGameList()
 					return nil
 				case tcell.KeyDown:
-					if titleSelectedButton == 0 {
+					if currentSelection == 0 {
 						if gameListSelected < len(gameList)-1 {
 							gameListSelected++
 						}
@@ -185,7 +207,7 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 					selectTitleButton()
 					return nil
 				default:
-					if titleSelectedButton == 0 {
+					if currentSelection == 0 {
 						switch r {
 						case 'j', 'J':
 							if gameListSelected < len(gameList)-1 {
@@ -205,7 +227,7 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 						}
 					}
 				}
-			} else if titleScreen == 5 {
+			} else if currentScreen == screenNewGame {
 				switch k {
 				case tcell.KeyBacktab:
 					previousTitleButton()
@@ -237,9 +259,9 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 			updateTitle()
 			return nil
 		case tcell.KeyEscape:
-			if titleScreen == 1 {
-				titleScreen = 0
-				titleSelectedButton = 0
+			if currentScreen == screenSettings {
+				currentScreen = screenTitle
+				currentSelection = 0
 				updateTitle()
 			} else if joinedGame {
 				setTitleVisible(false)

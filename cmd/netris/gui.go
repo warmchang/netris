@@ -43,8 +43,7 @@ var (
 
 	screenW, screenH int
 
-	nickname      = "Anonymous"
-	nicknameDraft string
+	nickname = "Anonymous"
 
 	drawGhostPiece        = true
 	drawGhostPieceUnsaved bool
@@ -52,6 +51,9 @@ var (
 	inputHeight, mainHeight, previewWidth, newLogLines int
 
 	profileCPU *os.File
+
+	playerSettingsCancel *cview.Button
+	playerSettingsSave   *cview.Button
 
 	buttonGhostPiece       *cview.Button
 	buttonKeybindRotateCCW *cview.Button
@@ -63,8 +65,8 @@ var (
 	buttonKeybindCancel    *cview.Button
 	buttonKeybindSave      *cview.Button
 
-	buttonCancel *cview.Button
-	buttonStart  *cview.Button
+	buttonNewGameCancel *cview.Button
+	buttonNewGameStart  *cview.Button
 )
 
 const DefaultStatusText = "Press Enter to chat, Z/X to rotate, arrow keys or HJKL to move/drop"
@@ -81,15 +83,7 @@ var (
 )
 
 func resetPlayerSettingsForm() {
-	playerSettingsForm.Clear(true).AddInputField("Name", nickname, 0, nil, func(text string) {
-		nicknameDraft = text
-	}).AddButton("Cancel", func() {
-		titleSelectedButton = 0
-		selectTitleButton()
-	}).AddButton("Save", func() {
-		titleSelectedButton = 1
-		selectTitleButton()
-	})
+	playerSettingsNameInput.SetText(nickname)
 }
 
 // BS 1: 10x10

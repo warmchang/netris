@@ -1,4 +1,5 @@
 0.1.6:
+- Persist settings via configuration file
 - Draw playfield border as solid blocks
 
 0.1.5:

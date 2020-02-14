@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	"gitlab.com/tslocum/cbind"
+
 	"github.com/gdamore/tcell"
 	"gitlab.com/tslocum/cview"
 	"gitlab.com/tslocum/netris/pkg/event"
@@ -121,9 +123,6 @@ func selectTitleButton() {
 
 			drawGhostPieceUnsaved = drawGhostPiece
 
-			draftKeybindings = make([]*Keybinding, len(keybindings))
-			copy(draftKeybindings, keybindings)
-
 			app.SetRoot(gameSettingsContainerGrid, true)
 			updateTitle()
 		case 2:
@@ -160,8 +159,28 @@ func selectTitleButton() {
 			if currentSelection == 8 {
 				drawGhostPiece = drawGhostPieceUnsaved
 
-				keybindings = make([]*Keybinding, len(draftKeybindings))
-				copy(keybindings, draftKeybindings)
+				for _, bind := range draftKeybindings {
+					if bind.k == tcell.KeyRune {
+						inputConfig.SetRune(bind.m, bind.r, actionHandlers[bind.a])
+					} else {
+						inputConfig.SetKey(bind.m, bind.k, actionHandlers[bind.a])
+					}
+
+					encoded, err := cbind.Encode(bind.m, bind.k, bind.r)
+					if err == nil && encoded != "" {
+						// Remove existing keybinds
+						for existingBindAction, existingBinds := range config.Input {
+							for i, existingBind := range existingBinds {
+								if existingBind == encoded {
+									config.Input[existingBindAction] = append(config.Input[existingBindAction][:i], config.Input[existingBindAction][i+1:]...)
+									break
+								}
+							}
+						}
+						// Set keybind
+						config.Input[bind.a] = append(config.Input[bind.a], encoded)
+					}
+				}
 			}
 			draftKeybindings = nil
 

@@ -39,6 +39,8 @@ var (
 
 	nicknameFlag string
 
+	configPath string
+
 	blockSize      = 0
 	fixedBlockSize bool
 
@@ -76,6 +78,7 @@ func main() {
 	flag.StringVar(&connectAddress, "connect", "", "connect to server address or socket path")
 	flag.StringVar(&serverAddress, "server", game.DefaultServer, "server address or socket path")
 	flag.StringVar(&debugAddress, "debug-address", "", "address to serve debug info")
+	flag.StringVar(&configPath, "config", "", "path to configuration file")
 	flag.BoolVar(&logDebug, "debug", false, "enable debug logging")
 	flag.BoolVar(&logVerbose, "verbose", false, "enable verbose logging")
 	flag.Parse()
@@ -100,14 +103,30 @@ func main() {
 		logLevel = game.LogDebug
 	}
 
-	if game.Nickname(nicknameFlag) != "" {
-		nickname = game.Nickname(nicknameFlag)
+	if configPath == "" {
+		configPath = defaultConfigPath()
 	}
 
 	if debugAddress != "" {
 		go func() {
 			log.Fatal(http.ListenAndServe(debugAddress, nil))
 		}()
+	}
+
+	err := readConfig(configPath)
+	if err != nil {
+		log.Fatalf("failed to read configuration file: %s", err)
+	}
+
+	err = setKeyBinds()
+	if err != nil {
+		log.Fatalf("failed to set keybinds: %s", err)
+	}
+
+	if nicknameFlag != "" && game.Nickname(nicknameFlag) != "" {
+		nickname = game.Nickname(nicknameFlag)
+	} else if config.Name != "" && game.Nickname(config.Name) != "" {
+		nickname = game.Nickname(config.Name)
 	}
 
 	app, err := initGUI(connectAddress != "")
@@ -167,6 +186,11 @@ func main() {
 		}
 
 		closeGUI()
+
+		err := saveConfig(configPath)
+		if err != nil {
+			log.Printf("warning: failed to save configuration: %s", err)
+		}
 
 		os.Exit(0)
 	}()

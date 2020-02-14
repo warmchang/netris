@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gdamore/tcell"
+	"gitlab.com/tslocum/cbind"
 	"gitlab.com/tslocum/netris/pkg/event"
 	"gitlab.com/tslocum/netris/pkg/game"
 )
@@ -20,26 +21,58 @@ type Keybinding struct {
 	a event.GameAction
 }
 
-var keybindings = []*Keybinding{
-	{r: 'z', a: event.ActionRotateCCW},
-	{r: 'Z', a: event.ActionRotateCCW},
-	{r: 'x', a: event.ActionRotateCW},
-	{r: 'X', a: event.ActionRotateCW},
-	{k: tcell.KeyLeft, a: event.ActionMoveLeft},
-	{r: 'h', a: event.ActionMoveLeft},
-	{r: 'H', a: event.ActionMoveLeft},
-	{k: tcell.KeyDown, a: event.ActionSoftDrop},
-	{r: 'j', a: event.ActionSoftDrop},
-	{r: 'J', a: event.ActionSoftDrop},
-	{k: tcell.KeyUp, a: event.ActionHardDrop},
-	{r: 'k', a: event.ActionHardDrop},
-	{r: 'K', a: event.ActionHardDrop},
-	{k: tcell.KeyRight, a: event.ActionMoveRight},
-	{r: 'l', a: event.ActionMoveRight},
-	{r: 'L', a: event.ActionMoveRight},
+var actionHandlers = map[event.GameAction]func(*tcell.EventKey) *tcell.EventKey{
+	event.ActionRotateCCW: rotateCCW,
+	event.ActionRotateCW:  rotateCW,
+	event.ActionMoveLeft:  moveLeft,
+	event.ActionMoveRight: moveRight,
+	event.ActionSoftDrop:  softDrop,
+	event.ActionHardDrop:  hardDrop,
 }
 
+var inputConfig = cbind.NewConfiguration()
+
 var draftKeybindings []*Keybinding
+
+func setKeyBinds() error {
+	if len(config.Input) == 0 {
+		setDefaultKeyBinds()
+	}
+
+	for a, keys := range config.Input {
+		a = event.GameAction(strings.ToLower(string(a)))
+		handler := actionHandlers[a]
+		if handler == nil {
+			return fmt.Errorf("failed to set keybind for %s: unknown action", a)
+		}
+
+		for _, k := range keys {
+			mod, key, ch, err := cbind.Decode(k)
+			if err != nil {
+				return fmt.Errorf("failed to set keybind %s for %s: %s", k, a, err)
+			}
+
+			if key == tcell.KeyRune {
+				inputConfig.SetRune(mod, ch, handler)
+			} else {
+				inputConfig.SetKey(mod, key, handler)
+			}
+		}
+	}
+
+	return nil
+}
+
+func setDefaultKeyBinds() {
+	config.Input = map[event.GameAction][]string{
+		event.ActionRotateCCW: {"z", "Z"},
+		event.ActionRotateCW:  {"x", "X"},
+		event.ActionMoveLeft:  {"Left", "h", "H"},
+		event.ActionMoveRight: {"Right", "l", "L"},
+		event.ActionSoftDrop:  {"Down", "j", "J"},
+		event.ActionHardDrop:  {"Up", "k", "K"},
+	}
+}
 
 func scrollMessages(direction int) {
 	var scroll int
@@ -396,16 +429,59 @@ func handleKeypress(ev *tcell.EventKey) *tcell.EventKey {
 		return nil
 	}
 
-	for _, bind := range keybindings {
-		if (bind.k != 0 && bind.k != k) || (bind.r != 0 && bind.r != r) || (bind.m != 0 && bind.m != ev.Modifiers()) {
-			continue
-		} else if activeGame == nil {
-			break
-		}
+	return inputConfig.Capture(ev)
+}
 
-		activeGame.ProcessAction(bind.a)
-		return nil
+func rotateCCW(ev *tcell.EventKey) *tcell.EventKey {
+	if activeGame == nil {
+		return ev
 	}
 
-	return ev
+	activeGame.ProcessAction(event.ActionRotateCCW)
+	return nil
+}
+
+func rotateCW(ev *tcell.EventKey) *tcell.EventKey {
+	if activeGame == nil {
+		return ev
+	}
+
+	activeGame.ProcessAction(event.ActionRotateCW)
+	return nil
+}
+
+func moveLeft(ev *tcell.EventKey) *tcell.EventKey {
+	if activeGame == nil {
+		return ev
+	}
+
+	activeGame.ProcessAction(event.ActionMoveLeft)
+	return nil
+}
+
+func moveRight(ev *tcell.EventKey) *tcell.EventKey {
+	if activeGame == nil {
+		return ev
+	}
+
+	activeGame.ProcessAction(event.ActionMoveRight)
+	return nil
+}
+
+func softDrop(ev *tcell.EventKey) *tcell.EventKey {
+	if activeGame == nil {
+		return ev
+	}
+
+	activeGame.ProcessAction(event.ActionSoftDrop)
+	return nil
+}
+
+func hardDrop(ev *tcell.EventKey) *tcell.EventKey {
+	if activeGame == nil {
+		return ev
+	}
+
+	activeGame.ProcessAction(event.ActionHardDrop)
+	return nil
 }

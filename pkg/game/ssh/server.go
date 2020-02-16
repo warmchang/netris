@@ -6,10 +6,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"syscall"
 	"time"
 	"unsafe"
@@ -59,10 +61,16 @@ func (s *SSHServer) Host(newPlayers chan<- *game.IncomingPlayer) {
 				return
 			}
 
+			configPath, err := createTemporaryConfig()
+			if err != nil {
+				log.Printf("warning: failed to create temporary configuration file: %s", err)
+				return
+			}
+
 			cmdCtx, cancelCmd := context.WithCancel(sshSession.Context())
 			defer cancelCmd()
 
-			cmd := exec.CommandContext(cmdCtx, s.NetrisBinary, "--nick", game.Nickname(sshSession.User()), "--server", s.NetrisAddress)
+			cmd := exec.CommandContext(cmdCtx, s.NetrisBinary, "--nick", game.Nickname(sshSession.User()), "--server", s.NetrisAddress, "--config", configPath)
 
 			cmd.Env = append(sshSession.Environ(), fmt.Sprintf("TERM=%s", ptyReq.Term))
 
@@ -88,6 +96,7 @@ func (s *SSHServer) Host(newPlayers chan<- *game.IncomingPlayer) {
 
 			f.Close()
 			cmd.Wait()
+			os.Remove(configPath)
 		},
 		PtyCallback: func(ctx ssh.Context, pty ssh.Pty) bool {
 			// TODO: Compare public key
@@ -120,4 +129,17 @@ func (s *SSHServer) Host(newPlayers chan<- *game.IncomingPlayer) {
 
 func (s *SSHServer) Shutdown(reason string) {
 	server.Close()
+}
+
+// Eventually this will load and save configuration based on public key hash.
+func createTemporaryConfig() (string, error) {
+	f, err := ioutil.TempFile("", "netris-config-*.yaml")
+	if err != nil {
+		return "", err
+	}
+
+	log.Println(f.Stat())
+
+	f.Close()
+	return filepath.Clean(f.Name()), err
 }

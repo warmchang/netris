@@ -8,7 +8,9 @@ Multiplayer Tetris clone
 
 To play netris without installing, connect via [SSH](https://en.wikipedia.org/wiki/Secure_Shell):
 
-```ssh netris.rocketnine.space```
+```bash
+ssh netris.rocketnine.space
+```
 
 ## Screenshot
 
@@ -26,7 +28,9 @@ Windows and Linux binaries are available.
 
 ### Compile
 
-```go get gitlab.com/tslocum/netris/cmd/netris```
+```bash
+go get gitlab.com/tslocum/netris/cmd/netris
+```
 
 ## Configure
 
@@ -44,14 +48,16 @@ Please share issues and suggestions [here](https://gitlab.com/tslocum/netris/iss
 
 The following libraries are used to build netris:
 
-* [cview](https://gitlab.com/tslocum/cview) - User interface
-* [tcell](https://github.com/gdamore/tcell) - User interface
-* [ssh](https://github.com/gliderlabs/ssh) - SSH server
-* [pty](https://github.com/creack/pty) - Pseudo-terminal interface
-* [go-isatty](https://github.com/mattn/go-isatty) - Terminal detection
+* [tslocum/cview](https://gitlab.com/tslocum/cview) - User interface
+* [gdamore/tcell](https://github.com/gdamore/tcell) - User interface
+* [gliderlabs/ssh](https://github.com/gliderlabs/ssh) - SSH server
+* [creack/pty](https://github.com/creack/pty) - Pseudo-terminal interface
+* [mattn/go-isatty](https://github.com/mattn/go-isatty) - Terminal detection
 
 ## Disclaimer
 
 Tetris is a registered trademark of the Tetris Holding, LLC.
 
 netris is in no way affiliated with Tetris Holding, LLC.
+
+netris is in no way affiliated with Netris by Mark H. Weaver.

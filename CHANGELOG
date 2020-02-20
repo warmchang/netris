@@ -1,3 +1,6 @@
+0.1.7:
+- Spawn pieces within view
+
 0.1.6:
 - Persist settings via configuration file
 - Draw playfield border as solid blocks

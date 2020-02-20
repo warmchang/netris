@@ -138,8 +138,6 @@ func createTemporaryConfig() (string, error) {
 		return "", err
 	}
 
-	log.Println(f.Stat())
-
 	f.Close()
 	return filepath.Clean(f.Name()), err
 }

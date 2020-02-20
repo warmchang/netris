@@ -10,7 +10,8 @@ require (
 	github.com/gliderlabs/ssh v0.2.2
 	github.com/mattn/go-isatty v0.0.12
 	gitlab.com/tslocum/cbind v0.1.1
-	gitlab.com/tslocum/cview v1.4.4-0.20200216181307-c6599f4ee261
-	golang.org/x/crypto v0.0.0-20200214034016-1d94cc7ab1c6
+	gitlab.com/tslocum/cview v1.4.4-0.20200220174815-3bf6bb259c75
+	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
+	golang.org/x/sys v0.0.0-20200219091948-cb0a6d8edb6c // indirect
 	gopkg.in/yaml.v2 v2.2.8
 )

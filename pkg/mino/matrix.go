@@ -116,10 +116,11 @@ func (m *Matrix) takePiece() bool {
 	if spawn.X < 0 || spawn.Y < 0 {
 		return false
 	}
-
 	p.Point = spawn
 
 	m.P = p
+
+	m.lowerPiece()
 
 	return true
 }
@@ -614,6 +615,10 @@ func (m *Matrix) LowerPiece() {
 	m.Lock()
 	defer m.Unlock()
 
+	m.lowerPiece()
+}
+
+func (m *Matrix) lowerPiece() {
 	if m.GameOver {
 		return
 	} else if m.canAddAt(m.P, Point{m.P.X, m.P.Y - 1}) {

@@ -1,25 +1,10 @@
 package mino
 
+import "gitlab.com/tslocum/netris/pkg/event"
+
 // Dark color ghosts are 60% original overlaid #777777
 // Light color ghosts are 40% original overlaid #888888
-var Colors = [][]byte{
-	BlockNone:         []byte("#000000"),
-	BlockGarbage:      []byte("#999999"),
-	BlockGhostBlue:    []byte("#6e7bc3"),
-	BlockGhostCyan:    []byte("#6bbaba"),
-	BlockGhostRed:     []byte("#ba6b6b"),
-	BlockGhostYellow:  []byte("#b1b16b"),
-	BlockGhostMagenta: []byte("#a16ba8"),
-	BlockGhostGreen:   []byte("#6bb76b"),
-	BlockGhostOrange:  []byte("#c3806c"),
-	BlockSolidBlue:    []byte("#2864ff"),
-	BlockSolidCyan:    []byte("#00eeee"),
-	BlockSolidRed:     []byte("#ee0000"),
-	BlockSolidYellow:  []byte("#dddd00"),
-	BlockSolidMagenta: []byte("#c000cc"),
-	BlockSolidGreen:   []byte("#00e900"),
-	BlockSolidOrange:  []byte("#ff7308"),
-}
+var Colors = make([][]byte, 16)
 
 type Block int
 
@@ -31,9 +16,9 @@ func (b Block) Rune() rune {
 	switch b {
 	case BlockNone:
 		return ' '
-	case BlockGhostBlue, BlockGhostCyan, BlockGhostRed, BlockGhostYellow, BlockGhostMagenta, BlockGhostGreen, BlockGhostOrange:
+	case BlockGhostJ, BlockGhostI, BlockGhostZ, BlockGhostO, BlockGhostT, BlockGhostS, BlockGhostL:
 		return '▓'
-	case BlockGarbage, BlockSolidBlue, BlockSolidCyan, BlockSolidRed, BlockSolidYellow, BlockSolidMagenta, BlockSolidGreen, BlockSolidOrange:
+	case BlockGarbage, BlockSolidJ, BlockSolidI, BlockSolidZ, BlockSolidO, BlockSolidT, BlockSolidS, BlockSolidL:
 		return '█'
 	default:
 		return '?'
@@ -43,18 +28,36 @@ func (b Block) Rune() rune {
 const (
 	BlockNone Block = iota
 	BlockGarbage
-	BlockGhostBlue
-	BlockGhostCyan
-	BlockGhostRed
-	BlockGhostYellow
-	BlockGhostMagenta
-	BlockGhostGreen
-	BlockGhostOrange
-	BlockSolidBlue
-	BlockSolidCyan
-	BlockSolidRed
-	BlockSolidYellow
-	BlockSolidMagenta
-	BlockSolidGreen
-	BlockSolidOrange
+	BlockGhostJ
+	BlockGhostI
+	BlockGhostZ
+	BlockGhostO
+	BlockGhostT
+	BlockGhostS
+	BlockGhostL
+	BlockSolidJ
+	BlockSolidI
+	BlockSolidZ
+	BlockSolidO
+	BlockSolidT
+	BlockSolidS
+	BlockSolidL
 )
+
+var ColorToBlock = map[event.GameColor]Block{
+	event.GameColorI:       BlockSolidI,
+	event.GameColorO:       BlockSolidO,
+	event.GameColorT:       BlockSolidT,
+	event.GameColorJ:       BlockSolidJ,
+	event.GameColorL:       BlockSolidL,
+	event.GameColorS:       BlockSolidS,
+	event.GameColorZ:       BlockSolidZ,
+	event.GameColorIGhost:  BlockGhostI,
+	event.GameColorOGhost:  BlockGhostO,
+	event.GameColorTGhost:  BlockGhostT,
+	event.GameColorJGhost:  BlockGhostJ,
+	event.GameColorLGhost:  BlockGhostL,
+	event.GameColorSGhost:  BlockGhostS,
+	event.GameColorZGhost:  BlockGhostZ,
+	event.GameColorGarbage: BlockGarbage,
+}

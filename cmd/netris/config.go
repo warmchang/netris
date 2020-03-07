@@ -5,17 +5,24 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"regexp"
 
 	"gitlab.com/tslocum/netris/pkg/event"
 	"gopkg.in/yaml.v2"
 )
 
 type appConfig struct {
-	Input map[event.GameAction][]string // Keybinds
-	Name  string
+	Input  map[event.GameAction][]string // Keybinds
+	Colors map[event.GameColor]string
+	Name   string
 }
 
-var config = &appConfig{}
+var config = &appConfig{
+	Input:  make(map[event.GameAction][]string),
+	Colors: make(map[event.GameColor]string),
+}
+
+var regexpColor = regexp.MustCompile(`^#([0-9a-f]{3}|[0-9a-f]{6})$`)
 
 func defaultConfigPath() string {
 	homedir, err := os.UserHomeDir()

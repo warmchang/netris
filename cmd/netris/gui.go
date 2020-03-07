@@ -72,15 +72,29 @@ var (
 const DefaultStatusText = "Press Enter to chat, Z/X to rotate, arrow keys or HJKL to move/drop"
 
 var (
-	renderHLine    = []byte("[-:#444444] [-:-]")
-	renderVLine    = []byte("[-:#444444]  [-:-]")
-	renderLTee     = []byte("[-:#444444] [-:-]")
-	renderRTee     = []byte("[-:#444444] [-:-]")
-	renderULCorner = []byte("[-:#444444]  [-:-]")
-	renderURCorner = []byte("[-:#444444]  [-:-]")
-	renderLLCorner = []byte("[-:#444444]  [-:-]")
-	renderLRCorner = []byte("[-:#444444]  [-:-]")
+	renderHLine    []byte
+	renderVLine    []byte
+	renderLTee     []byte
+	renderRTee     []byte
+	renderULCorner []byte
+	renderURCorner []byte
+	renderLLCorner []byte
+	renderLRCorner []byte
 )
+
+func setBorderColor(color string) {
+	singleChar := []byte(fmt.Sprintf("[-:%s] [-:-]", color))
+	doubleChar := []byte(fmt.Sprintf("[-:%s]  [-:-]", color))
+
+	renderHLine = singleChar
+	renderVLine = doubleChar
+	renderLTee = singleChar
+	renderRTee = singleChar
+	renderULCorner = doubleChar
+	renderURCorner = doubleChar
+	renderLLCorner = doubleChar
+	renderLRCorner = doubleChar
+}
 
 func resetPlayerSettingsForm() {
 	playerSettingsNameInput.SetText(nickname)

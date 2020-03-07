@@ -123,6 +123,22 @@ func main() {
 		log.Fatalf("failed to set keybinds: %s", err)
 	}
 
+	for gameColor, defaultColor := range event.DefaultColors {
+		currentValue := strings.ToLower(config.Colors[gameColor])
+		if currentValue == "" {
+			currentValue = defaultColor
+		} else if !regexpColor.MatchString(currentValue) {
+			log.Fatalf("failed to set colors: invalid color provided for piece %s: %s", gameColor, currentValue)
+		}
+		config.Colors[gameColor] = currentValue
+
+		blockColor := mino.ColorToBlock[gameColor]
+		if blockColor > 0 {
+			mino.Colors[blockColor] = []byte(currentValue)
+		}
+	}
+	setBorderColor(config.Colors[event.GameColorBorder])
+
 	if nicknameFlag != "" && game.Nickname(nicknameFlag) != "" {
 		nickname = game.Nickname(nicknameFlag)
 	} else if config.Name != "" && game.Nickname(config.Name) != "" {

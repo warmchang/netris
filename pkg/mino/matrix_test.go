@@ -14,15 +14,15 @@ func TestMatrix(t *testing.T) {
 
 	m.AddTestBlocks()
 
-	ok := m.SetBlock(9, 0, BlockSolidMagenta, false)
+	ok := m.SetBlock(9, 0, BlockSolidT, false)
 	if !ok {
 		t.Error("failed to set final block after test blocks")
 	}
-	ok = m.SetBlock(9, 1, BlockSolidMagenta, false)
+	ok = m.SetBlock(9, 1, BlockSolidT, false)
 	if !ok {
 		t.Error("failed to set final block after test blocks")
 	}
-	ok = m.SetBlock(9, 3, BlockSolidMagenta, false)
+	ok = m.SetBlock(9, 3, BlockSolidT, false)
 	if !ok {
 		t.Error("failed to set final block after test blocks")
 	}
@@ -34,17 +34,17 @@ func TestMatrix(t *testing.T) {
 
 	m.Clear()
 
-	err = m.Add(m.P, BlockSolidBlue, Point{3, 3}, false)
+	err = m.Add(m.P, BlockSolidJ, Point{3, 3}, false)
 	if err != nil {
 		t.Errorf("failed to add initial mino to matrix: %s", err)
 	}
 
-	err = m.Add(m.P, BlockSolidBlue, Point{3, 3}, false)
+	err = m.Add(m.P, BlockSolidJ, Point{3, 3}, false)
 	if err == nil {
 		t.Error("failed to detect collision when adding second mino to matrix")
 	}
 
-	err = m.Add(m.P, BlockSolidBlue, Point{9, 9}, false)
+	err = m.Add(m.P, BlockSolidJ, Point{9, 9}, false)
 	if err == nil {
 		t.Error("failed to detect out of bounds when adding third mino to matrix")
 	}

@@ -481,20 +481,20 @@ func (m *Matrix) SetGameOver() {
 				i := I(x, y, m.W)
 
 				switch m.M[i] {
-				case BlockSolidBlue:
-					m.M[i] = BlockGhostBlue
-				case BlockSolidCyan:
-					m.M[i] = BlockGhostCyan
-				case BlockSolidGreen:
-					m.M[i] = BlockGhostGreen
-				case BlockSolidMagenta:
-					m.M[i] = BlockGhostMagenta
-				case BlockSolidOrange:
-					m.M[i] = BlockGhostOrange
-				case BlockSolidRed:
-					m.M[i] = BlockGhostRed
-				case BlockSolidYellow:
-					m.M[i] = BlockGhostYellow
+				case BlockSolidJ:
+					m.M[i] = BlockGhostJ
+				case BlockSolidI:
+					m.M[i] = BlockGhostI
+				case BlockSolidS:
+					m.M[i] = BlockGhostS
+				case BlockSolidT:
+					m.M[i] = BlockGhostT
+				case BlockSolidL:
+					m.M[i] = BlockGhostL
+				case BlockSolidZ:
+					m.M[i] = BlockGhostZ
+				case BlockSolidO:
+					m.M[i] = BlockGhostO
 				}
 			}
 
@@ -947,9 +947,9 @@ func (m *Matrix) AddTestBlocks() {
 			}
 
 			if y == 2 || (y > 4 && x%2 > 0) {
-				block = BlockSolidMagenta
+				block = BlockSolidT
 			} else {
-				block = BlockSolidYellow
+				block = BlockSolidO
 			}
 
 			m.M[I(x, y, m.W)] = block

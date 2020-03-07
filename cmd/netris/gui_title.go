@@ -479,18 +479,18 @@ func renderTitle() {
 	var newBlock mino.Block
 	for i, b := range titleMatrix.M {
 		switch b {
-		case mino.BlockSolidRed:
-			newBlock = mino.BlockSolidMagenta
-		case mino.BlockSolidYellow:
-			newBlock = mino.BlockSolidRed
-		case mino.BlockSolidGreen:
-			newBlock = mino.BlockSolidYellow
-		case mino.BlockSolidCyan:
-			newBlock = mino.BlockSolidGreen
-		case mino.BlockSolidBlue:
-			newBlock = mino.BlockSolidCyan
-		case mino.BlockSolidMagenta:
-			newBlock = mino.BlockSolidBlue
+		case mino.BlockSolidZ:
+			newBlock = mino.BlockSolidT
+		case mino.BlockSolidO:
+			newBlock = mino.BlockSolidZ
+		case mino.BlockSolidS:
+			newBlock = mino.BlockSolidO
+		case mino.BlockSolidI:
+			newBlock = mino.BlockSolidS
+		case mino.BlockSolidJ:
+			newBlock = mino.BlockSolidI
+		case mino.BlockSolidT:
+			newBlock = mino.BlockSolidJ
 		default:
 			continue
 		}

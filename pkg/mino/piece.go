@@ -79,35 +79,35 @@ func NewPiece(m Mino, loc Point) *Piece {
 	switch m.Canonical().String() {
 	case TetrominoI:
 		pieceType = PieceI
-		p.Solid = BlockSolidCyan
-		p.Ghost = BlockGhostCyan
+		p.Solid = BlockSolidI
+		p.Ghost = BlockGhostI
 	case TetrominoO:
 		pieceType = PieceO
-		p.Solid = BlockSolidYellow
-		p.Ghost = BlockGhostYellow
+		p.Solid = BlockSolidO
+		p.Ghost = BlockGhostO
 	case TetrominoJ:
 		pieceType = PieceJ
-		p.Solid = BlockSolidBlue
-		p.Ghost = BlockGhostBlue
+		p.Solid = BlockSolidJ
+		p.Ghost = BlockGhostJ
 	case TetrominoL:
 		pieceType = PieceL
-		p.Solid = BlockSolidOrange
-		p.Ghost = BlockGhostOrange
+		p.Solid = BlockSolidL
+		p.Ghost = BlockGhostL
 	case TetrominoS:
 		pieceType = PieceS
-		p.Solid = BlockSolidGreen
-		p.Ghost = BlockGhostGreen
+		p.Solid = BlockSolidS
+		p.Ghost = BlockGhostS
 	case TetrominoT:
 		pieceType = PieceT
-		p.Solid = BlockSolidMagenta
-		p.Ghost = BlockGhostMagenta
+		p.Solid = BlockSolidT
+		p.Ghost = BlockGhostT
 	case TetrominoZ:
 		pieceType = PieceZ
-		p.Solid = BlockSolidRed
-		p.Ghost = BlockGhostRed
+		p.Solid = BlockSolidZ
+		p.Ghost = BlockGhostZ
 	default:
-		p.Solid = BlockSolidYellow
-		p.Ghost = BlockGhostYellow
+		p.Solid = BlockSolidO
+		p.Ghost = BlockGhostO
 	}
 
 	p.pivotsCW = AllRotationPivotsCW[pieceType]

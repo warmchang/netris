@@ -868,7 +868,11 @@ func (m *Matrix) Moved() {
 		return
 	}
 
-	m.Move <- 0
+	select {
+	case m.Move <- 0:
+	default:
+		m.SetGameOver()
+	}
 }
 
 func (m *Matrix) HardDropPiece() {

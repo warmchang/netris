@@ -101,7 +101,12 @@ func (s *Conn) Write(gc GameCommandInterface) {
 	}
 
 	s.Add(1)
-	s.out <- gc
+	select {
+	case s.out <- gc:
+	default:
+		s.Done()
+		s.Close()
+	}
 }
 
 func (s *Conn) handleLocalWrite() {

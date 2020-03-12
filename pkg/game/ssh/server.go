@@ -114,9 +114,13 @@ func (s *SSHServer) Host(newPlayers chan<- *game.IncomingPlayer) {
 		},
 	}
 
-	err = server.SetOption(ssh.HostKeyFile(path.Join(homeDir, ".ssh", "id_rsa")))
+	hostKeyFile := path.Join(homeDir, ".ssh", "id_rsa")
+	if _, err = os.Stat(hostKeyFile); os.IsNotExist(err) {
+		log.Fatalf("failed to start SSH server: host key file %s not found\nto generate the missing key file, execute the following command:\nssh-keygen -t rsa -b 4096", hostKeyFile)
+	}
+	err = server.SetOption(ssh.HostKeyFile(hostKeyFile))
 	if err != nil {
-		log.Fatalf("failed to start SSH server: failed to set host key file: %s", err)
+		log.Fatalf("failed to start SSH server: failed to set host key file %s: %s", hostKeyFile, err)
 	}
 
 	go func() {

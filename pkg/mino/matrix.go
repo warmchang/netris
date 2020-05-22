@@ -361,7 +361,9 @@ func (m *Matrix) Draw() {
 		return
 	}
 
-	m.draw <- event.DrawPlayerMatrix
+	select {
+	case m.draw <- event.DrawPlayerMatrix:
+	}
 }
 
 func (m *Matrix) ClearOverlay() {
@@ -458,6 +460,10 @@ func (m *Matrix) SetGameOver() {
 	m.Lock()
 	defer m.Unlock()
 
+	m.setGameOver()
+}
+
+func (m *Matrix) setGameOver() {
 	if m.GameOver {
 		return
 	}
@@ -682,7 +688,7 @@ LANDPIECE:
 
 	_ = score
 
-	m.Moved()
+	m.moved()
 
 	for i := range m.lands {
 		if time.Since(m.lands[i]) > 2*time.Minute {
@@ -855,7 +861,7 @@ func (m *Matrix) movePiece(x int, y int) bool {
 	}
 
 	if y < 0 {
-		m.Moved()
+		m.moved()
 	}
 
 	m.Draw()
@@ -864,6 +870,22 @@ func (m *Matrix) movePiece(x int, y int) bool {
 }
 
 func (m *Matrix) Moved() {
+	m.Lock()
+	if m.Move == nil {
+		m.Unlock()
+		return
+	}
+
+	select {
+	case m.Move <- 0:
+		m.Unlock()
+	default:
+		m.Unlock()
+		m.SetGameOver()
+	}
+}
+
+func (m *Matrix) moved() {
 	if m.Move == nil {
 		return
 	}
@@ -871,7 +893,7 @@ func (m *Matrix) Moved() {
 	select {
 	case m.Move <- 0:
 	default:
-		m.SetGameOver()
+		m.setGameOver()
 	}
 }
 

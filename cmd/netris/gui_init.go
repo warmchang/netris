@@ -17,7 +17,7 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 	cview.Styles.PrimaryTextColor = tcell.ColorDefault
 	cview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
 
-	app = cview.NewApplication().EnableMouse()
+	app = cview.NewApplication().EnableMouse(true)
 
 	app.SetAfterResizeFunc(handleResize)
 

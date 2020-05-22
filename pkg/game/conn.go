@@ -30,6 +30,7 @@ type Conn struct {
 	forwardOut chan GameCommandInterface
 
 	*sync.WaitGroup
+	sync.Mutex
 }
 
 func NewServerConn(conn net.Conn, forwardOut chan GameCommandInterface) *Conn {
@@ -112,7 +113,12 @@ func (s *Conn) Write(gc GameCommandInterface) {
 func (s *Conn) handleLocalWrite() {
 	for e := range s.out {
 		if s.forwardOut != nil {
-			s.forwardOut <- e
+			select {
+			case s.forwardOut <- e:
+			default:
+				s.Done()
+				s.Close()
+			}
 		}
 
 		s.Done()
@@ -228,7 +234,12 @@ func (s *Conn) handleRead() {
 
 		if !processed {
 			s.addSourceID(gc)
-			s.In <- gc
+
+			select {
+			case s.In <- gc:
+			default:
+				s.Close()
+			}
 		}
 
 		err = s.conn.SetReadDeadline(time.Now().Add(ConnTimeout))
@@ -290,16 +301,25 @@ func (s *Conn) handleWrite() {
 }
 
 func (s *Conn) Close() {
+	s.Lock()
+
 	if s.Terminated {
+		s.Unlock()
 		return
 	}
 
 	s.Terminated = true
 
+	s.Unlock()
+
 	s.conn.Close()
 
 	go func() {
 		s.Wait()
+
+		s.Lock()
+		defer s.Unlock()
+
 		close(s.In)
 		close(s.out)
 	}()

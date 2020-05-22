@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"gitlab.com/tslocum/netris/pkg/event"
-
 	"gitlab.com/tslocum/netris/pkg/mino"
 )
 
@@ -65,7 +64,7 @@ type Game struct {
 	SpeedLimit int
 
 	sentPing time.Time
-	*sync.Mutex
+	sync.Mutex
 }
 
 func NewGame(rank int, out func(GameCommandInterface), logger chan string, draw chan event.DrawObject) (*Game, error) {
@@ -83,7 +82,7 @@ func NewGame(rank int, out func(GameCommandInterface), logger chan string, draw 
 		Event:      make(chan interface{}, CommandQueueSize),
 		draw:       draw,
 		logger:     logger,
-		Mutex:      new(sync.Mutex)}
+	}
 
 	if out != nil {
 		g.out = out
@@ -385,6 +384,7 @@ func (g *Game) handleDistributeMatrixes() {
 
 		if g.Terminated {
 			t.Stop()
+			g.Unlock()
 			return
 		}
 
@@ -470,13 +470,20 @@ func (g *Game) handleDistributeMatrixes() {
 				go func() {
 					for {
 						time.Sleep(7 * time.Second)
+
+						g.Lock()
+
 						if g.Terminated {
+							g.Unlock()
 							return
 						} else if len(g.Players) > 1 {
+							g.Unlock()
 							g.Reset()
 							g.Start(0)
 							return
 						}
+
+						g.Unlock()
 					}
 				}()
 			}
@@ -648,6 +655,12 @@ func (g *Game) handleDistributeGarbage() {
 
 		g.Lock()
 
+		if g.Terminated {
+			t.Stop()
+			g.Unlock()
+			return
+		}
+
 		for i := range g.Players {
 			if g.Players[i].pendingGarbage > 0 {
 				g.Players[i].Write(&GameCommandReceiveGarbage{Lines: g.Players[i].pendingGarbage})
@@ -655,6 +668,7 @@ func (g *Game) handleDistributeGarbage() {
 				g.Players[i].pendingGarbage = 0
 			}
 		}
+
 		g.Unlock()
 	}
 }

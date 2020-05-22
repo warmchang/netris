@@ -1,6 +1,7 @@
 0.1.8:
 - Add custom color support
 - Improve SSH host key file not found error
+- Fix server deadlock
 
 0.1.7:
 - Spawn pieces within view

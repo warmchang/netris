@@ -429,7 +429,8 @@ func renderMatrixes(mx []*mino.Matrix) {
 	}
 
 	for i := range mx {
-		mx[i].Lock()
+		mx[i].Lock() // Unlocked later in this function
+
 		if mt == mino.MatrixCustom {
 			continue
 		}

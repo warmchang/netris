@@ -97,6 +97,9 @@ func NewServer(si []ServerInterface, logLevel int) *Server {
 }
 
 func (s *Server) NewGame() (*Game, error) {
+	s.Lock()
+	defer s.Unlock()
+
 	gameID := 1
 	for {
 		if _, ok := s.Games[gameID]; !ok {
@@ -136,27 +139,27 @@ func (s *Server) handle() {
 	for {
 		time.Sleep(1 * time.Minute)
 
-		s.Lock()
 		s.removeTerminatedGames()
-		s.Unlock()
 	}
 }
 
 func (s *Server) removeTerminatedGames() {
+	s.Lock()
+	defer s.Unlock()
+
 	for gameID, g := range s.Games {
-		if g != nil && !g.Terminated {
+		g.Lock()
+		if !g.Terminated {
+			g.Unlock()
 			continue
 		}
 
 		delete(s.Games, gameID)
-		g = nil
+		g.Unlock()
 	}
 }
 
 func (s *Server) FindGame(p *Player, gameID int, newGame ListedGame) *Game {
-	s.Lock()
-	defer s.Unlock()
-
 	var (
 		g   *Game
 		err error
@@ -190,20 +193,39 @@ func (s *Server) FindGame(p *Player, gameID int, newGame ListedGame) *Game {
 		g.Unlock()
 	} else if gameID > 0 {
 		// Join a game by its ID
-		if gm, ok := s.Games[gameID]; ok && !gm.Terminated && (gm.MaxPlayers == 0 || len(gm.Players) < gm.MaxPlayers) {
-			g = gm
+		s.Lock()
+		gm := s.Games[gameID]
+		s.Unlock()
+
+		if gm != nil {
+			gm.Lock()
+			canJoin := !gm.Terminated && (gm.MaxPlayers == 0 || len(gm.Players) < gm.MaxPlayers)
+			gm.Unlock()
+
+			if canJoin {
+				g = gm
+			} else {
+				p.Write(&GameCommandMessage{Message: "Failed to join game - Player limit reached"})
+				return nil
+			}
 		} else {
-			p.Write(&GameCommandMessage{Message: "Failed to join game - Player limit reached"})
+			p.Write(&GameCommandMessage{Message: "Failed to join game - Invalid game ID"})
 			return nil
 		}
 	} else if gameID == 0 {
 		// Join any game
+		s.Lock()
 		for _, gm := range s.Games {
-			if gm != nil && !gm.Terminated && (gm.MaxPlayers == 0 || len(gm.Players) < gm.MaxPlayers) {
+			gm.Lock()
+			if !gm.Terminated && (gm.MaxPlayers == 0 || len(gm.Players) < gm.MaxPlayers) {
+				gm.Unlock()
 				g = gm
 				break
 			}
+
+			gm.Unlock()
 		}
+		s.Unlock()
 	} else {
 		// Create a local game
 		g, err = s.NewGame()
@@ -261,13 +283,18 @@ func (s *Server) handleNewPlayer(pl *Player) {
 			if _, ok := e.(*GameCommandListGames); ok {
 				var gl []*ListedGame
 
+				s.Lock()
 				for _, g := range s.Games {
+					g.Lock()
 					if g.Terminated {
+						g.Unlock()
 						continue
 					}
 
 					gl = append(gl, &ListedGame{ID: g.ID, Name: g.Name, Players: len(g.Players), MaxPlayers: g.MaxPlayers, SpeedLimit: g.SpeedLimit})
+					g.Unlock()
 				}
+				s.Unlock()
 
 				sort.Slice(gl, func(i, j int) bool {
 					if gl[i].Players == gl[j].Players {
@@ -407,15 +434,19 @@ func (s *Server) handleGameCommands(pl *Player, g *Game) {
 				g.Players[p.SourcePlayer].totalGarbageSent += p.Lines
 			}
 		case *GameCommandStats:
-			players := 0
-			games := 0
+			go func(p *Player) {
+				players := 0
+				games := 0
 
-			for _, g := range s.Games {
-				players += len(g.Players)
-				games++
-			}
+				s.Lock()
+				for _, g := range s.Games {
+					players += len(g.Players)
+					games++
+				}
+				s.Unlock()
 
-			g.Players[p.SourcePlayer].Write(&GameCommandStats{Created: s.created, Players: players, Games: games})
+				p.Write(&GameCommandStats{Created: s.created, Players: players, Games: games})
+			}(g.Players[p.SourcePlayer])
 		}
 
 		g.Unlock()

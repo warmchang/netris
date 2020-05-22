@@ -14,13 +14,13 @@ type Bag struct {
 
 	i     int
 	width int
-	*sync.Mutex
+	sync.Mutex
 }
 
 func NewBag(seed int64, minos []Mino, width int) (*Bag, error) {
 	minoSource := rand.NewSource(seed)
 	garbageSource := rand.NewSource(seed)
-	b := &Bag{Original: minos, minoRandomizer: rand.New(minoSource), garbageRandomizer: rand.New(garbageSource), width: width, Mutex: new(sync.Mutex)}
+	b := &Bag{Original: minos, minoRandomizer: rand.New(minoSource), garbageRandomizer: rand.New(garbageSource), width: width}
 
 	b.shuffle()
 

@@ -4,9 +4,13 @@
 
 Multiplayer Tetris clone
 
-## Play Without Installing
+## Play
 
-To play netris without installing, connect via [SSH](https://en.wikipedia.org/wiki/Secure_Shell):
+### Web
+
+https://netris.rocketnine.space/play/
+
+### Terminal
 
 ```bash
 ssh netris.rocketnine.space

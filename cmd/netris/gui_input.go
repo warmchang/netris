@@ -7,7 +7,7 @@ import (
 	"runtime/pprof"
 	"strings"
 
-	"github.com/gdamore/tcell"
+	"github.com/gdamore/tcell/v2"
 	"gitlab.com/tslocum/cbind"
 	"gitlab.com/tslocum/netris/pkg/event"
 	"gitlab.com/tslocum/netris/pkg/game"

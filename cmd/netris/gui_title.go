@@ -116,7 +116,8 @@ func selectTitleButton() {
 			currentScreen = screenPlayerSettings
 			currentSelection = 0
 
-			app.SetRoot(playerSettingsContainerGrid, true).SetFocus(playerSettingsNameInput)
+			app.SetRoot(playerSettingsContainerGrid, true)
+			app.SetFocus(playerSettingsNameInput)
 		case 1:
 			currentScreen = screenGameSettings
 			currentSelection = 0
@@ -192,7 +193,9 @@ func selectTitleButton() {
 			return
 		}
 
-		modal := cview.NewModal().SetText("Press desired key(s) to set keybinding or press Escape to cancel.").ClearButtons()
+		modal := cview.NewModal()
+		modal.SetText("Press desired key(s) to set keybinding or press Escape to cancel.")
+		modal.ClearButtons()
 		app.SetRoot(modal, true)
 
 		capturingKeybind = true
@@ -206,13 +209,16 @@ func selectTitleButton() {
 			currentSelection = 0
 
 			resetNewGameInputs()
-			app.SetRoot(newGameContainerGrid, true).SetFocus(nil)
+			app.SetRoot(newGameContainerGrid, true)
+			app.SetFocus(nil)
 			updateTitle()
 		} else if currentSelection == 2 {
 			currentScreen = screenNewGame
 			currentSelection = 0
 
-			modal := cview.NewModal().SetText("Joining another server by IP via GUI is not yet implemented.\nPlease re-launch netris with the --connect argument instead.\n\nPress Escape to return.").ClearButtons()
+			modal := cview.NewModal()
+			modal.SetText("Joining another server by IP via GUI is not yet implemented.\nPlease re-launch netris with the --connect argument instead.\n\nPress Escape to return.")
+			modal.ClearButtons()
 			app.SetRoot(modal, true)
 		} else if currentSelection == 3 {
 			currentScreen = screenTitle
@@ -255,7 +261,8 @@ func selectTitleButton() {
 				refreshGameList()
 				renderGameList()
 
-				app.SetRoot(gameListContainerGrid, true).SetFocus(nil)
+				app.SetRoot(gameListContainerGrid, true)
+				app.SetFocus(nil)
 				updateTitle()
 			case 1:
 				joinGame <- event.GameIDNewLocal
@@ -627,8 +634,8 @@ func selectTitleFunc(i int) func() {
 
 func styleButton(button *cview.Button) {
 	button.
-		SetLabelColor(tcell.ColorWhite).
-		SetBackgroundColorActivated(tcell.ColorWhite)
+		SetLabelColor(tcell.ColorWhite)
+	button.SetBackgroundColorFocused(tcell.ColorWhite)
 }
 
 func styleInputField(inputField *cview.InputField) {

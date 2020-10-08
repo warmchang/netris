@@ -17,17 +17,16 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 	cview.Styles.PrimaryTextColor = tcell.ColorDefault
 	cview.Styles.PrimitiveBackgroundColor = tcell.ColorDefault
 
-	app = cview.NewApplication().EnableMouse(true)
-
+	app = cview.NewApplication()
+	app.EnableMouse(true)
 	app.SetAfterResizeFunc(handleResize)
 
-	inputView = cview.NewInputField().
-		SetText(DefaultStatusText).
-		SetLabel("> ").
-		SetFieldWidth(0).
-		SetFieldBackgroundColor(tcell.ColorDefault).
-		SetFieldTextColor(tcell.ColorDefault)
-
+	inputView = cview.NewInputField()
+	inputView.SetText(DefaultStatusText)
+	inputView.SetLabel("> ")
+	inputView.SetFieldWidth(0)
+	inputView.SetFieldBackgroundColor(tcell.ColorDefault)
+	inputView.SetFieldTextColor(tcell.ColorDefault)
 	inputView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if !inputActive {
 			return nil
@@ -36,49 +35,49 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 		return event
 	})
 
-	gameGrid = cview.NewGrid().
-		SetBorders(false)
+	gameGrid = cview.NewGrid()
+	gameGrid.SetBorders(false)
 
-	mtx = cview.NewTextView().
-		SetScrollable(false).
-		SetTextAlign(cview.AlignLeft).
-		SetWrap(false).
-		SetWordWrap(false)
+	mtx = cview.NewTextView()
+	mtx.SetScrollable(false)
+	mtx.SetTextAlign(cview.AlignLeft)
+	mtx.SetWrap(false)
+	mtx.SetWordWrap(false)
 
 	mtx.SetDynamicColors(true)
 
-	side = cview.NewTextView().
-		SetScrollable(false).
-		SetTextAlign(cview.AlignLeft).
-		SetWrap(false).
-		SetWordWrap(false)
+	side = cview.NewTextView()
+	side.SetScrollable(false)
+	side.SetTextAlign(cview.AlignLeft)
+	side.SetWrap(false)
+	side.SetWordWrap(false)
 
 	side.SetDynamicColors(true)
 
-	buffer = cview.NewTextView().
-		SetScrollable(false).
-		SetTextAlign(cview.AlignLeft).
-		SetWrap(false).
-		SetWordWrap(false)
+	buffer = cview.NewTextView()
+	buffer.SetScrollable(false)
+	buffer.SetTextAlign(cview.AlignLeft)
+	buffer.SetWrap(false)
+	buffer.SetWordWrap(false)
 
 	buffer.SetDynamicColors(true)
 
 	pad := cview.NewBox()
 
-	recent = cview.NewTextView().
-		SetScrollable(true).
-		SetTextAlign(cview.AlignLeft).
-		SetWrap(true).
-		SetWordWrap(true)
+	recent = cview.NewTextView()
+	recent.SetScrollable(true)
+	recent.SetTextAlign(cview.AlignLeft)
+	recent.SetWrap(true)
+	recent.SetWordWrap(true)
 
 	gameGrid.
-		AddItem(pad, 0, 0, 4, 1, 0, 0, false).
-		AddItem(pad, 0, 1, 1, 2, 0, 0, false).
-		AddItem(mtx, 1, 1, 1, 1, 0, 0, false).
-		AddItem(side, 1, 2, 1, 1, 0, 0, false).
-		AddItem(buffer, 1, 3, 1, 1, 0, 0, false).
-		AddItem(inputView, 2, 1, 1, 3, 0, 0, true).
-		AddItem(recent, 3, 1, 1, 3, 0, 0, true)
+		AddItem(pad, 0, 0, 4, 1, 0, 0, false)
+	gameGrid.AddItem(pad, 0, 1, 1, 2, 0, 0, false)
+	gameGrid.AddItem(mtx, 1, 1, 1, 1, 0, 0, false)
+	gameGrid.AddItem(side, 1, 2, 1, 1, 0, 0, false)
+	gameGrid.AddItem(buffer, 1, 3, 1, 1, 0, 0, false)
+	gameGrid.AddItem(inputView, 2, 1, 1, 3, 0, 0, true)
+	gameGrid.AddItem(recent, 3, 1, 1, 3, 0, 0, true)
 
 	// Set up title screen
 
@@ -120,126 +119,144 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 		}
 	}
 
-	titleName = cview.NewTextView().
-		SetScrollable(false).
-		SetTextAlign(cview.AlignLeft).
-		SetWrap(false).
-		SetWordWrap(false).SetDynamicColors(true)
+	titleName = cview.NewTextView()
+	titleName.SetScrollable(false)
+	titleName.SetTextAlign(cview.AlignLeft)
+	titleName.SetWrap(false)
+	titleName.SetWordWrap(false)
+	titleName.SetDynamicColors(true)
 
-	titleL = cview.NewTextView().
-		SetScrollable(false).
-		SetTextAlign(cview.AlignLeft).
-		SetWrap(false).
-		SetWordWrap(false).SetDynamicColors(true)
+	titleL = cview.NewTextView()
+	titleL.SetScrollable(false)
+	titleL.SetTextAlign(cview.AlignLeft)
+	titleL.SetWrap(false)
+	titleL.SetWordWrap(false)
+	titleL.SetDynamicColors(true)
 
-	titleR = cview.NewTextView().
-		SetScrollable(false).
-		SetTextAlign(cview.AlignLeft).
-		SetWrap(false).
-		SetWordWrap(false).SetDynamicColors(true)
+	titleR = cview.NewTextView()
+	titleR.SetScrollable(false)
+	titleR.SetTextAlign(cview.AlignLeft)
+	titleR.SetWrap(false)
+	titleR.SetWordWrap(false)
+	titleR.SetDynamicColors(true)
 
 	go handleTitle()
 
-	buttonA = cview.NewButton("A").
-		SetSelectedFunc(func() {
-			currentSelection = 0
-			if currentScreen == screenGames {
-				currentSelection++
-			}
-			selectTitleButton()
-		})
+	buttonA = cview.NewButton("A")
+	buttonA.SetSelectedFunc(func() {
+		currentSelection = 0
+		if currentScreen == screenGames {
+			currentSelection++
+		}
+		selectTitleButton()
+	})
 	styleButton(buttonA)
-	buttonLabelA = cview.NewTextView().SetTextAlign(cview.AlignCenter)
+	buttonLabelA = cview.NewTextView()
+	buttonLabelA.SetTextAlign(cview.AlignCenter)
 
-	buttonB = cview.NewButton("B").
-		SetSelectedFunc(func() {
-			currentSelection = 1
-			if currentScreen == screenGames {
-				currentSelection++
-			}
-			selectTitleButton()
-		})
+	buttonB = cview.NewButton("B")
+	buttonB.SetSelectedFunc(func() {
+		currentSelection = 1
+		if currentScreen == screenGames {
+			currentSelection++
+		}
+		selectTitleButton()
+	})
 	styleButton(buttonB)
-	buttonLabelB = cview.NewTextView().SetTextAlign(cview.AlignCenter)
+	buttonLabelB = cview.NewTextView()
+	buttonLabelB.SetTextAlign(cview.AlignCenter)
 
-	buttonC = cview.NewButton("C").
-		SetSelectedFunc(func() {
-			currentSelection = 2
-			if currentScreen == screenGames {
-				currentSelection++
-			}
-			selectTitleButton()
-		})
+	buttonC = cview.NewButton("C")
+	buttonC.SetSelectedFunc(func() {
+		currentSelection = 2
+		if currentScreen == screenGames {
+			currentSelection++
+		}
+		selectTitleButton()
+	})
 	styleButton(buttonC)
-	buttonLabelC = cview.NewTextView().SetTextAlign(cview.AlignCenter)
+	buttonLabelC = cview.NewTextView()
+	buttonLabelC.SetTextAlign(cview.AlignCenter)
 
-	subTitle := cview.NewTextView().SetText(SubTitle + game.Version)
+	subTitle := cview.NewTextView()
+	subTitle.SetText(SubTitle + game.Version)
 
-	titleNameGrid := cview.NewGrid().SetRows(3, 2).
-		AddItem(titleName, 0, 0, 1, 1, 0, 0, false).
-		AddItem(subTitle, 1, 0, 1, 1, 0, 0, false)
+	titleNameGrid := cview.NewGrid()
+	titleNameGrid.SetRows(3, 2)
+	titleNameGrid.AddItem(titleName, 0, 0, 1, 1, 0, 0, false)
+	titleNameGrid.AddItem(subTitle, 1, 0, 1, 1, 0, 0, false)
 
-	titleGrid = cview.NewGrid().
-		SetRows(5, 3, 3, 3, 3, 3, 3).
-		SetColumns(-1, 34, -1).
-		AddItem(titleL, 0, 0, 8, 1, 0, 0, false).
-		AddItem(titleNameGrid, 0, 1, 1, 1, 0, 0, false).
-		AddItem(titleR, 0, 2, 8, 1, 0, 0, false).
-		AddItem(buttonA, 1, 1, 1, 1, 0, 0, false).
-		AddItem(buttonLabelA, 2, 1, 1, 1, 0, 0, false).
-		AddItem(buttonB, 3, 1, 1, 1, 0, 0, false).
-		AddItem(buttonLabelB, 4, 1, 1, 1, 0, 0, false).
-		AddItem(buttonC, 5, 1, 1, 1, 0, 0, false).
-		AddItem(buttonLabelC, 6, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 7, 1, 1, 1, 0, 0, false)
+	titleGrid = cview.NewGrid()
+	titleGrid.SetRows(5, 3, 3, 3, 3, 3, 3)
+	titleGrid.SetColumns(-1, 34, -1)
+	titleGrid.AddItem(titleL, 0, 0, 8, 1, 0, 0, false)
+	titleGrid.AddItem(titleNameGrid, 0, 1, 1, 1, 0, 0, false)
+	titleGrid.AddItem(titleR, 0, 2, 8, 1, 0, 0, false)
+	titleGrid.AddItem(buttonA, 1, 1, 1, 1, 0, 0, false)
+	titleGrid.AddItem(buttonLabelA, 2, 1, 1, 1, 0, 0, false)
+	titleGrid.AddItem(buttonB, 3, 1, 1, 1, 0, 0, false)
+	titleGrid.AddItem(buttonLabelB, 4, 1, 1, 1, 0, 0, false)
+	titleGrid.AddItem(buttonC, 5, 1, 1, 1, 0, 0, false)
+	titleGrid.AddItem(buttonLabelC, 6, 1, 1, 1, 0, 0, false)
+	titleGrid.AddItem(pad, 7, 1, 1, 1, 0, 0, false)
 
-	gameListView = cview.NewTextView().SetDynamicColors(true)
+	gameListView = cview.NewTextView()
+	gameListView.SetDynamicColors(true)
 
-	gameListButtonsGrid := cview.NewGrid().
-		SetColumns(-1, 1, -1, 1, -1).
-		AddItem(buttonA, 0, 0, 1, 1, 0, 0, false).
-		AddItem(pad, 0, 1, 1, 1, 0, 0, false).
-		AddItem(buttonB, 0, 2, 1, 1, 0, 0, false).
-		AddItem(pad, 0, 3, 1, 1, 0, 0, false).
-		AddItem(buttonC, 0, 4, 1, 1, 0, 0, false)
+	gameListButtonsGrid := cview.NewGrid()
+	gameListButtonsGrid.SetColumns(-1, 1, -1, 1, -1)
+	gameListButtonsGrid.AddItem(buttonA, 0, 0, 1, 1, 0, 0, false)
+	gameListButtonsGrid.AddItem(pad, 0, 1, 1, 1, 0, 0, false)
+	gameListButtonsGrid.AddItem(buttonB, 0, 2, 1, 1, 0, 0, false)
+	gameListButtonsGrid.AddItem(pad, 0, 3, 1, 1, 0, 0, false)
+	gameListButtonsGrid.AddItem(buttonC, 0, 4, 1, 1, 0, 0, false)
 
-	gameListHeader = cview.NewTextView().SetTextAlign(cview.AlignCenter)
+	gameListHeader = cview.NewTextView()
+	gameListHeader.SetTextAlign(cview.AlignCenter)
 
-	gameListHelp := cview.NewTextView().
-		SetTextAlign(cview.AlignCenter).
-		SetWrap(false).
-		SetWordWrap(false).SetText("\nRefresh: R\nPrevious: Shift+Tab - Next: Tab")
+	gameListHelp := cview.NewTextView()
+	gameListHelp.SetTextAlign(cview.AlignCenter)
+	gameListHelp.SetWrap(false)
+	gameListHelp.SetWordWrap(false)
+	gameListHelp.SetText("\nRefresh: R\nPrevious: Shift+Tab - Next: Tab")
 
-	gameListGrid = cview.NewGrid().
-		SetRows(5, 1, 14, 1, 3).
-		SetColumns(-1, 34, -1).
-		AddItem(titleL, 0, 0, 5, 1, 0, 0, false).
-		AddItem(titleNameGrid, 0, 1, 1, 1, 0, 0, false).
-		AddItem(titleR, 0, 2, 5, 1, 0, 0, false).
-		AddItem(gameListHeader, 1, 1, 1, 1, 0, 0, true).
-		AddItem(gameListView, 2, 1, 1, 1, 0, 0, true).
-		AddItem(gameListButtonsGrid, 3, 1, 1, 1, 0, 0, true).
-		AddItem(gameListHelp, 4, 1, 1, 1, 0, 0, true)
+	gameListGrid = cview.NewGrid()
+	gameListGrid.SetRows(5, 1, 14, 1, 3)
+	gameListGrid.SetColumns(-1, 34, -1)
+	gameListGrid.AddItem(titleL, 0, 0, 5, 1, 0, 0, false)
+	gameListGrid.AddItem(titleNameGrid, 0, 1, 1, 1, 0, 0, false)
+	gameListGrid.AddItem(titleR, 0, 2, 5, 1, 0, 0, false)
+	gameListGrid.AddItem(gameListHeader, 1, 1, 1, 1, 0, 0, true)
+	gameListGrid.AddItem(gameListView, 2, 1, 1, 1, 0, 0, true)
+	gameListGrid.AddItem(gameListButtonsGrid, 3, 1, 1, 1, 0, 0, true)
+	gameListGrid.AddItem(gameListHelp, 4, 1, 1, 1, 0, 0, true)
 
-	buttonNewGameCancel = cview.NewButton("Cancel").SetSelectedFunc(selectTitleFunc(3))
-	buttonNewGameStart = cview.NewButton("Start").SetSelectedFunc(selectTitleFunc(4))
+	buttonNewGameCancel = cview.NewButton("Cancel")
+	buttonNewGameCancel.SetSelectedFunc(selectTitleFunc(3))
+	buttonNewGameStart = cview.NewButton("Start")
+	buttonNewGameStart.SetSelectedFunc(selectTitleFunc(4))
 
 	styleButton(buttonNewGameCancel)
 	styleButton(buttonNewGameStart)
 
-	newGameSubmitGrid := cview.NewGrid().
-		SetColumns(-1, 10, 1, 10, -1).
-		AddItem(pad, 0, 0, 1, 1, 0, 0, false).
-		AddItem(buttonNewGameCancel, 0, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 0, 2, 1, 1, 0, 0, false).
-		AddItem(buttonNewGameStart, 0, 3, 1, 1, 0, 0, false).
-		AddItem(pad, 0, 4, 1, 1, 0, 0, false)
+	newGameSubmitGrid := cview.NewGrid()
+	newGameSubmitGrid.SetColumns(-1, 10, 1, 10, -1)
+	newGameSubmitGrid.AddItem(pad, 0, 0, 1, 1, 0, 0, false)
+	newGameSubmitGrid.AddItem(buttonNewGameCancel, 0, 1, 1, 1, 0, 0, false)
+	newGameSubmitGrid.AddItem(pad, 0, 2, 1, 1, 0, 0, false)
+	newGameSubmitGrid.AddItem(buttonNewGameStart, 0, 3, 1, 1, 0, 0, false)
+	newGameSubmitGrid.AddItem(pad, 0, 4, 1, 1, 0, 0, false)
 
-	newGameNameInput = cview.NewInputField().SetText("netris")
-	newGameMaxPlayersInput = cview.NewInputField().SetFieldWidth(3).SetAcceptanceFunc(func(textToCheck string, lastChar rune) bool {
+	newGameNameInput = cview.NewInputField()
+	newGameNameInput.SetText("netris")
+	newGameMaxPlayersInput = cview.NewInputField()
+	newGameMaxPlayersInput.SetFieldWidth(3)
+	newGameMaxPlayersInput.SetAcceptanceFunc(func(textToCheck string, lastChar rune) bool {
 		return unicode.IsDigit(lastChar) && len(textToCheck) <= 3
 	})
-	newGameSpeedLimitInput = cview.NewInputField().SetFieldWidth(3).SetAcceptanceFunc(func(textToCheck string, lastChar rune) bool {
+	newGameSpeedLimitInput = cview.NewInputField()
+	newGameSpeedLimitInput.SetFieldWidth(3)
+	newGameSpeedLimitInput.SetAcceptanceFunc(func(textToCheck string, lastChar rune) bool {
 		return unicode.IsDigit(lastChar) && len(textToCheck) <= 3
 	})
 
@@ -249,129 +266,159 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 
 	resetNewGameInputs()
 
-	newGameNameLabel := cview.NewTextView().SetText("Name")
+	newGameNameLabel := cview.NewTextView()
+	newGameNameLabel.SetText("Name")
 
-	newGameNameGrid := cview.NewGrid().
-		AddItem(newGameNameLabel, 0, 0, 1, 1, 0, 0, false).
-		AddItem(newGameNameInput, 0, 1, 1, 1, 0, 0, false)
+	newGameNameGrid := cview.NewGrid()
+	newGameNameGrid.AddItem(newGameNameLabel, 0, 0, 1, 1, 0, 0, false)
+	newGameNameGrid.AddItem(newGameNameInput, 0, 1, 1, 1, 0, 0, false)
 
-	newGameMaxPlayersLabel := cview.NewTextView().SetText("Player Limit")
+	newGameMaxPlayersLabel := cview.NewTextView()
+	newGameMaxPlayersLabel.SetText("Player Limit")
 
-	newGameMaxPlayersGrid := cview.NewGrid().
-		AddItem(newGameMaxPlayersLabel, 0, 0, 1, 1, 0, 0, false).
-		AddItem(newGameMaxPlayersInput, 0, 1, 1, 1, 0, 0, false)
+	newGameMaxPlayersGrid := cview.NewGrid()
+	newGameMaxPlayersGrid.AddItem(newGameMaxPlayersLabel, 0, 0, 1, 1, 0, 0, false)
+	newGameMaxPlayersGrid.AddItem(newGameMaxPlayersInput, 0, 1, 1, 1, 0, 0, false)
 
-	newGameSpeedLimitLabel := cview.NewTextView().SetText("Speed Limit")
+	newGameSpeedLimitLabel := cview.NewTextView()
+	newGameSpeedLimitLabel.SetText("Speed Limit")
 
-	newGameSpeedLimitGrid := cview.NewGrid().
-		AddItem(newGameSpeedLimitLabel, 0, 0, 1, 1, 0, 0, false).
-		AddItem(newGameSpeedLimitInput, 0, 1, 1, 1, 0, 0, false)
+	newGameSpeedLimitGrid := cview.NewGrid()
+	newGameSpeedLimitGrid.AddItem(newGameSpeedLimitLabel, 0, 0, 1, 1, 0, 0, false)
+	newGameSpeedLimitGrid.AddItem(newGameSpeedLimitInput, 0, 1, 1, 1, 0, 0, false)
 
-	newGameHeader := cview.NewTextView().
-		SetTextAlign(cview.AlignCenter).
-		SetWrap(false).
-		SetWordWrap(false).SetText("New Game")
+	newGameHeader := cview.NewTextView()
+	newGameHeader.SetTextAlign(cview.AlignCenter)
+	newGameHeader.SetWrap(false)
+	newGameHeader.SetWordWrap(false)
+	newGameHeader.SetText("New Game")
 
-	newGameHelp := cview.NewTextView().
-		SetTextAlign(cview.AlignCenter).
-		SetWrap(false).
-		SetWordWrap(false).SetText("\nLimits set to zero are disabled\nPrevious: Shift+Tab - Next: Tab")
+	newGameHelp := cview.NewTextView()
+	newGameHelp.SetTextAlign(cview.AlignCenter)
+	newGameHelp.SetWrap(false)
+	newGameHelp.SetWordWrap(false)
+	newGameHelp.SetText("\nLimits set to zero are disabled\nPrevious: Shift+Tab - Next: Tab")
 
-	newGameGrid = cview.NewGrid().
-		SetRows(5, 2, 1, 1, 1, 1, 1, 1, 1, -1, 3).
-		SetColumns(-1, 34, -1).
-		AddItem(titleL, 0, 0, 11, 1, 0, 0, false).
-		AddItem(titleNameGrid, 0, 1, 1, 1, 0, 0, false).
-		AddItem(titleR, 0, 2, 11, 1, 0, 0, false).
-		AddItem(newGameHeader, 1, 1, 1, 1, 0, 0, false).
-		AddItem(newGameNameGrid, 2, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 3, 1, 1, 1, 0, 0, false).
-		AddItem(newGameMaxPlayersGrid, 4, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 5, 1, 1, 1, 0, 0, false).
-		AddItem(newGameSpeedLimitGrid, 6, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 7, 1, 1, 1, 0, 0, false).
-		AddItem(newGameSubmitGrid, 8, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 9, 1, 1, 1, 0, 0, false).
-		AddItem(newGameHelp, 10, 1, 1, 1, 0, 0, false)
+	newGameGrid = cview.NewGrid()
+	newGameGrid.SetRows(5, 2, 1, 1, 1, 1, 1, 1, 1, -1, 3)
+	newGameGrid.SetColumns(-1, 34, -1)
+	newGameGrid.AddItem(titleL, 0, 0, 11, 1, 0, 0, false)
+	newGameGrid.AddItem(titleNameGrid, 0, 1, 1, 1, 0, 0, false)
+	newGameGrid.AddItem(titleR, 0, 2, 11, 1, 0, 0, false)
+	newGameGrid.AddItem(newGameHeader, 1, 1, 1, 1, 0, 0, false)
+	newGameGrid.AddItem(newGameNameGrid, 2, 1, 1, 1, 0, 0, false)
+	newGameGrid.AddItem(pad, 3, 1, 1, 1, 0, 0, false)
+	newGameGrid.AddItem(newGameMaxPlayersGrid, 4, 1, 1, 1, 0, 0, false)
+	newGameGrid.AddItem(pad, 5, 1, 1, 1, 0, 0, false)
+	newGameGrid.AddItem(newGameSpeedLimitGrid, 6, 1, 1, 1, 0, 0, false)
+	newGameGrid.AddItem(pad, 7, 1, 1, 1, 0, 0, false)
+	newGameGrid.AddItem(newGameSubmitGrid, 8, 1, 1, 1, 0, 0, false)
+	newGameGrid.AddItem(pad, 9, 1, 1, 1, 0, 0, false)
+	newGameGrid.AddItem(newGameHelp, 10, 1, 1, 1, 0, 0, false)
 
-	playerSettingsTitle := cview.NewTextView().
-		SetTextAlign(cview.AlignCenter).
-		SetWrap(false).
-		SetWordWrap(false).SetText("Player Settings")
+	playerSettingsTitle := cview.NewTextView()
+	playerSettingsTitle.SetTextAlign(cview.AlignCenter)
+	playerSettingsTitle.SetWrap(false)
+	playerSettingsTitle.SetWordWrap(false)
+	playerSettingsTitle.SetText("Player Settings")
 
-	playerSettingsNameLabel := cview.NewTextView().SetText("Name")
-	playerSettingsNameInput = cview.NewInputField().SetFieldWidth(11).SetAcceptanceFunc(func(textToCheck string, lastChar rune) bool {
+	playerSettingsNameLabel := cview.NewTextView()
+	playerSettingsNameLabel.SetText("Name")
+	playerSettingsNameInput = cview.NewInputField()
+	playerSettingsNameInput.SetFieldWidth(11)
+	playerSettingsNameInput.SetAcceptanceFunc(func(textToCheck string, lastChar rune) bool {
 		return len(textToCheck) <= 10
 	})
 	styleInputField(playerSettingsNameInput)
 
-	playerSettingsNameGrid := cview.NewGrid().
-		AddItem(playerSettingsNameLabel, 0, 0, 1, 1, 0, 0, false).
-		AddItem(playerSettingsNameInput, 0, 1, 1, 1, 0, 0, false)
+	playerSettingsNameGrid := cview.NewGrid()
+	playerSettingsNameGrid.AddItem(playerSettingsNameLabel, 0, 0, 1, 1, 0, 0, false)
+	playerSettingsNameGrid.AddItem(playerSettingsNameInput, 0, 1, 1, 1, 0, 0, false)
 
-	playerSettingsCancel = cview.NewButton("Cancel").SetSelectedFunc(selectTitleFunc(1))
-	playerSettingsSave = cview.NewButton("Save").SetSelectedFunc(selectTitleFunc(2))
+	playerSettingsCancel = cview.NewButton("Cancel")
+	playerSettingsCancel.SetSelectedFunc(selectTitleFunc(1))
+	playerSettingsSave = cview.NewButton("Save")
+	playerSettingsSave.SetSelectedFunc(selectTitleFunc(2))
 
 	styleButton(playerSettingsCancel)
 	styleButton(playerSettingsSave)
 
-	playerSettingsSubmitGrid := cview.NewGrid().
-		SetColumns(-1, 10, 1, 10, -1).
-		AddItem(pad, 0, 0, 1, 1, 0, 0, false).
-		AddItem(playerSettingsCancel, 0, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 0, 2, 1, 1, 0, 0, false).
-		AddItem(playerSettingsSave, 0, 3, 1, 1, 0, 0, false).
-		AddItem(pad, 0, 4, 1, 1, 0, 0, false)
+	playerSettingsSubmitGrid := cview.NewGrid()
+	playerSettingsSubmitGrid.SetColumns(-1, 10, 1, 10, -1)
+	playerSettingsSubmitGrid.AddItem(pad, 0, 0, 1, 1, 0, 0, false)
+	playerSettingsSubmitGrid.AddItem(playerSettingsCancel, 0, 1, 1, 1, 0, 0, false)
+	playerSettingsSubmitGrid.AddItem(pad, 0, 2, 1, 1, 0, 0, false)
+	playerSettingsSubmitGrid.AddItem(playerSettingsSave, 0, 3, 1, 1, 0, 0, false)
+	playerSettingsSubmitGrid.AddItem(pad, 0, 4, 1, 1, 0, 0, false)
 
-	playerSettingsHelp := cview.NewTextView().
-		SetTextAlign(cview.AlignCenter).
-		SetWrap(false).
-		SetWordWrap(false).SetText("Previous: Shift+Tab - Next: Tab")
+	playerSettingsHelp := cview.NewTextView()
+	playerSettingsHelp.SetTextAlign(cview.AlignCenter)
+	playerSettingsHelp.SetWrap(false)
+	playerSettingsHelp.SetWordWrap(false)
+	playerSettingsHelp.SetText("Previous: Shift+Tab - Next: Tab")
 
-	playerSettingsGrid = cview.NewGrid().
-		SetRows(5, 2, 1, 1, -1, 1, 1, 1).
-		SetColumns(-1, 34, -1).
-		AddItem(titleL, 0, 0, 8, 1, 0, 0, false).
-		AddItem(titleNameGrid, 0, 1, 1, 1, 0, 0, false).
-		AddItem(titleR, 0, 2, 8, 1, 0, 0, false).
-		AddItem(playerSettingsTitle, 1, 1, 1, 1, 0, 0, true).
-		AddItem(pad, 2, 1, 1, 1, 0, 0, false).
-		AddItem(playerSettingsNameGrid, 3, 1, 1, 1, 0, 0, true).
-		AddItem(pad, 4, 1, 1, 1, 0, 0, false).
-		AddItem(playerSettingsSubmitGrid, 5, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 6, 1, 1, 1, 0, 0, false).
-		AddItem(playerSettingsHelp, 7, 1, 1, 1, 0, 0, true)
+	playerSettingsGrid = cview.NewGrid()
+	playerSettingsGrid.SetRows(5, 2, 1, 1, -1, 1, 1, 1)
+	playerSettingsGrid.SetColumns(-1, 34, -1)
+	playerSettingsGrid.AddItem(titleL, 0, 0, 8, 1, 0, 0, false)
+	playerSettingsGrid.AddItem(titleNameGrid, 0, 1, 1, 1, 0, 0, false)
+	playerSettingsGrid.AddItem(titleR, 0, 2, 8, 1, 0, 0, false)
+	playerSettingsGrid.AddItem(playerSettingsTitle, 1, 1, 1, 1, 0, 0, true)
+	playerSettingsGrid.AddItem(pad, 2, 1, 1, 1, 0, 0, false)
+	playerSettingsGrid.AddItem(playerSettingsNameGrid, 3, 1, 1, 1, 0, 0, true)
+	playerSettingsGrid.AddItem(pad, 4, 1, 1, 1, 0, 0, false)
+	playerSettingsGrid.AddItem(playerSettingsSubmitGrid, 5, 1, 1, 1, 0, 0, false)
+	playerSettingsGrid.AddItem(pad, 6, 1, 1, 1, 0, 0, false)
+	playerSettingsGrid.AddItem(playerSettingsHelp, 7, 1, 1, 1, 0, 0, true)
 
-	gameSettingsTitle := cview.NewTextView().
-		SetTextAlign(cview.AlignCenter).
-		SetWrap(false).
-		SetWordWrap(false).SetText("Game Settings")
+	gameSettingsTitle := cview.NewTextView()
+	gameSettingsTitle.SetTextAlign(cview.AlignCenter)
+	gameSettingsTitle.SetWrap(false)
+	gameSettingsTitle.SetWordWrap(false)
+	gameSettingsTitle.SetText("Game Settings")
 
-	labelGhostPiece := cview.NewTextView().SetText("Ghost Piece")
+	labelGhostPiece := cview.NewTextView()
+	labelGhostPiece.SetText("Ghost Piece")
 
-	buttonGhostPiece = cview.NewButton("Enabled").SetSelectedFunc(selectTitleFunc(0))
+	buttonGhostPiece = cview.NewButton("Enabled")
+	buttonGhostPiece.SetSelectedFunc(selectTitleFunc(0))
 	styleButton(buttonGhostPiece)
 
-	ghostPieceGrid := cview.NewGrid().SetColumns(19, -1).
-		AddItem(labelGhostPiece, 0, 0, 1, 1, 0, 0, false).
-		AddItem(buttonGhostPiece, 0, 1, 1, 1, 0, 0, false)
+	ghostPieceGrid := cview.NewGrid()
+	ghostPieceGrid.SetColumns(19, -1)
+	ghostPieceGrid.AddItem(labelGhostPiece, 0, 0, 1, 1, 0, 0, false)
+	ghostPieceGrid.AddItem(buttonGhostPiece, 0, 1, 1, 1, 0, 0, false)
 
-	labelKeybindRotateCCW := cview.NewTextView().SetText("Rotate CCW")
-	labelKeybindRotateCW := cview.NewTextView().SetText("Rotate CW")
-	labelKeybindMoveLeft := cview.NewTextView().SetText("Move Left")
-	labelKeybindMoveRight := cview.NewTextView().SetText("Move Right")
-	labelKeybindSoftDrop := cview.NewTextView().SetText("Soft Drop")
-	labelKeybindHardDrop := cview.NewTextView().SetText("Hard Drop")
+	labelKeybindRotateCCW := cview.NewTextView()
+	labelKeybindRotateCCW.SetText("Rotate CCW")
+	labelKeybindRotateCW := cview.NewTextView()
+	labelKeybindRotateCW.SetText("Rotate CW")
+	labelKeybindMoveLeft := cview.NewTextView()
+	labelKeybindMoveLeft.SetText("Move Left")
+	labelKeybindMoveRight := cview.NewTextView()
+	labelKeybindMoveRight.SetText("Move Right")
+	labelKeybindSoftDrop := cview.NewTextView()
+	labelKeybindSoftDrop.SetText("Soft Drop")
+	labelKeybindHardDrop := cview.NewTextView()
+	labelKeybindHardDrop.SetText("Hard Drop")
 
-	buttonKeybindRotateCCW = cview.NewButton("Set").SetSelectedFunc(selectTitleFunc(1))
-	buttonKeybindRotateCW = cview.NewButton("Set").SetSelectedFunc(selectTitleFunc(2))
-	buttonKeybindMoveLeft = cview.NewButton("Set").SetSelectedFunc(selectTitleFunc(3))
-	buttonKeybindMoveRight = cview.NewButton("Set").SetSelectedFunc(selectTitleFunc(4))
-	buttonKeybindSoftDrop = cview.NewButton("Set").SetSelectedFunc(selectTitleFunc(5))
-	buttonKeybindHardDrop = cview.NewButton("Set").SetSelectedFunc(selectTitleFunc(6))
+	buttonKeybindRotateCCW = cview.NewButton("Set")
+	buttonKeybindRotateCCW.SetSelectedFunc(selectTitleFunc(1))
+	buttonKeybindRotateCW = cview.NewButton("Set")
+	buttonKeybindRotateCW.SetSelectedFunc(selectTitleFunc(2))
+	buttonKeybindMoveLeft = cview.NewButton("Set")
+	buttonKeybindMoveLeft.SetSelectedFunc(selectTitleFunc(3))
+	buttonKeybindMoveRight = cview.NewButton("Set")
+	buttonKeybindMoveRight.SetSelectedFunc(selectTitleFunc(4))
+	buttonKeybindSoftDrop = cview.NewButton("Set")
+	buttonKeybindSoftDrop.SetSelectedFunc(selectTitleFunc(5))
+	buttonKeybindHardDrop = cview.NewButton("Set")
+	buttonKeybindHardDrop.SetSelectedFunc(selectTitleFunc(6))
 
-	buttonKeybindCancel = cview.NewButton("Cancel").SetSelectedFunc(selectTitleFunc(7))
-	buttonKeybindSave = cview.NewButton("Save").SetSelectedFunc(selectTitleFunc(8))
+	buttonKeybindCancel = cview.NewButton("Cancel")
+	buttonKeybindCancel.SetSelectedFunc(selectTitleFunc(7))
+	buttonKeybindSave = cview.NewButton("Save")
+	buttonKeybindSave.SetSelectedFunc(selectTitleFunc(8))
 
 	styleButton(buttonKeybindRotateCCW)
 	styleButton(buttonKeybindRotateCW)
@@ -382,113 +429,132 @@ func initGUI(skipTitle bool) (*cview.Application, error) {
 	styleButton(buttonKeybindCancel)
 	styleButton(buttonKeybindSave)
 
-	rotateCCWGrid := cview.NewGrid().SetColumns(27, -1).
-		AddItem(labelKeybindRotateCCW, 0, 0, 1, 1, 0, 0, false).
-		AddItem(buttonKeybindRotateCCW, 0, 1, 1, 1, 0, 0, false)
+	rotateCCWGrid := cview.NewGrid()
+	rotateCCWGrid.SetColumns(27, -1)
+	rotateCCWGrid.AddItem(labelKeybindRotateCCW, 0, 0, 1, 1, 0, 0, false)
+	rotateCCWGrid.AddItem(buttonKeybindRotateCCW, 0, 1, 1, 1, 0, 0, false)
 
-	rotateCWGrid := cview.NewGrid().SetColumns(27, -1).
-		AddItem(labelKeybindRotateCW, 0, 0, 1, 1, 0, 0, false).
-		AddItem(buttonKeybindRotateCW, 0, 1, 1, 1, 0, 0, false)
+	rotateCWGrid := cview.NewGrid()
+	rotateCWGrid.SetColumns(27, -1)
+	rotateCWGrid.AddItem(labelKeybindRotateCW, 0, 0, 1, 1, 0, 0, false)
+	rotateCWGrid.AddItem(buttonKeybindRotateCW, 0, 1, 1, 1, 0, 0, false)
 
-	moveLeftGrid := cview.NewGrid().SetColumns(27, -1).
-		AddItem(labelKeybindMoveLeft, 0, 0, 1, 1, 0, 0, false).
-		AddItem(buttonKeybindMoveLeft, 0, 1, 1, 1, 0, 0, false)
+	moveLeftGrid := cview.NewGrid()
+	moveLeftGrid.SetColumns(27, -1)
+	moveLeftGrid.AddItem(labelKeybindMoveLeft, 0, 0, 1, 1, 0, 0, false)
+	moveLeftGrid.AddItem(buttonKeybindMoveLeft, 0, 1, 1, 1, 0, 0, false)
 
-	moveRightGrid := cview.NewGrid().SetColumns(27, -1).
-		AddItem(labelKeybindMoveRight, 0, 0, 1, 1, 0, 0, false).
-		AddItem(buttonKeybindMoveRight, 0, 1, 1, 1, 0, 0, false)
+	moveRightGrid := cview.NewGrid()
+	moveRightGrid.SetColumns(27, -1)
+	moveRightGrid.AddItem(labelKeybindMoveRight, 0, 0, 1, 1, 0, 0, false)
+	moveRightGrid.AddItem(buttonKeybindMoveRight, 0, 1, 1, 1, 0, 0, false)
 
-	softDropGrid := cview.NewGrid().SetColumns(27, -1).
-		AddItem(labelKeybindSoftDrop, 0, 0, 1, 1, 0, 0, false).
-		AddItem(buttonKeybindSoftDrop, 0, 1, 1, 1, 0, 0, false)
+	softDropGrid := cview.NewGrid()
+	softDropGrid.SetColumns(27, -1)
+	softDropGrid.AddItem(labelKeybindSoftDrop, 0, 0, 1, 1, 0, 0, false)
+	softDropGrid.AddItem(buttonKeybindSoftDrop, 0, 1, 1, 1, 0, 0, false)
 
-	hardDropGrid := cview.NewGrid().SetColumns(27, -1).
-		AddItem(labelKeybindHardDrop, 0, 0, 1, 1, 0, 0, false).
-		AddItem(buttonKeybindHardDrop, 0, 1, 1, 1, 0, 0, false)
+	hardDropGrid := cview.NewGrid()
+	hardDropGrid.SetColumns(27, -1)
+	hardDropGrid.AddItem(labelKeybindHardDrop, 0, 0, 1, 1, 0, 0, false)
+	hardDropGrid.AddItem(buttonKeybindHardDrop, 0, 1, 1, 1, 0, 0, false)
 
-	gameSettingsSubmitGrid := cview.NewGrid().
-		SetColumns(-1, 10, 1, 10, -1).
-		AddItem(pad, 0, 0, 1, 1, 0, 0, false).
-		AddItem(buttonKeybindCancel, 0, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 0, 2, 1, 1, 0, 0, false).
-		AddItem(buttonKeybindSave, 0, 3, 1, 1, 0, 0, false).
-		AddItem(pad, 0, 4, 1, 1, 0, 0, false)
+	gameSettingsSubmitGrid := cview.NewGrid()
+	gameSettingsSubmitGrid.SetColumns(-1, 10, 1, 10, -1)
+	gameSettingsSubmitGrid.AddItem(pad, 0, 0, 1, 1, 0, 0, false)
+	gameSettingsSubmitGrid.AddItem(buttonKeybindCancel, 0, 1, 1, 1, 0, 0, false)
+	gameSettingsSubmitGrid.AddItem(pad, 0, 2, 1, 1, 0, 0, false)
+	gameSettingsSubmitGrid.AddItem(buttonKeybindSave, 0, 3, 1, 1, 0, 0, false)
+	gameSettingsSubmitGrid.AddItem(pad, 0, 4, 1, 1, 0, 0, false)
 
-	gameSettingsOptionsTitle := cview.NewTextView().
-		SetTextAlign(cview.AlignCenter).
-		SetWrap(false).
-		SetWordWrap(false).SetText("Options")
+	gameSettingsOptionsTitle := cview.NewTextView()
+	gameSettingsOptionsTitle.SetTextAlign(cview.AlignCenter)
+	gameSettingsOptionsTitle.SetWrap(false)
+	gameSettingsOptionsTitle.SetWordWrap(false)
+	gameSettingsOptionsTitle.SetText("Options")
 
-	gameSettingsKeybindsTitle := cview.NewTextView().
-		SetTextAlign(cview.AlignCenter).
-		SetWrap(false).
-		SetWordWrap(false).SetText("Keybindings")
+	gameSettingsKeybindsTitle := cview.NewTextView()
+	gameSettingsKeybindsTitle.SetTextAlign(cview.AlignCenter)
+	gameSettingsKeybindsTitle.SetWrap(false)
+	gameSettingsKeybindsTitle.SetWordWrap(false)
+	gameSettingsKeybindsTitle.SetText("Keybindings")
 
-	gameSettingsHelp := cview.NewTextView().
-		SetTextAlign(cview.AlignCenter).
-		SetWrap(false).
-		SetWordWrap(false).SetText("\nPrevious: Shift+Tab - Next: Tab")
+	gameSettingsHelp := cview.NewTextView()
+	gameSettingsHelp.SetTextAlign(cview.AlignCenter)
+	gameSettingsHelp.SetWrap(false)
+	gameSettingsHelp.SetWordWrap(false)
+	gameSettingsHelp.SetText("\nPrevious: Shift+Tab - Next: Tab")
 
-	gameSettingsGrid = cview.NewGrid().
-		SetRows(5, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, -1).
-		SetColumns(-1, 34, -1).
-		AddItem(titleL, 0, 0, 18, 1, 0, 0, false).
-		AddItem(titleNameGrid, 0, 1, 1, 1, 0, 0, false).
-		AddItem(titleR, 0, 2, 18, 1, 0, 0, false).
-		AddItem(gameSettingsTitle, 1, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 2, 1, 1, 1, 0, 0, false).
-		AddItem(gameSettingsOptionsTitle, 3, 1, 1, 1, 0, 0, false).
-		AddItem(ghostPieceGrid, 4, 1, 1, 1, 0, 0, false).
-		AddItem(ghostPieceGrid, 5, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 6, 1, 1, 1, 0, 0, false).
-		AddItem(gameSettingsKeybindsTitle, 7, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 8, 1, 1, 1, 0, 0, false).
-		AddItem(rotateCCWGrid, 9, 1, 1, 1, 0, 0, false).
-		AddItem(rotateCWGrid, 10, 1, 1, 1, 0, 0, false).
-		AddItem(moveLeftGrid, 11, 1, 1, 1, 0, 0, false).
-		AddItem(moveRightGrid, 12, 1, 1, 1, 0, 0, false).
-		AddItem(softDropGrid, 13, 1, 1, 1, 0, 0, false).
-		AddItem(hardDropGrid, 14, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 15, 1, 1, 1, 0, 0, false).
-		AddItem(gameSettingsSubmitGrid, 16, 1, 1, 1, 0, 0, false).
-		AddItem(gameSettingsHelp, 17, 1, 1, 1, 0, 0, false)
+	gameSettingsGrid = cview.NewGrid()
+	gameSettingsGrid.SetRows(5, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, -1)
+	gameSettingsGrid.SetColumns(-1, 34, -1)
+	gameSettingsGrid.AddItem(titleL, 0, 0, 18, 1, 0, 0, false)
+	gameSettingsGrid.AddItem(titleNameGrid, 0, 1, 1, 1, 0, 0, false)
+	gameSettingsGrid.AddItem(titleR, 0, 2, 18, 1, 0, 0, false)
+	gameSettingsGrid.AddItem(gameSettingsTitle, 1, 1, 1, 1, 0, 0, false)
+	gameSettingsGrid.AddItem(pad, 2, 1, 1, 1, 0, 0, false)
+	gameSettingsGrid.AddItem(gameSettingsOptionsTitle, 3, 1, 1, 1, 0, 0, false)
+	gameSettingsGrid.AddItem(ghostPieceGrid, 4, 1, 1, 1, 0, 0, false)
+	gameSettingsGrid.AddItem(ghostPieceGrid, 5, 1, 1, 1, 0, 0, false)
+	gameSettingsGrid.AddItem(pad, 6, 1, 1, 1, 0, 0, false)
+	gameSettingsGrid.AddItem(gameSettingsKeybindsTitle, 7, 1, 1, 1, 0, 0, false)
+	gameSettingsGrid.AddItem(pad, 8, 1, 1, 1, 0, 0, false)
+	gameSettingsGrid.AddItem(rotateCCWGrid, 9, 1, 1, 1, 0, 0, false)
+	gameSettingsGrid.AddItem(rotateCWGrid, 10, 1, 1, 1, 0, 0, false)
+	gameSettingsGrid.AddItem(moveLeftGrid, 11, 1, 1, 1, 0, 0, false)
+	gameSettingsGrid.AddItem(moveRightGrid, 12, 1, 1, 1, 0, 0, false)
+	gameSettingsGrid.AddItem(softDropGrid, 13, 1, 1, 1, 0, 0, false)
+	gameSettingsGrid.AddItem(hardDropGrid, 14, 1, 1, 1, 0, 0, false)
+	gameSettingsGrid.AddItem(pad, 15, 1, 1, 1, 0, 0, false)
+	gameSettingsGrid.AddItem(gameSettingsSubmitGrid, 16, 1, 1, 1, 0, 0, false)
+	gameSettingsGrid.AddItem(gameSettingsHelp, 17, 1, 1, 1, 0, 0, false)
 
-	titleContainerGrid = cview.NewGrid().SetColumns(-1, 80, -1).SetRows(-1, 24, -1).
-		AddItem(pad, 0, 0, 1, 3, 0, 0, false).
-		AddItem(pad, 1, 0, 1, 1, 0, 0, false).
-		AddItem(titleGrid, 1, 1, 1, 1, 0, 0, true).
-		AddItem(pad, 1, 2, 1, 1, 0, 0, false).
-		AddItem(pad, 0, 0, 1, 3, 0, 0, false)
+	titleContainerGrid = cview.NewGrid()
+	titleContainerGrid.SetColumns(-1, 80, -1)
+	titleContainerGrid.SetRows(-1, 24, -1)
+	titleContainerGrid.AddItem(pad, 0, 0, 1, 3, 0, 0, false)
+	titleContainerGrid.AddItem(pad, 1, 0, 1, 1, 0, 0, false)
+	titleContainerGrid.AddItem(titleGrid, 1, 1, 1, 1, 0, 0, true)
+	titleContainerGrid.AddItem(pad, 1, 2, 1, 1, 0, 0, false)
+	titleContainerGrid.AddItem(pad, 0, 0, 1, 3, 0, 0, false)
 
-	gameListContainerGrid = cview.NewGrid().SetColumns(-1, 80, -1).SetRows(-1, 24, -1).
-		AddItem(pad, 0, 0, 1, 3, 0, 0, false).
-		AddItem(pad, 1, 0, 1, 1, 0, 0, false).
-		AddItem(gameListGrid, 1, 1, 1, 1, 0, 0, true).
-		AddItem(pad, 1, 2, 1, 1, 0, 0, false).
-		AddItem(pad, 0, 0, 1, 3, 0, 0, false)
+	gameListContainerGrid = cview.NewGrid()
+	gameListContainerGrid.SetColumns(-1, 80, -1)
+	gameListContainerGrid.SetRows(-1, 24, -1)
+	gameListContainerGrid.AddItem(pad, 0, 0, 1, 3, 0, 0, false)
+	gameListContainerGrid.AddItem(pad, 1, 0, 1, 1, 0, 0, false)
+	gameListContainerGrid.AddItem(gameListGrid, 1, 1, 1, 1, 0, 0, true)
+	gameListContainerGrid.AddItem(pad, 1, 2, 1, 1, 0, 0, false)
+	gameListContainerGrid.AddItem(pad, 0, 0, 1, 3, 0, 0, false)
 
-	newGameContainerGrid = cview.NewGrid().SetColumns(-1, 80, -1).SetRows(-1, 24, -1).
-		AddItem(pad, 0, 0, 1, 3, 0, 0, false).
-		AddItem(pad, 1, 0, 1, 1, 0, 0, false).
-		AddItem(newGameGrid, 1, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 1, 2, 1, 1, 0, 0, false).
-		AddItem(pad, 0, 0, 1, 3, 0, 0, false)
+	newGameContainerGrid = cview.NewGrid()
+	newGameContainerGrid.SetColumns(-1, 80, -1)
+	newGameContainerGrid.SetRows(-1, 24, -1)
+	newGameContainerGrid.AddItem(pad, 0, 0, 1, 3, 0, 0, false)
+	newGameContainerGrid.AddItem(pad, 1, 0, 1, 1, 0, 0, false)
+	newGameContainerGrid.AddItem(newGameGrid, 1, 1, 1, 1, 0, 0, false)
+	newGameContainerGrid.AddItem(pad, 1, 2, 1, 1, 0, 0, false)
+	newGameContainerGrid.AddItem(pad, 0, 0, 1, 3, 0, 0, false)
 
-	playerSettingsContainerGrid = cview.NewGrid().SetColumns(-1, 80, -1).SetRows(-1, 24, -1).
-		AddItem(pad, 0, 0, 1, 3, 0, 0, false).
-		AddItem(pad, 1, 0, 1, 1, 0, 0, false).
-		AddItem(playerSettingsGrid, 1, 1, 1, 1, 0, 0, true).
-		AddItem(pad, 1, 2, 1, 1, 0, 0, false).
-		AddItem(pad, 0, 0, 1, 3, 0, 0, false)
+	playerSettingsContainerGrid = cview.NewGrid()
+	playerSettingsContainerGrid.SetColumns(-1, 80, -1)
+	playerSettingsContainerGrid.SetRows(-1, 24, -1)
+	playerSettingsContainerGrid.AddItem(pad, 0, 0, 1, 3, 0, 0, false)
+	playerSettingsContainerGrid.AddItem(pad, 1, 0, 1, 1, 0, 0, false)
+	playerSettingsContainerGrid.AddItem(playerSettingsGrid, 1, 1, 1, 1, 0, 0, true)
+	playerSettingsContainerGrid.AddItem(pad, 1, 2, 1, 1, 0, 0, false)
+	playerSettingsContainerGrid.AddItem(pad, 0, 0, 1, 3, 0, 0, false)
 
-	gameSettingsContainerGrid = cview.NewGrid().SetColumns(-1, 80, -1).SetRows(-1, 24, -1).
-		AddItem(pad, 0, 0, 1, 3, 0, 0, false).
-		AddItem(pad, 1, 0, 1, 1, 0, 0, false).
-		AddItem(gameSettingsGrid, 1, 1, 1, 1, 0, 0, false).
-		AddItem(pad, 1, 2, 1, 1, 0, 0, false).
-		AddItem(pad, 0, 0, 1, 3, 0, 0, false)
+	gameSettingsContainerGrid = cview.NewGrid()
+	gameSettingsContainerGrid.SetColumns(-1, 80, -1)
+	gameSettingsContainerGrid.SetRows(-1, 24, -1)
+	gameSettingsContainerGrid.AddItem(pad, 0, 0, 1, 3, 0, 0, false)
+	gameSettingsContainerGrid.AddItem(pad, 1, 0, 1, 1, 0, 0, false)
+	gameSettingsContainerGrid.AddItem(gameSettingsGrid, 1, 1, 1, 1, 0, 0, false)
+	gameSettingsContainerGrid.AddItem(pad, 1, 2, 1, 1, 0, 0, false)
+	gameSettingsContainerGrid.AddItem(pad, 0, 0, 1, 3, 0, 0, false)
 
-	app = app.SetInputCapture(handleKeypress)
+	app.SetInputCapture(handleKeypress)
 
 	if !skipTitle {
 		app.SetRoot(titleContainerGrid, true)

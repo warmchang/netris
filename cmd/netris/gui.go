@@ -172,7 +172,8 @@ func handleResize(width int, height int) {
 		showLogLines = 1
 	}
 
-	gameGrid.SetRows(screenPadding, mainHeight, inputHeight, -1).SetColumns(screenPadding+1, 5+(10*xMultiplier), previewWidth, -1)
+	gameGrid.SetRows(screenPadding, mainHeight, inputHeight, -1)
+	gameGrid.SetColumns(screenPadding+1, 5+(10*xMultiplier), previewWidth, -1)
 
 	draw <- event.DrawAll
 }

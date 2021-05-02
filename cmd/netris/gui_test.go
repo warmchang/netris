@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"gitlab.com/tslocum/netris/pkg/mino"
+	"code.rocketnine.space/tslocum/netris/pkg/mino"
 )
 
 func TestRenderMatrix(t *testing.T) {

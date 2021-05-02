@@ -1,6 +1,7 @@
 package main
 
 import (
+	"code.rocketnine.space/tslocum/ez"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -17,10 +18,10 @@ import (
 	"syscall"
 	"time"
 
+	"code.rocketnine.space/tslocum/netris/pkg/event"
+	"code.rocketnine.space/tslocum/netris/pkg/game"
+	"code.rocketnine.space/tslocum/netris/pkg/mino"
 	"github.com/mattn/go-isatty"
-	"gitlab.com/tslocum/netris/pkg/event"
-	"gitlab.com/tslocum/netris/pkg/game"
-	"gitlab.com/tslocum/netris/pkg/mino"
 )
 
 var (
@@ -103,17 +104,21 @@ func main() {
 		logLevel = game.LogDebug
 	}
 
-	if configPath == "" {
-		configPath = defaultConfigPath()
-	}
-
 	if debugAddress != "" {
 		go func() {
 			log.Fatal(http.ListenAndServe(debugAddress, nil))
 		}()
 	}
 
-	err := readConfig(configPath)
+	if configPath == "" {
+		var err error
+		configPath, err = ez.DefaultConfigPath("netris")
+		if err != nil {
+			log.Fatalf("failed to determine default configuration path: %s", err)
+		}
+	}
+
+	err := ez.Deserialize(config, configPath)
 	if err != nil {
 		log.Fatalf("failed to read configuration file: %s", err)
 	}
@@ -140,9 +145,9 @@ func main() {
 	setBorderColor(config.Colors[event.GameColorBorder])
 
 	if nicknameFlag != "" && game.Nickname(nicknameFlag) != "" {
-		nickname = game.Nickname(nicknameFlag)
+		config.Name = game.Nickname(nicknameFlag)
 	} else if config.Name != "" && game.Nickname(config.Name) != "" {
-		nickname = game.Nickname(config.Name)
+		config.Name = game.Nickname(config.Name)
 	}
 
 	app, err := initGUI(connectAddress != "")
@@ -203,7 +208,7 @@ func main() {
 
 		closeGUI()
 
-		err := saveConfig(configPath)
+		err := ez.Serialize(config, configPath)
 		if err != nil {
 			log.Printf("warning: failed to save configuration: %s", err)
 		}
@@ -255,7 +260,7 @@ func main() {
 				newGame = &game.ListedGame{Name: game.GameName(newGameNameInput.GetText()), MaxPlayers: maxPlayers, SpeedLimit: speedLimit}
 			}
 
-			activeGame, err = activeGameConn.JoinGame(nickname, gameID, newGame, logger, draw)
+			activeGame, err = activeGameConn.JoinGame(config.Name, gameID, newGame, logger, draw)
 			if err != nil {
 				log.Fatalf("failed to connect to %s: %s", connectAddress, err)
 			}
@@ -301,7 +306,7 @@ func main() {
 			log.Fatalf("failed to create local game: %s", err)
 		}
 
-		activeGame, err = activeGameConn.JoinGame(nickname, event.GameIDNewLocal, nil, logger, draw)
+		activeGame, err = activeGameConn.JoinGame(config.Name, event.GameIDNewLocal, nil, logger, draw)
 		if err != nil {
 			log.Fatalf("failed to join local game: %s", err)
 		}

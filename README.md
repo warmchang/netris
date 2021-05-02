@@ -1,5 +1,4 @@
 # netris
-[![CI status](https://gitlab.com/tslocum/netris/badges/master/pipeline.svg)](https://gitlab.com/tslocum/netris/commits/master)
 [![Donate](https://img.shields.io/liberapay/receives/rocketnine.space.svg?logo=liberapay)](https://liberapay.com/rocketnine.space)
 
 Multiplayer Tetris clone
@@ -33,26 +32,26 @@ Windows and Linux binaries are available.
 ### Compile
 
 ```bash
-go get gitlab.com/tslocum/netris/cmd/netris
+go get code.rocketnine.space/tslocum/netris/cmd/netris
 ```
 
 ## Configure
 
-See [CONFIGURATION.md](https://gitlab.com/tslocum/netris/blob/master/CONFIGURATION.md)
+See [CONFIGURATION.md](https://code.rocketnine.space/tslocum/netris/src/branch/master/CONFIGURATION.md)
 
 ## How to Play
 
-See [GAMEPLAY.md](https://gitlab.com/tslocum/netris/blob/master/GAMEPLAY.md)
+See [GAMEPLAY.md](https://code.rocketnine.space/tslocum/netris/src/branch/master/GAMEPLAY.md)
 
 ## Support
 
-Please share issues and suggestions [here](https://gitlab.com/tslocum/netris/issues).
+Please share issues and suggestions [here](https://code.rocketnine.space/tslocum/netris/issues).
 
 ## Libraries
 
 The following libraries are used to build netris:
 
-* [tslocum/cview](https://gitlab.com/tslocum/cview) - User interface
+* [tslocum/cview](https://code.rocketnine.space/tslocum/cview) - User interface
 * [gdamore/tcell](https://github.com/gdamore/tcell) - User interface
 * [gliderlabs/ssh](https://github.com/gliderlabs/ssh) - SSH server
 * [creack/pty](https://github.com/creack/pty) - Pseudo-terminal interface

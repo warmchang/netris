@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/tslocum/netris/pkg/event"
+	"code.rocketnine.space/tslocum/netris/pkg/event"
 )
 
 const (

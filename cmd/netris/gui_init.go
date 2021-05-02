@@ -5,10 +5,10 @@ import (
 	"unicode"
 
 	"github.com/gdamore/tcell/v2"
-	"gitlab.com/tslocum/cview"
-	"gitlab.com/tslocum/netris/pkg/event"
-	"gitlab.com/tslocum/netris/pkg/game"
-	"gitlab.com/tslocum/netris/pkg/mino"
+	"code.rocketnine.space/tslocum/cview"
+	"code.rocketnine.space/tslocum/netris/pkg/event"
+	"code.rocketnine.space/tslocum/netris/pkg/game"
+	"code.rocketnine.space/tslocum/netris/pkg/mino"
 )
 
 func initGUI(skipTitle bool) (*cview.Application, error) {

@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
-	"gitlab.com/tslocum/cbind"
-	"gitlab.com/tslocum/netris/pkg/event"
-	"gitlab.com/tslocum/netris/pkg/game"
+	"code.rocketnine.space/tslocum/cbind"
+	"code.rocketnine.space/tslocum/netris/pkg/event"
+	"code.rocketnine.space/tslocum/netris/pkg/game"
 )
 
 type Keybinding struct {

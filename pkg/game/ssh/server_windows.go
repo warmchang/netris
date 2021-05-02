@@ -2,7 +2,7 @@
 
 package ssh
 
-import "gitlab.com/tslocum/netris/pkg/game"
+import "code.rocketnine.space/tslocum/netris/pkg/game"
 
 // SSH server is unsupported on Windows
 

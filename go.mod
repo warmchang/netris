@@ -11,5 +11,5 @@ require (
 	github.com/gdamore/tcell/v2 v2.3.3
 	github.com/gliderlabs/ssh v0.3.1
 	github.com/mattn/go-isatty v0.0.12
-	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
+	golang.org/x/crypto v0.1.0
 )

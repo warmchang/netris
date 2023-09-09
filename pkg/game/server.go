@@ -15,7 +15,7 @@ import (
 
 const (
 	DefaultPort   = 1984
-	DefaultServer = "netris.rocketnine.space"
+	DefaultServer = "playnetris.com"
 )
 
 type Server struct {

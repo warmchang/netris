@@ -7,16 +7,15 @@ import (
 	"time"
 
 	"code.rocketnine.space/tslocum/cbind"
-
-	"github.com/gdamore/tcell/v2"
 	"code.rocketnine.space/tslocum/cview"
 	"code.rocketnine.space/tslocum/netris/pkg/event"
 	"code.rocketnine.space/tslocum/netris/pkg/game"
 	"code.rocketnine.space/tslocum/netris/pkg/mino"
+	"github.com/gdamore/tcell/v2"
 )
 
 const (
-	SubTitle = " .rocketnine.space         v"
+	SubTitle = " .rocket9labs.com          v"
 )
 
 type screen int
@@ -633,12 +632,11 @@ func selectTitleFunc(i int) func() {
 }
 
 func styleButton(button *cview.Button) {
-	button.
-		SetLabelColor(tcell.ColorWhite)
+	button.SetLabelColor(tcell.ColorWhite)
+	button.SetLabelColorFocused(tcell.ColorDarkGreen.TrueColor())
 	button.SetBackgroundColorFocused(tcell.ColorWhite)
 }
 
 func styleInputField(inputField *cview.InputField) {
-	inputField.
-		SetFieldTextColor(tcell.ColorWhite)
+	inputField.SetFieldTextColor(tcell.ColorWhite)
 }

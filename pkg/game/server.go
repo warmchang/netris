@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"code.rocketnine.space/tslocum/netris/pkg/event"
+	"code.rocket9labs.com/tslocum/netris/pkg/event"
 )
 
 const (

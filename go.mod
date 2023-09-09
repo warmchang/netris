@@ -1,4 +1,4 @@
-module code.rocketnine.space/tslocum/netris
+module code.rocket9labs.com/tslocum/netris
 
 go 1.13
 

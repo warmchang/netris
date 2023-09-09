@@ -30,7 +30,7 @@ Windows and Linux binaries are available.
 ### Compile
 
 ```bash
-go get code.rocketnine.space/tslocum/netris/cmd/netris
+go get code.rocket9labs.com/tslocum/netris/cmd/netris
 ```
 
 ## Configure

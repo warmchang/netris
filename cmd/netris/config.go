@@ -3,7 +3,7 @@ package main
 import (
 	"regexp"
 
-	"code.rocketnine.space/tslocum/netris/pkg/event"
+	"code.rocket9labs.com/tslocum/netris/pkg/event"
 )
 
 type appConfig struct {
@@ -15,7 +15,7 @@ type appConfig struct {
 var config = &appConfig{
 	Input:  make(map[event.GameAction][]string),
 	Colors: make(map[event.GameColor]string),
-	Name: "Anonymous",
+	Name:   "Anonymous",
 }
 
 var regexpColor = regexp.MustCompile(`^#([0-9a-f]{3}|[0-9a-f]{6})$`)

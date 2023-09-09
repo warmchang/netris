@@ -7,10 +7,10 @@ import (
 	"runtime/pprof"
 	"strings"
 
-	"github.com/gdamore/tcell/v2"
+	"code.rocket9labs.com/tslocum/netris/pkg/event"
+	"code.rocket9labs.com/tslocum/netris/pkg/game"
 	"code.rocketnine.space/tslocum/cbind"
-	"code.rocketnine.space/tslocum/netris/pkg/event"
-	"code.rocketnine.space/tslocum/netris/pkg/game"
+	"github.com/gdamore/tcell/v2"
 )
 
 type Keybinding struct {

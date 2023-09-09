@@ -18,7 +18,7 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/gliderlabs/ssh"
-	"code.rocketnine.space/tslocum/netris/pkg/game"
+	"code.rocket9labs.com/tslocum/netris/pkg/game"
 	gossh "golang.org/x/crypto/ssh"
 )
 

@@ -4,11 +4,11 @@ import (
 	"log"
 	"unicode"
 
-	"github.com/gdamore/tcell/v2"
+	"code.rocket9labs.com/tslocum/netris/pkg/event"
+	"code.rocket9labs.com/tslocum/netris/pkg/game"
+	"code.rocket9labs.com/tslocum/netris/pkg/mino"
 	"code.rocketnine.space/tslocum/cview"
-	"code.rocketnine.space/tslocum/netris/pkg/event"
-	"code.rocketnine.space/tslocum/netris/pkg/game"
-	"code.rocketnine.space/tslocum/netris/pkg/mino"
+	"github.com/gdamore/tcell/v2"
 )
 
 func initGUI(skipTitle bool) (*cview.Application, error) {

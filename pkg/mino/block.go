@@ -1,6 +1,6 @@
 package mino
 
-import "code.rocketnine.space/tslocum/netris/pkg/event"
+import "code.rocket9labs.com/tslocum/netris/pkg/event"
 
 // Dark color ghosts are 60% original overlaid #777777
 // Light color ghosts are 40% original overlaid #888888

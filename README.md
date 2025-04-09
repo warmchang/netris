@@ -15,7 +15,7 @@ https://playnetris.com
 
 ## Screenshot
 
-[![](https://netris.rocket9labs.com/static/screenshot5.png)](https://netris.rocket9labs.com/static/screenshot5.png)
+[![Screenshot](https://codeberg.org/tslocum/netris/raw/branch/main/screenshot.png)](https://codeberg.org/tslocum/netris/src/branch/main/screenshot.png)
 
 ## Install
 
@@ -23,33 +23,31 @@ Choose one of the following methods:
 
 ### Download
 
-[**Download netris**](https://netris.rocket9labs.com/download/?sort=name&order=desc)
-
-Windows and Linux binaries are available.
+[**Download netris**](https://codeberg.org/tslocum/netris/releases)
 
 ### Compile
 
 ```bash
-go get code.rocket9labs.com/tslocum/netris/cmd/netris
+go install codeberg.org/tslocum/netris/cmd/netris@latest
 ```
 
 ## Configure
 
-See [CONFIGURATION.md](https://code.rocket9labs.com/tslocum/netris/src/branch/master/CONFIGURATION.md)
+See [CONFIGURATION.md](https://codeberg.org/tslocum/netris/src/branch/main/CONFIGURATION.md)
 
 ## How to Play
 
-See [GAMEPLAY.md](https://code.rocket9labs.com/tslocum/netris/src/branch/master/GAMEPLAY.md)
+See [GAMEPLAY.md](https://codeberg.org/tslocum/netris/src/branch/main/GAMEPLAY.md)
 
 ## Support
 
-Please share issues and suggestions [here](https://code.rocket9labs.com/tslocum/netris/issues).
+Please share issues and suggestions [here](https://codeberg.org/tslocum/netris/issues).
 
 ## Libraries
 
 The following libraries are used to build netris:
 
-* [tslocum/cview](https://code.rocket9labs.com/tslocum/cview) - User interface
+* [tslocum/cview](https://codeberg.org/tslocum/cview) - User interface
 * [gdamore/tcell](https://github.com/gdamore/tcell) - User interface
 * [gliderlabs/ssh](https://github.com/gliderlabs/ssh) - SSH server
 * [creack/pty](https://github.com/creack/pty) - Pseudo-terminal interface

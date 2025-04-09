@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"time"
 
-	"code.rocket9labs.com/tslocum/netris/pkg/mino"
+	"codeberg.org/tslocum/netris/pkg/mino"
 )
 
 type Command int

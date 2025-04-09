@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"code.rocket9labs.com/tslocum/netris/pkg/event"
-	"code.rocket9labs.com/tslocum/netris/pkg/mino"
+	"codeberg.org/tslocum/netris/pkg/event"
+	"codeberg.org/tslocum/netris/pkg/mino"
 )
 
 const (

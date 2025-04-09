@@ -1,8 +1,8 @@
-//+build windows
+//go:build windows
 
 package ssh
 
-import "code.rocket9labs.com/tslocum/netris/pkg/game"
+import "codeberg.org/tslocum/netris/pkg/game"
 
 // SSH server is unsupported on Windows
 

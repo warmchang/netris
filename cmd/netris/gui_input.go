@@ -7,9 +7,9 @@ import (
 	"runtime/pprof"
 	"strings"
 
-	"code.rocket9labs.com/tslocum/netris/pkg/event"
-	"code.rocket9labs.com/tslocum/netris/pkg/game"
-	"code.rocketnine.space/tslocum/cbind"
+	"codeberg.org/tslocum/cbind"
+	"codeberg.org/tslocum/netris/pkg/event"
+	"codeberg.org/tslocum/netris/pkg/game"
 	"github.com/gdamore/tcell/v2"
 )
 

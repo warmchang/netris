@@ -17,10 +17,9 @@ import (
 	"syscall"
 	"time"
 
-	"code.rocket9labs.com/tslocum/netris/pkg/event"
-	"code.rocket9labs.com/tslocum/netris/pkg/game"
-	"code.rocket9labs.com/tslocum/netris/pkg/mino"
-	"code.rocketnine.space/tslocum/ez"
+	"codeberg.org/tslocum/netris/pkg/event"
+	"codeberg.org/tslocum/netris/pkg/game"
+	"codeberg.org/tslocum/netris/pkg/mino"
 	"github.com/mattn/go-isatty"
 )
 
@@ -112,13 +111,13 @@ func main() {
 
 	if configPath == "" {
 		var err error
-		configPath, err = ez.DefaultConfigPath("netris")
+		configPath, err = defaultConfigPath()
 		if err != nil {
 			log.Fatalf("failed to determine default configuration path: %s", err)
 		}
 	}
 
-	err := ez.Deserialize(config, configPath)
+	err := deserializeConfig(configPath)
 	if err != nil {
 		log.Fatalf("failed to read configuration file: %s", err)
 	}
@@ -208,7 +207,7 @@ func main() {
 
 		closeGUI()
 
-		err := ez.Serialize(config, configPath)
+		err := serializeConfig(configPath)
 		if err != nil {
 			log.Printf("warning: failed to save configuration: %s", err)
 		}

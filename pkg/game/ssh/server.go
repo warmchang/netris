@@ -1,4 +1,4 @@
-//+build !windows
+//go:build !windows
 
 package ssh
 
@@ -16,9 +16,9 @@ import (
 	"time"
 	"unsafe"
 
+	"codeberg.org/tslocum/netris/pkg/game"
 	"github.com/creack/pty"
 	"github.com/gliderlabs/ssh"
-	"code.rocket9labs.com/tslocum/netris/pkg/game"
 	gossh "golang.org/x/crypto/ssh"
 )
 

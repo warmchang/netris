@@ -10,9 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"code.rocket9labs.com/tslocum/netris/pkg/event"
-	"code.rocket9labs.com/tslocum/netris/pkg/game"
-	"code.rocket9labs.com/tslocum/netris/pkg/game/ssh"
+	"codeberg.org/tslocum/netris/pkg/event"
+	"codeberg.org/tslocum/netris/pkg/game"
+	"codeberg.org/tslocum/netris/pkg/game/ssh"
 )
 
 var (

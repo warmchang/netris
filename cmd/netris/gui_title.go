@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"time"
 
-	"code.rocket9labs.com/tslocum/netris/pkg/event"
-	"code.rocket9labs.com/tslocum/netris/pkg/game"
-	"code.rocket9labs.com/tslocum/netris/pkg/mino"
-	"code.rocketnine.space/tslocum/cbind"
-	"code.rocketnine.space/tslocum/cview"
+	"codeberg.org/tslocum/cbind"
+	"codeberg.org/tslocum/cview"
+	"codeberg.org/tslocum/netris/pkg/event"
+	"codeberg.org/tslocum/netris/pkg/game"
+	"codeberg.org/tslocum/netris/pkg/mino"
 	"github.com/gdamore/tcell/v2"
 )
 
